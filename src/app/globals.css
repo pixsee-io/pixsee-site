@@ -1,0 +1,445 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+
+@font-face {
+  font-family: 'Havelock';
+  src: url('/fonts/HavelockRegular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Havelock';
+  src: url('/fonts/HavelockMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@import "tailwindcss";
+
+
+
+@theme {
+  --color-litBlack: #3f1c6d;
+  --color-litLime: #5BC056;
+  --color-litBlue: #42a5f5;
+  --color-litMag: #b5307e;
+  --color-litPeach: #F7F5F3;
+  --color-litOrange: #F3C11B;
+  --color-litRed: #ff3d94;
+  --color-litPurple: #6a2a98;
+  --color-litDarkPurple: #3f1c6d;
+  --color-litBlue2: #2289E1;
+  --color-litBlue3: #107ED7;
+  --color-litBlue4: #0871C6;
+  --color-litBlue5: #025AA0;
+  --color-litBlue6: #004881;
+  --color-litGray: #4A4A4A;
+  --color-litWhite: #FFFFFF;
+  --color-litBeige: #F7F5F3;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+/* Tooltip container */
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.animate-shake {
+  animation: shake 1.9s ease-in-out 0s infinite;
+  animation-delay: 0ms;
+  animation-iteration-count: infinite;
+}
+
+@keyframes shake-pause {
+  0%,
+  10% {
+    transform: translateX(0);
+  }
+  20%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-10px);
+  }
+  40%,
+  60%,
+  80% {
+    transform: translateX(10px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+.animate-shake {
+  animation: shake-pause 4.6s ease-in-out infinite;
+}
+/* Fire animation */
+@keyframes fire {
+  0% {
+    transform: scale(1) translateY(0);
+    filter: brightness(0.5);
+  }
+  25% {
+    transform: scale(1) translateY(0px);
+    filter: brightness(0.6);
+  }
+  50% {
+    transform: scale(1.1) translateY(111);
+    filter: brightness(1.6);
+    rotate: 360deg;
+  }
+  75% {
+    transform: scale(1) translateY(111);
+    filter: brightness(1.8);
+    filter: brightness(0.8);
+  }
+  80% {
+    transform: scale(3.6) translateY(111px);
+
+    filter: brightness(0.5);
+  }
+  100% {
+    transform: scale(3.6) translateY(111px);
+
+    filter: brightness(1.5);
+  }
+}
+:root {
+  --glitter: url('https://assets.codepen.io/13471/silver-glitter-background.png');
+}
+
+/* Fire effect */
+@keyframes fire {
+  0% {
+    background-position:
+      center 0px,
+      center 0px,
+      150% 100%,
+      center center;
+  }
+  100% {
+    background-position:
+      center -550px,
+      center -670px,
+      50% 100%,
+      center center;
+  }
+}
+
+.fire-background {
+  position: relative;
+  z-index: -11; /* Keep card content above the fire */
+  background-color: #1d1d27;
+}
+
+.fire-background::before {
+  content: '';
+  position: absolute;
+  border-radius: 22px;
+  top: -10px;
+  left: -11px;
+  right: -11px;
+  bottom: 2px;
+  z-index: -100 !important;
+  background-image: url('https://assets.codepen.io/13471/silver-glitter-background.png'),
+    url('https://assets.codepen.io/13471/silver-glitter-background.png'),
+    linear-gradient(
+      1deg,
+      rgba(0, 0, 0, 0.2) 0px,
+      rgba(255, 81, 81, 0.7) 5px,
+      rgba(220, 118, 22, 0.4) 22%,
+      transparent 60%
+    ),
+    radial-gradient(ellipse at bottom, black 30%, rgba(56, 52, 52, 0.5) 60%);
+  background-size:
+    560px 500px,
+    400px 50px,
+    10% 200%,
+    99% 100%;
+  background-blend-mode: hard-light, color-dodge, multiply;
+  background-repeat: repeat, repeat, repeat, no-repeat;
+  filter: brightness(3.5) blur(4px) contrast(6);
+  animation: fire 1.5s linear infinite;
+  pointer-events: none; /* Fire should not interfere with user interactions */
+  mix-blend-mode: exclusion;
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+.wiggle {
+  animation: wiggle 0.4s ease-in-out;
+}
+
+
+
+.blur-content {
+  filter: blur(5px);
+}
+
+/* Tooltip text */
+.tooltip-text {
+  visibility: hidden;
+  width: 240px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%; /* Position the tooltip above the text */
+  left: 50%;
+  margin-left: -120px; /* Center the tooltip */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Tooltip arrow */
+.tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%; /* At the bottom of the tooltip */
+  left: 50%;
+  margin-left: -15px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+/* Show the tooltip text when you hover over the tooltip container */
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+.min-h-screen-90 {
+  min-height: calc(100vh - 90px);
+}
+.backdrop-blur {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+/* lit green */
+.glow {
+  animation: neon 1.5s ease-in-out infinite alternate;
+}
+
+.glow2 {
+  animation: neon2 1.5s ease-in-out infinite alternate;
+}
+
+/* lit orange small */
+.glow3 {
+  animation: neon3 1.5s ease-in-out infinite alternate;
+}
+
+/* lit lime small */
+.glow4 {
+  animation: neon4 1.5s ease-in-out infinite alternate;
+}
+
+/* lit lime small */
+.glow5 {
+  animation: neon5 1.5s ease-in-out infinite alternate;
+}
+
+.trend {
+  margin-top: 15px;
+  border-bottom: 1px solid rgba(28, 243, 178, 0.5);
+  padding-bottom: 15px;
+}
+
+.trend:first-child {
+  margin-top: 0 !important;
+}
+
+.trend:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+@keyframes neon {
+  from {
+    box-shadow:
+      0 0 3px #fff,
+      0 0 5px #fff,
+      0 0 7px #fff,
+      0 0 10px #1cf3b2,
+      0 0 17px #1cf3b2,
+      0 0 20px #1cf3b2,
+      0 0 25px #1cf3b2,
+      0 0 37px #1cf3b2;
+  }
+  to {
+    box-shadow:
+      0 0 1px #fff,
+      0 0 3px #fff,
+      0 0 4px #fff,
+      0 0 5px #1cf3b2,
+      0 0 8px #1cf3b2,
+      0 0 10px #1cf3b2,
+      0 0 12px #1cf3b2,
+      0 0 17px #1cf3b2;
+  }
+}
+
+@keyframes neon2 {
+  from {
+    box-shadow:
+      0 0 3px #000,
+      0 0 5px #000,
+      0 0 7px #000,
+      0 0 10px #f2ca51,
+      0 0 17px #f2ca51,
+      0 0 20px #f2ca51,
+      0 0 25px #f2ca51,
+      0 0 37px #f2ca51;
+  }
+  to {
+    box-shadow:
+      0 0 1px #000,
+      0 0 3px #000,
+      0 0 4px #000,
+      0 0 5px #f2ca51,
+      0 0 8px #f2ca51,
+      0 0 10px #f2ca51,
+      0 0 12px #f2ca51,
+      0 0 17px #f2ca51;
+  }
+}
+
+@keyframes neon3 {
+  from {
+    box-shadow:
+      0 0 1px #000,
+      0 0 2px #000,
+      0 0 2px #000,
+      0 0 2px #f2ca51,
+      0 0 7px #f2ca51,
+      0 0 8px #f2ca51,
+      0 0 10px #f2ca51,
+      0 0 16px #f2ca51;
+  }
+  to {
+    box-shadow:
+      0 0 1px #000,
+      0 0 2px #000,
+      0 0 2px #000,
+      0 0 2px #f2ca51,
+      0 0 8px #f2ca51,
+      0 0 5px #f2ca51,
+      0 0 5px #f2ca51,
+      0 0 8px #f2ca51;
+  }
+}
+
+@keyframes neon4 {
+  from {
+    box-shadow:
+      0 0 1px #000,
+      0 0 2px #000,
+      0 0 2px #000,
+      0 0 2px #1cf3b2,
+      0 0 7px #1cf3b2,
+      0 0 8px #1cf3b2,
+      0 0 10px #1cf3b2,
+      0 0 16px #1cf3b2;
+  }
+  to {
+    box-shadow:
+      0 0 1px #000,
+      0 0 2px #000,
+      0 0 2px #000,
+      0 0 2px #1cf3b2,
+      0 0 8px #1cf3b2,
+      0 0 5px #1cf3b2,
+      0 0 5px #1cf3b2,
+      0 0 8px #1cf3b2;
+  }
+}
+
+@keyframes neon5 {
+  from {
+    box-shadow:
+      0 0 1px #000,
+      0 0 2px #000,
+      0 0 2px #000,
+      0 0 2px #ff4d4d,
+      0 0 7px #ff4d4d,
+      0 0 8px #ff4d4d,
+      0 0 10px #ff4d4d,
+      0 0 16px #ff4d4d;
+  }
+  to {
+    box-shadow:
+      0 0 1px #000,
+      0 0 2px #000,
+      0 0 2px #000,
+      0 0 2px #ff4d4d,
+      0 0 8px #ff4d4d,
+      0 0 5px #ff4d4d,
+      0 0 5px #ff4d4d,
+      0 0 8px #ff4d4d;
+  }
+}
+
+/* custom-wallet-button.css */
+
+/* Override the default WalletMultiButton styles */
+.wallet-adapter-button-trigger {
+  background-color: #1cf3b2;
+  color: #000000;
+  font-size: 11px;
+  padding: 6px 20px;
+  font-weight: 500;
+  text-transform: uppercase;
+  border-radius: 12px;
+  margin-top: 10px;
+  margin-right: 10px;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px; /* Ensure height matches other buttons */
+}
+
+.wallet-adapter-button-trigger:hover {
+  background-color: #f2ca51 !important;
+}
+
+.wallet-adapter-button-trigger:active {
+  background-color: #00aaff;
+}
+
+.wallet-adapter-button {
+  font-family: 'Arial', sans-serif;
+}
+
+/* Additional customizations */
+.wallet-adapter-button-end-icon {
+  fill: #ffffff;
+}
+
+
+.wallet-adapter-dropdown button {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
