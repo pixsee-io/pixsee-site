@@ -1,130 +1,226 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Image from 'next/image'
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import useScrollAnimation from "./hooks/useScrollAnimation";
 
 export default function Home() {
-  const [email, setEmail] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [message, setMessage] = useState('')
-  const [isSuccess, setIsSuccess] = useState<boolean | null>(null)
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
+
+  const logoResult = useScrollAnimation({ animationType: "fade-up" });
+  const headingResult = useScrollAnimation({ animationType: "fade-up" });
+  const iconResult = useScrollAnimation({ animationType: "fade-right" });
+  const signupResult = useScrollAnimation({ animationType: "fade-up" });
+  const socialResult = useScrollAnimation({ animationType: "fade-up" });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setMessage('')
-    setIsSuccess(null)
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage("");
+    setIsSuccess(null);
 
     try {
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-      })
-      const data = await res.json()
+      });
+      const data = await res.json();
 
       if (res.ok) {
-        setIsSuccess(true)
-        setMessage("Thank you for subscribing! We'll keep you updated.")
-        setEmail('')
+        setIsSuccess(true);
+        setMessage("Thank you for subscribing! We'll keep you updated.");
+        setEmail("");
       } else {
-        setIsSuccess(false)
-        setMessage(data.error || 'Something went wrong. Please try again.')
+        setIsSuccess(false);
+        setMessage(data.error || "Something went wrong. Please try again.");
       }
     } catch {
-      setIsSuccess(false)
-      setMessage('Something went wrong. Please try again.')
+      setIsSuccess(false);
+      setMessage("Something went wrong. Please try again.");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black/50 via-litRed/50 to-litPurple/80 md:from-black md:via-litRed/60 md:to-litPurple">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        {/* Center block */}
-        <section className="min-h-[80vh] flex flex-col items-center justify-center text-center space-y-6">
-          {/* Logo (unchanged) */}
-          <div className="mb-4">
-            <div className="p-6 rounded-3xl  ">
+    <main className="min-h-[90vh] bg-foundation-alternate relative overflow-hidden">
+      <div className="absolute -top-9 left-0 right-0 h-[550px] pointer-events-none">
+        <Image
+          src="/clouds.png"
+          alt=""
+          fill
+          className="object-cover max-w-4xl mx-auto object-top opacity-90"
+          priority
+        />
+      </div>
+
+      <div
+        ref={iconResult.ref}
+        className={`absolute top-[50px] right-[30%] w-[180px] h-[180px] z-20 hidden lg:block ${iconResult.animationClass}`}
+        style={{ transitionDelay: "0.5s" }}
+      >
+        <Image
+          src="/icons/create_watch_earn.svg"
+          alt="Create Watch Earn"
+          width={180}
+          height={180}
+          className="animate-[spin_20s_linear_infinite]"
+        />
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 pt-20 relative z-10">
+        <section className="min-h-[85vh] flex flex-col items-center justify-center text-center space-y-8 pt-20">
+          <div className="space-y-2">
+            <div
+              ref={logoResult.ref}
+              className={`flex justify-center ${logoResult.animationClass}`}
+              style={{ transitionDelay: "0s" }}
+            >
               <Image
                 src="/pixsee-logo.png"
-                alt="Pixsee - Be your own box office"
+                alt="Pixsee"
                 width={400}
-                height={200}
+                height={195}
                 className="h-auto object-contain"
                 priority
               />
             </div>
-            <h2 className="text-medium text-4xl text-litBlue3">Be your own box office</h2>
+
+            <h1
+              ref={headingResult.ref}
+              className={`text-3xl md:text-4xl font-medium text-brand-pixsee-primary ${headingResult.animationClass}`}
+              style={{ transitionDelay: "0.2s" }}
+            >
+              Be your own box office
+            </h1>
           </div>
 
-      
-          <p className="text-base md:text-2xl mt-16 text-litPurple/90">
-          Sign up for future updates! 
-          </p>
-
-          {/* Form */}
-          <form
-            onSubmit={handleSubmit}
-            className="mt-4 flex flex-col items-center gap-3"
+          <div
+            ref={signupResult.ref}
+            className={`pt-12 space-y-6 ${signupResult.animationClass}`}
+            style={{ transitionDelay: "0.4s" }}
           >
-            <label htmlFor="email" className="sr-only">Email</label>
+            <p className="text-xl md:text-2xl text-neutral-secondary-text">
+              Sign up for future Updates
+            </p>
 
-            {/* Fixed-width input — NOT full width */}
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-              required
-              autoComplete="email"
-              className="w-[320px] sm:w-[360px] h-[40px] rounded-full py-4 px-5 text-base
-                         bg-white border border-gray-300
-                         placeholder:text-gray-400
-                         outline-none focus:ring-2 focus:ring-litBlue4 focus:border-litBlue4"
-            />
- 
-            {/* Purple oval button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-[320px] sm:w-[360px] h-[60px] rounded-full py-4 px-5
-                         bg-litBlue3 hover:bg-litBlue4
-                         text-white font-semibold
-                         transition-transform duration-150
-                         hover:scale-[1.01] active:scale-[0.99]
-                         disabled:opacity-60 disabled:cursor-not-allowed"
+            <form
+              onSubmit={handleSubmit}
+              className="flex items-center gap-0 bg-neutral-primary rounded-full shadow-sm border border-neutral-tertiary-border overflow-hidden max-w-[600px] mx-auto"
             >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
-                  Subscribing…
-                </span>
-              ) : (
-                'SUBMIT'
-              )}
-            </button>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
+                required
+                className="flex-1 min-w-xs px-4 py-7 border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+              />
 
-           
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="py-6 px-8 rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover m-1"
+              >
+                {isSubmitting ? "Submitting..." : "Submit"}
+              </Button>
+            </form>
 
             {!!message && (
               <div
-                aria-live="polite"
-                className={`mt-2 w-[320px] sm:w-[360px] rounded-2xl px-4 py-3 text-sm font-medium 
-                ${isSuccess ? 'bg-green-50 text-green-800 border-green-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}
+                className={`mt-4 max-w-[600px] mx-auto rounded-2xl px-4 py-3 text-sm font-medium 
+                ${
+                  isSuccess
+                    ? "bg-semantic-success-subtle text-semantic-success-text border border-semantic-success-primary-border"
+                    : "bg-semantic-error-subtle text-semantic-error-text border border-semantic-error-primary-border"
+                }`}
               >
                 {message}
               </div>
             )}
-          </form>
+          </div>
+
+          <div
+            ref={socialResult.ref}
+            className={`pt-8 space-y-4 ${socialResult.animationClass}`}
+            style={{ transitionDelay: "0.6s" }}
+          >
+            <p className="text-neutral-tertiary-text text-sm">
+              Connect with us on socials
+            </p>
+            <div className="flex items-center justify-center gap-5">
+              <Link
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 rounded-full bg-black/10 border-[1.5px] border-neutral-secondary-border flex items-center justify-center hover:border-neutral-primary-border hover:scale-105 transition-all shadow-lg"
+                aria-label="Instagram"
+              >
+                <Image
+                  src="/icons/pixsee_instagram_logo.svg"
+                  alt="Instagram"
+                  width={24}
+                  height={24}
+                  className="w-9 h-9"
+                />
+              </Link>
+              <Link
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 rounded-full bg-black/10 border-[1.5px] border-neutral-secondary-border flex items-center justify-center hover:border-neutral-primary-border hover:scale-105 transition-all shadow-lg"
+                aria-label="X (Twitter)"
+              >
+                <Image
+                  src="/icons/pixsee_twitter.svg"
+                  alt="X"
+                  width={24}
+                  height={24}
+                />
+              </Link>
+              <Link
+                href="https://discord.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 rounded-full bg-black/10 border-[1.5px] border-neutral-secondary-border flex items-center justify-center hover:border-neutral-primary-border hover:scale-105 transition-all shadow-lg"
+                aria-label="Discord"
+              >
+                <Image
+                  src="/icons/pixsee_discord_logo.svg"
+                  alt="Discord"
+                  width={24}
+                  height={24}
+                />
+              </Link>
+              <Link
+                href="https://pixsee.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-12 h-12 rounded-full bg-black/10 border-[1.5px] border-neutral-secondary-border flex items-center justify-center hover:border-neutral-primary-border hover:scale-105 transition-all shadow-lg"
+                aria-label="Website"
+              >
+                <Image
+                  src="/icons/pixsee_tiktok_logo.svg"
+                  alt="Website"
+                  width={24}
+                  height={24}
+                />
+              </Link>
+            </div>
+          </div>
         </section>
 
-        <footer className="text-center py-10 text-gray-900">
+        <footer className="text-center py-10 text-neutral-tertiary-text text-sm">
           <p>&copy; {new Date().getFullYear()} Pixsee. All rights reserved.</p>
         </footer>
       </div>
     </main>
-  )
+  );
 }
