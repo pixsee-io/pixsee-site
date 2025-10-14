@@ -40,90 +40,108 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black/50 via-litRed/50 to-litPurple/80 md:from-black md:via-litRed/60 md:to-litPurple">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+    <main className="min-h-screen relative bg-[#f5f4f2] overflow-hidden">
+      <div
+        className="absolute inset-0 z-10 pointer-events-none opacity-80"
+        style={{
+          backgroundImage: "url('/bg_grid_pattern_white.png')",
+          backgroundSize: '1600px 900px',
+  
+        }}
+      />
+      {/* Cloud background - positioned at top */}
+      <div className="absolute top-[18%] left-1/2 -translate-x-1/2 pointer-events-none z-0">
+        <Image
+          src="/Clouds.png"
+          alt=""
+          width={1200}
+          height={800}
+          className="object-contain"
+          priority
+        />
+      </div>
+
+      {/* Circle text graphic */}
+      <div
+        className="absolute z-20 pointer-events-none select-none"
+        style={{ top: '27%', left: 'calc(50% + 260px)' }}
+      >
+        <Image
+          src="/circle.svg"
+          alt="Watch • Create • Earn"
+          width={180}
+          height={180}
+          className="w-[110px] sm:w-[140px] md:w-[160px] h-auto"
+          priority
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-6xl px-4">
         {/* Center block */}
-        <section className="min-h-[80vh] flex flex-col items-center justify-center text-center space-y-6">
-          {/* Logo (unchanged) */}
-          <div className="mb-4">
-            <div className="p-6 rounded-3xl  ">
-              <Image
-                src="/pixsee-logo.png"
-                alt="Pixsee - Be your own box office"
-                width={400}
-                height={200}
-                className="h-auto object-contain"
-                priority
-              />
-            </div>
-            <h2 className="text-medium text-4xl text-litBlue3">Be your own box office</h2>
+        <section className="min-h-screen flex flex-col items-center justify-center text-center space-y-6">
+          {/* Logo and tagline */}
+          <div className="space-y-2">
+            <Image
+              src="/logo.svg"
+              alt="Pixsee"
+              width={600}
+              height={250}
+              className="h-auto object-contain"
+              priority
+            />
+     
           </div>
 
-      
-          <p className="text-base md:text-2xl mt-16 text-litPurple/90">
-          Sign up for future updates! 
+          <p className="text-base md:text-lg text-gray-600 pt-4">
+            Sign up for future updates
           </p>
 
-          {/* Form */}
+          {/* Form - inline input and button */}
           <form
             onSubmit={handleSubmit}
-            className="mt-4 flex flex-col items-center gap-3"
+            className="pt-2 flex flex-col items-center gap-3"
           >
-            <label htmlFor="email" className="sr-only">Email</label>
-
-            {/* Fixed-width input — NOT full width */}
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-              required
-              autoComplete="email"
-              className="w-[320px] sm:w-[360px] h-[40px] rounded-full py-4 px-5 text-base
-                         bg-white border border-gray-300
-                         placeholder:text-gray-400
-                         outline-none focus:ring-2 focus:ring-litBlue4 focus:border-litBlue4"
-            />
- 
-            {/* Purple oval button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-[320px] sm:w-[360px] h-[60px] rounded-full py-4 px-5
-                         bg-litBlue3 hover:bg-litBlue4
-                         text-white font-semibold
-                         transition-transform duration-150
-                         hover:scale-[1.01] active:scale-[0.99]
-                         disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
-                  Subscribing…
-                </span>
-              ) : (
-                'SUBMIT'
-              )}
-            </button>
-
-           
+            <div className="w-[320px] sm:w-[420px]">
+              <label htmlFor="email" className="sr-only">Email</label>
+              <div className="flex items-center h-[50px] rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-litBlue3 focus-within:border-litBlue3">
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  required
+                  autoComplete="email"
+                  className="flex-1 h-full bg-transparent px-6 text-base text-gray-800 placeholder:text-gray-400 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="h-full px-8 rounded-full bg-litBlue3 hover:bg-litBlue4 text-white font-bold text-sm uppercase tracking-wide transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap shadow-md"
+                >
+                  {isSubmitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                      Submitting...
+                    </span>
+                  ) : (
+                    'SUBMIT'
+                  )}
+                </button>
+              </div>
+            </div>
 
             {!!message && (
               <div
                 aria-live="polite"
-                className={`mt-2 w-[320px] sm:w-[360px] rounded-2xl px-4 py-3 text-sm font-medium 
-                ${isSuccess ? 'bg-green-50 text-green-800 border-green-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}
+                className={`mt-2 w-full max-w-[500px] rounded-2xl px-4 py-3 text-sm font-medium 
+                ${isSuccess ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}
               >
                 {message}
               </div>
             )}
           </form>
         </section>
-
-        <footer className="text-center py-10 text-gray-900">
-          <p>&copy; {new Date().getFullYear()} Pixsee. All rights reserved.</p>
-        </footer>
       </div>
     </main>
   )
