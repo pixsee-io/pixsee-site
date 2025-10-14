@@ -48,7 +48,7 @@ export default function Home() {
             className="absolute inset-0 opacity-80 z-15"
             style={{
               backgroundImage: "url('/bg_grid_pattern_white.png')",
-              backgroundSize: '140px 140px',
+              backgroundSize: '1400px 1400px',
               backgroundRepeat: 'repeat',
               backgroundBlendMode: 'screen',
               backgroundPosition: 'center',
@@ -78,7 +78,7 @@ export default function Home() {
         />
       </div>
 
-      <div className="relative z-11 mx-auto max-w-6xl px-4">
+      <div className="relative z-20 mx-auto max-w-6xl px-4">
         {/* Center block */}
         <section className="min-h-screen flex flex-col items-center justify-center text-center space-y-6">
           {/* Logo and tagline */}
@@ -101,9 +101,9 @@ export default function Home() {
           {/* Form - inline input and button */}
           <form
             onSubmit={handleSubmit}
-            className="pt-2 flex flex-col items-center gap-3"
+            className="pt-2 flex flex-col items-center gap-4"
           >
-            <div className="w-full max-w-[420px] px-4 sm:px-0">
+            <div className="w-full max-w-[500px] px-2 sm:px-0">
               <label htmlFor="email" className="sr-only">Email</label>
               <div className="flex items-center h-[50px] rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-litBlue3 focus-within:border-litBlue3">
                 <input
@@ -111,7 +111,7 @@ export default function Home() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
+                  placeholder="Enter email address"
                   required
                   autoComplete="email"
                   className="flex-1 h-full bg-transparent px-5 sm:px-6 text-sm sm:text-base text-gray-800 placeholder:text-gray-400 outline-none"
