@@ -40,15 +40,16 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen relative bg-[#f5f4f2] overflow-hidden">
+    <>
+      <main className="min-h-screen relative bg-[#f5f4f2] overflow-hidden">
       {/* Cloud background - positioned at top */}
       <div className="absolute top-[0%] sm:top-[18%] left-1/2 w-[880px] sm:w-[1100px] -translate-x-1/2 pointer-events-none z-10">
         <div className="relative w-full">
           <div
-            className="absolute inset-0 opacity-80 z-15"
+            className="absolute inset-0 opacity-70 z-15 animate-[gridGlide_20s_linear_infinite]"
             style={{
               backgroundImage: "url('/bg_grid_pattern_white.png')",
-              backgroundSize: '1400px 1400px',
+              backgroundSize: '1200px 1200px',
               backgroundRepeat: 'repeat',
               backgroundBlendMode: 'screen',
               backgroundPosition: 'center',
@@ -60,7 +61,7 @@ export default function Home() {
             alt=""
             width={1200}
             height={800}
-            className="w-full h-auto relative z-10"
+            className="w-full h-auto relative z-10 animate-[cloudDrift_16s_ease-in-out_infinite]"
             priority
           />
         </div>
@@ -145,6 +146,32 @@ export default function Home() {
           </form>
         </section>
       </div>
-    </main>
+      </main>
+      <style jsx global>{`
+        @keyframes cloudDrift {
+          0% {
+            transform: translateY(-2%) scale(1);
+          }
+          50% {
+            transform: translateY(3%) scale(1.02);
+          }
+          100% {
+            transform: translateY(-2%) scale(1);
+          }
+        }
+
+        @keyframes gridGlide {
+          0% {
+            background-position: center 0px;
+          }
+          50% {
+            background-position: calc(50% + 25px) 30px;
+          }
+          100% {
+            background-position: center 0px;
+          }
+        }
+      `}</style>
+    </>
   )
 }
