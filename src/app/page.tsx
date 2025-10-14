@@ -41,42 +41,44 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative bg-[#f5f4f2] overflow-hidden">
-      <div
-        className="absolute inset-0 z-10 pointer-events-none opacity-80"
-        style={{
-          backgroundImage: "url('/bg_grid_pattern_white.png')",
-          backgroundSize: '1600px 900px',
-  
-        }}
-      />
       {/* Cloud background - positioned at top */}
-      <div className="absolute top-[18%] left-1/2 -translate-x-1/2 pointer-events-none z-0">
-        <Image
-          src="/Clouds.png"
-          alt=""
-          width={1200}
-          height={800}
-          className="object-contain"
-          priority
-        />
+      <div className="absolute top-[0%] sm:top-[18%] left-1/2 w-[880px] sm:w-[1100px] -translate-x-1/2 pointer-events-none z-10">
+        <div className="relative w-full">
+          <div
+            className="absolute inset-0 opacity-80 z-15"
+            style={{
+              backgroundImage: "url('/bg_grid_pattern_white.png')",
+              backgroundSize: '140px 140px',
+              backgroundRepeat: 'repeat',
+              backgroundBlendMode: 'screen',
+              backgroundPosition: 'center',
+              mixBlendMode: 'screen',
+            }}
+          />
+          <Image
+            src="/Clouds.png"
+            alt=""
+            width={1200}
+            height={800}
+            className="w-full h-auto relative z-10"
+            priority
+          />
+        </div>
       </div>
 
       {/* Circle text graphic */}
-      <div
-        className="absolute z-20 pointer-events-none select-none"
-        style={{ top: '27%', left: 'calc(50% + 260px)' }}
-      >
+      <div className="absolute top-[26%] left-1/2 hidden md:block z-20 pointer-events-none select-none">
         <Image
           src="/circle.svg"
           alt="Watch • Create • Earn"
           width={180}
           height={180}
-          className="w-[110px] sm:w-[140px] md:w-[160px] h-auto"
+          className="w-[160px] lg:w-[180px] h-auto translate-x-[240px] lg:translate-x-[280px]"
           priority
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-4">
+      <div className="relative z-11 mx-auto max-w-6xl px-4">
         {/* Center block */}
         <section className="min-h-screen flex flex-col items-center justify-center text-center space-y-6">
           {/* Logo and tagline */}
@@ -86,7 +88,7 @@ export default function Home() {
               alt="Pixsee"
               width={600}
               height={250}
-              className="h-auto object-contain"
+            className="w-[300px] sm:w-[420px] md:w-[520px] lg:w-[560px] h-auto object-contain"
               priority
             />
      
@@ -101,7 +103,7 @@ export default function Home() {
             onSubmit={handleSubmit}
             className="pt-2 flex flex-col items-center gap-3"
           >
-            <div className="w-[320px] sm:w-[420px]">
+            <div className="w-full max-w-[420px] px-4 sm:px-0">
               <label htmlFor="email" className="sr-only">Email</label>
               <div className="flex items-center h-[50px] rounded-full border border-gray-200 bg-white shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-litBlue3 focus-within:border-litBlue3">
                 <input
@@ -112,12 +114,12 @@ export default function Home() {
                   placeholder="Enter your email address"
                   required
                   autoComplete="email"
-                  className="flex-1 h-full bg-transparent px-6 text-base text-gray-800 placeholder:text-gray-400 outline-none"
+                  className="flex-1 h-full bg-transparent px-5 sm:px-6 text-sm sm:text-base text-gray-800 placeholder:text-gray-400 outline-none"
                 />
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="h-full px-8 rounded-full bg-litBlue3 hover:bg-litBlue4 text-white font-bold text-sm uppercase tracking-wide transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap shadow-md"
+                  className="h-full px-7 sm:px-8 rounded-full bg-litBlue3 hover:bg-litBlue4 text-white font-bold text-sm uppercase tracking-wide transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap shadow-md flex-shrink-0"
                 >
                   {isSubmitting ? (
                     <span className="inline-flex items-center gap-2">
