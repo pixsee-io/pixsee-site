@@ -46,7 +46,7 @@ export default function Home() {
       <div className="absolute top-[0%] sm:top-[18%] left-1/2 w-[880px] sm:w-[1100px] -translate-x-1/2 pointer-events-none z-10">
         <div className="relative w-full">
           <div
-            className="absolute inset-0 opacity-70 z-15 animate-[gridGlide_20s_linear_infinite]"
+            className="absolute inset-0 opacity-80 z-15 animate-[gridGlide_24s_linear_infinite]"
             style={{
               backgroundImage: "url('/bg_grid_pattern_white.png')",
               backgroundSize: '1200px 1200px',
@@ -56,6 +56,11 @@ export default function Home() {
               mixBlendMode: 'screen',
             }}
           />
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            <div className="absolute inset-0 animate-[lightningPulse_8s_linear_infinite]" style={{ background: 'radial-gradient(circle at 68% 42%, rgba(255,255,255,0.45), transparent 55%)' }} />
+            <div className="absolute inset-0 animate-[lightningPulseAlt_12s_linear_infinite]" style={{ background: 'radial-gradient(circle at 32% 58%, rgba(255,240,200,0.38), transparent 60%)' }} />
+            <div className="absolute inset-0 animate-[lightningStrand_14s_linear_infinite] opacity-70" style={{ background: 'linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.35) 48%, transparent 55%)' }} />
+          </div>
           <Image
             src="/Clouds.png"
             alt=""
@@ -169,6 +174,65 @@ export default function Home() {
           }
           100% {
             background-position: center 0px;
+          }
+        }
+
+        @keyframes lightningPulse {
+          0%, 52%, 100% {
+            opacity: 0;
+          }
+          53% {
+            opacity: 0.95;
+          }
+          55% {
+            opacity: 0.2;
+          }
+          60% {
+            opacity: 0.7;
+          }
+          63% {
+            opacity: 0;
+          }
+        }
+
+        @keyframes lightningPulseAlt {
+          0%, 28%, 100% {
+            opacity: 0;
+          }
+          29% {
+            opacity: 0.85;
+          }
+          31% {
+            opacity: 0.15;
+          }
+          36% {
+            opacity: 0.6;
+          }
+          38% {
+            opacity: 0;
+          }
+        }
+
+        @keyframes lightningStrand {
+          0%, 70%, 100% {
+            opacity: 0;
+            transform: translateX(-10%) skewX(-18deg);
+          }
+          71% {
+            opacity: 0.85;
+            transform: translateX(0%) skewX(-12deg);
+          }
+          73% {
+            opacity: 0.2;
+            transform: translateX(6%) skewX(-8deg);
+          }
+          78% {
+            opacity: 0.65;
+            transform: translateX(-4%) skewX(-16deg);
+          }
+          80% {
+            opacity: 0;
+            transform: translateX(0%) skewX(-18deg);
           }
         }
       `}</style>
