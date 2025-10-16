@@ -73,13 +73,13 @@ export default function Home() {
       </div>
 
       {/* Circle text graphic */}
-      <div className="absolute top-[26%] left-1/2 hidden md:block z-20 pointer-events-none select-none">
+      <div className="absolute top-[24%] left-1/2 z-20 pointer-events-none select-none">
         <Image
           src="/circle.svg"
           alt="Watch • Create • Earn"
           width={180}
           height={180}
-          className="w-[160px] lg:w-[180px] h-auto translate-x-[240px] lg:translate-x-[280px] animate-[spin_25s_linear_infinite]"
+          className="w-[90px] sm:w-[14px] md:w-[160px] lg:w-[180px] h-auto translate-x-[120px] sm:translate-x-[200px] md:translate-x-[240px] lg:translate-x-[280px] animate-[spin_25s_linear_infinite]"
           priority
         />
       </div>
