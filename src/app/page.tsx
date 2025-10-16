@@ -149,6 +149,17 @@ export default function Home() {
               </div>
             )}
           </form>
+
+          <div className="pt-3">
+            <a
+              href="https://pump.fun/coin/7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-full bg-[#692f96] px-6 py-3 text-xs sm:text-sm font-semibold  tracking-wide text-white shadow-md transition-transform duration-150 hover:scale-[1.03] hover:bg-[#7e38b3] active:scale-[0.97]"
+            >
+              7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump
+            </a>
+          </div>
         </section>
       </div>
       </main>
