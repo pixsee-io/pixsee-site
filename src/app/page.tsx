@@ -79,7 +79,7 @@ export default function Home() {
           alt="Watch • Create • Earn"
           width={180}
           height={180}
-          className="w-[160px] lg:w-[180px] h-auto translate-x-[240px] lg:translate-x-[280px]"
+          className="w-[160px] lg:w-[180px] h-auto translate-x-[240px] lg:translate-x-[280px] animate-[spin_25s_linear_infinite]"
           priority
         />
       </div>
