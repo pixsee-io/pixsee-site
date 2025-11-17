@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap");
-
 /* ============================================
    FONT FACES
    ============================================ */
@@ -53,6 +51,10 @@
   --color-pixsee-blue: #4a9fd8;
   --color-pixsee-blue-dark: #2196f3;
   --color-pixsee-blue-darker: #1976d2;
+
+  --font-inter: "Inter", sans-serif;
+
+  --font-paytone: "Paytone One", sans-serif;
 }
 
 /* ============================================
@@ -273,16 +275,16 @@
      CUSTOM DESIGN SYSTEM - DARK MODE
      ============================================ */
 
-  /* Foundation */
+  /* Foundation - Dark Blue Theme */
   --foundation-black: #ffffff;
-  --foundation-primary: #110b1f;
-  --foundation-alternate: #241f31;
+  --foundation-primary: #0f1830;
+  --foundation-alternate: #0f1830;
 
   /* Neutral - Backgrounds */
-  --neutral-primary: #110b1f;
-  --neutral-secondary: #1a1625;
-  --neutral-tertiary: #2a2535;
-  --neutral-disabled: #3a3545;
+  --neutral-primary: #0f1830;
+  --neutral-secondary: #1a2340;
+  --neutral-tertiary: #253350;
+  --neutral-disabled: #304460;
 
   /* Neutral - Text */
   --neutral-primary-text: #ffffff;
@@ -502,11 +504,7 @@
   h4,
   h5,
   h6 {
-    font-family: "Havelock", sans-serif;
-  }
-
-  p {
-    font-family: "Roboto Mono", monospace;
+    font-family: "Paytone one", sans-serif;
   }
 }
 
@@ -530,6 +528,131 @@
 
   .blur-content {
     filter: blur(5px);
+  }
+
+  /* ============================================
+     STARRY BACKGROUND - UNIFORM PATTERN
+     ============================================ */
+
+  /* Main starry background class */
+  .starry-bg {
+    position: relative;
+  }
+
+  /* Base layer - small stars uniformly distributed */
+  .starry-bg::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(1px 1px at 20px 30px, white, transparent),
+      radial-gradient(1px 1px at 40px 70px, white, transparent),
+      radial-gradient(1px 1px at 60px 20px, white, transparent),
+      radial-gradient(1px 1px at 80px 50px, white, transparent),
+      radial-gradient(1px 1px at 100px 80px, white, transparent),
+      radial-gradient(1px 1px at 120px 15px, white, transparent),
+      radial-gradient(1px 1px at 140px 60px, white, transparent),
+      radial-gradient(1px 1px at 160px 40px, white, transparent);
+    background-size: 200px 100px;
+    background-repeat: repeat;
+    opacity: 0.9;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Medium stars layer */
+  .starry-bg::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: radial-gradient(
+        1.5px 1.5px at 30px 45px,
+        white,
+        transparent
+      ),
+      radial-gradient(1.5px 1.5px at 90px 25px, white, transparent),
+      radial-gradient(1.5px 1.5px at 150px 75px, white, transparent),
+      radial-gradient(1.5px 1.5px at 50px 85px, white, transparent),
+      radial-gradient(1.5px 1.5px at 110px 55px, white, transparent),
+      radial-gradient(1.5px 1.5px at 170px 35px, white, transparent);
+    background-size: 200px 100px;
+    background-repeat: repeat;
+    opacity: 0.9;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Dark mode - more visible stars */
+  .dark .starry-bg::before {
+    opacity: 0.4;
+  }
+
+  .dark .starry-bg::after {
+    opacity: 0.25;
+  }
+
+  /* ============================================
+     THEME-AWARE IMAGE FILTERS
+     ============================================ */
+
+  /* Basic theme-adaptive filter */
+  .img-theme-adaptive {
+    transition: filter 0.3s ease;
+  }
+
+  /* Invert to white in dark mode (for any colored logo) */
+  .img-to-white-dark {
+    transition: filter 0.3s ease;
+  }
+
+  .dark .img-to-white-dark {
+    filter: brightness(0) invert(1);
+  }
+
+  /* Purple (#6a2a98) to white */
+  .img-purple-to-white {
+    filter: brightness(0) saturate(100%) invert(23%) sepia(69%) saturate(2636%)
+      hue-rotate(250deg) brightness(94%) contrast(95%);
+    transition: filter 0.3s ease;
+  }
+
+  .dark .img-purple-to-white {
+    filter: brightness(0) saturate(100%) invert(1);
+  }
+
+  /* Blue (#4A9FD8) to white */
+  .img-blue-to-white {
+    filter: brightness(0) saturate(100%) invert(62%) sepia(63%) saturate(1976%)
+      hue-rotate(173deg) brightness(95%) contrast(91%);
+    transition: filter 0.3s ease;
+  }
+
+  .dark .img-blue-to-white {
+    filter: brightness(0) saturate(100%) invert(1);
+  }
+
+  /* Keep original in light, white in dark */
+  .img-original-to-white {
+    transition: filter 0.3s ease;
+  }
+
+  .dark .img-original-to-white {
+    filter: brightness(0) invert(1);
+  }
+
+  /* Darken in light mode, white in dark mode */
+  .img-dark-to-white {
+    filter: brightness(0.3);
+    transition: filter 0.3s ease;
+  }
+
+  .dark .img-dark-to-white {
+    filter: brightness(0) invert(1);
   }
 }
 

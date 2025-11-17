@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import useScrollAnimation from "./hooks/useScrollAnimation";
+import ComingSoonNavbar from "@/components/layout/ComingSoonNavbar";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -50,10 +51,11 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-[90vh] bg-foundation-alternate relative overflow-hidden">
-      <div className="absolute -top-9 left-0 right-0 h-[550px] pointer-events-none">
+    <main className="min-h-screen bg-foundation-alternate relative overflow-hidden starry-bg">
+      <ComingSoonNavbar />
+      <div className="absolute top-0 left-0 right-0 h-[500px] pointer-events-none">
         <Image
-          src="/clouds.png"
+          src="/images/cloud.png"
           alt=""
           fill
           className="object-cover max-w-4xl mx-auto object-top opacity-90"
@@ -63,20 +65,20 @@ export default function Home() {
 
       <div
         ref={iconResult.ref}
-        className={`absolute top-[50px] right-[30%] w-[180px] h-[180px] z-20 hidden lg:block ${iconResult.animationClass}`}
+        className={`absolute top-[90px] right-[24%] w-[180px] h-[180px] z-20 hidden lg:block ${iconResult.animationClass}`}
         style={{ transitionDelay: "0.5s" }}
       >
         <Image
           src="/icons/create_watch_earn.svg"
           alt="Create Watch Earn"
-          width={180}
-          height={180}
+          width={170}
+          height={170}
           className="animate-[spin_20s_linear_infinite]"
         />
       </div>
 
       <div className="mx-auto max-w-6xl px-4 pt-20 relative z-10">
-        <section className="min-h-[85vh] flex flex-col items-center justify-center text-center space-y-8 pt-20">
+        <section className="min-h-[85vh] flex flex-col items-center justify-center text-center space-y-8 pt-28">
           <div className="space-y-2">
             <div
               ref={logoResult.ref}
@@ -87,15 +89,15 @@ export default function Home() {
                 src="/pixsee-logo.png"
                 alt="Pixsee"
                 width={400}
-                height={195}
-                className="h-auto object-contain"
+                height={175}
+                className="h-auto object-contain img-purple-to-white"
                 priority
               />
             </div>
 
             <h1
               ref={headingResult.ref}
-              className={`text-3xl md:text-4xl font-medium text-brand-pixsee-primary ${headingResult.animationClass}`}
+              className={`text-3xl md:text-4xl font-medium  text-brand-pixsee-primary ${headingResult.animationClass}`}
               style={{ transitionDelay: "0.2s" }}
             >
               Be your own box office
@@ -164,7 +166,7 @@ export default function Home() {
                 aria-label="Instagram"
               >
                 <Image
-                  src="/icons/pixsee_instagram_logo.svg"
+                  src="/icons/pixsee_instagram.svg"
                   alt="Instagram"
                   width={24}
                   height={24}
@@ -179,7 +181,7 @@ export default function Home() {
                 aria-label="X (Twitter)"
               >
                 <Image
-                  src="/icons/pixsee_twitter.svg"
+                  src="/images/x-logo.png"
                   alt="X"
                   width={24}
                   height={24}
@@ -193,7 +195,7 @@ export default function Home() {
                 aria-label="Discord"
               >
                 <Image
-                  src="/icons/pixsee_discord_logo.svg"
+                  src="/icons/pixsee_discord.svg"
                   alt="Discord"
                   width={24}
                   height={24}
@@ -207,7 +209,7 @@ export default function Home() {
                 aria-label="Website"
               >
                 <Image
-                  src="/icons/pixsee_tiktok_logo.svg"
+                  src="/icons/pixsee_tiktok.svg"
                   alt="Website"
                   width={24}
                   height={24}
