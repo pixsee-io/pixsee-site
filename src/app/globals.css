@@ -24,8 +24,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================
-   TAILWIND THEME - STATIC BRAND COLORS
-   ============================================ */
+     TAILWIND THEME - STATIC BRAND COLORS
+     ============================================ */
 
 @theme {
   /* Brand Colors - These remain constant across themes */
@@ -58,8 +58,8 @@
 }
 
 /* ============================================
-   ROOT - LIGHT MODE (DEFAULT)
-   ============================================ */
+     ROOT - LIGHT MODE (DEFAULT)
+     ============================================ */
 
 :root {
   /* Global */
@@ -120,8 +120,8 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* ============================================
-     CUSTOM DESIGN SYSTEM - LIGHT MODE
-     ============================================ */
+       CUSTOM DESIGN SYSTEM - LIGHT MODE
+       ============================================ */
 
   /* Foundation */
   --foundation-black: #171616;
@@ -158,6 +158,7 @@
   --brand-primary-text: #8758e9;
   --brand-primary-border: #5731a7;
   --brand-inverse-border: #decfff;
+  --brand-button-primary: #6b249a;
 
   /* Brand - Secondary (Orange/Peach) */
   --brand2-primary: #ca9975;
@@ -169,10 +170,14 @@
 
   /* Brand - Pixsee (Blue) */
   --brand-pixsee-primary: #4a9fd8;
-  --brand-pixsee-secondary: #2196f3;
+  --brand-pixsee-secondary: #006fc9;
   --brand-pixsee-tertiary: #e3f2fd;
   --brand-pixsee-hover: #1976d2;
   --brand-pixsee-border: #0871c6;
+
+  /* r */
+  --brand-action: #6b249a;
+  --brand-primary-light: rgba(115, 70, 241, 0.09);
 
   /* Semantic - Success */
   --semantic-success-subtle: #effff6;
@@ -214,8 +219,8 @@
 }
 
 /* ============================================
-   DARK MODE
-   ============================================ */
+     DARK MODE
+     ============================================ */
 
 .dark {
   /* Base Colors */
@@ -237,6 +242,10 @@
   /* Secondary */
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
+
+  /* r */
+  --brand-action: #6B249A;
+  --brand-primary-light: rgba(115, 70, 241, 0.15); 
 
   /* Muted */
   --muted: oklch(0.269 0 0);
@@ -272,13 +281,13 @@
   --sidebar-ring: oklch(0.556 0 0);
 
   /* ============================================
-     CUSTOM DESIGN SYSTEM - DARK MODE
-     ============================================ */
+       CUSTOM DESIGN SYSTEM - DARK MODE
+       ============================================ */
 
   /* Foundation - Dark Blue Theme */
   --foundation-black: #ffffff;
   --foundation-primary: #0f1830;
-  --foundation-alternate: #0f1830;
+  --foundation-alternate: #0f1830d6;
 
   /* Neutral - Backgrounds */
   --neutral-primary: #0f1830;
@@ -353,8 +362,8 @@
 }
 
 /* ============================================
-   THEME INLINE - EXPOSE COLORS TO TAILWIND
-   ============================================ */
+     THEME INLINE - EXPOSE COLORS TO TAILWIND
+     ============================================ */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -429,6 +438,8 @@
   --color-brand-primary-border: var(--brand-primary-border);
   --color-brand-inverse-border: var(--brand-inverse-border);
 
+  --color-brand-action: var(--brand-action);
+
   /* Brand 2 */
   --color-brand2-primary: var(--brand2-primary);
   --color-brand2-secondary: var(--brand2-secondary);
@@ -442,7 +453,10 @@
   --color-brand-pixsee-secondary: var(--brand-pixsee-secondary);
   --color-brand-pixsee-tertiary: var(--brand-pixsee-tertiary);
   --color-brand-pixsee-hover: var(--brand-pixsee-hover);
+
+  /* r */
   --color-brand-pixsee-border: var(--brand-pixsee-border);
+  --color-brand-primary-light: var(--brand-primary-light);
 
   /* Semantic - Success */
   --color-semantic-success-subtle: var(--semantic-success-subtle);
@@ -486,8 +500,8 @@
 }
 
 /* ============================================
-   BASE LAYER
-   ============================================ */
+     BASE LAYER
+     ============================================ */
 
 @layer base {
   * {
@@ -509,8 +523,8 @@
 }
 
 /* ============================================
-   UTILITIES LAYER
-   ============================================ */
+     UTILITIES LAYER
+     ============================================ */
 
 @layer utilities {
   .text-balance {
@@ -531,74 +545,8 @@
   }
 
   /* ============================================
-     STARRY BACKGROUND - UNIFORM PATTERN
-     ============================================ */
-
-  /* Main starry background class */
-  .starry-bg {
-    position: relative;
-  }
-
-  /* Base layer - small stars uniformly distributed */
-  .starry-bg::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: radial-gradient(1px 1px at 20px 30px, white, transparent),
-      radial-gradient(1px 1px at 40px 70px, white, transparent),
-      radial-gradient(1px 1px at 60px 20px, white, transparent),
-      radial-gradient(1px 1px at 80px 50px, white, transparent),
-      radial-gradient(1px 1px at 100px 80px, white, transparent),
-      radial-gradient(1px 1px at 120px 15px, white, transparent),
-      radial-gradient(1px 1px at 140px 60px, white, transparent),
-      radial-gradient(1px 1px at 160px 40px, white, transparent);
-    background-size: 200px 100px;
-    background-repeat: repeat;
-    opacity: 0.9;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Medium stars layer */
-  .starry-bg::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: radial-gradient(
-        1.5px 1.5px at 30px 45px,
-        white,
-        transparent
-      ),
-      radial-gradient(1.5px 1.5px at 90px 25px, white, transparent),
-      radial-gradient(1.5px 1.5px at 150px 75px, white, transparent),
-      radial-gradient(1.5px 1.5px at 50px 85px, white, transparent),
-      radial-gradient(1.5px 1.5px at 110px 55px, white, transparent),
-      radial-gradient(1.5px 1.5px at 170px 35px, white, transparent);
-    background-size: 200px 100px;
-    background-repeat: repeat;
-    opacity: 0.9;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Dark mode - more visible stars */
-  .dark .starry-bg::before {
-    opacity: 0.4;
-  }
-
-  .dark .starry-bg::after {
-    opacity: 0.25;
-  }
-
-  /* ============================================
-     THEME-AWARE IMAGE FILTERS
-     ============================================ */
+       THEME-AWARE IMAGE FILTERS
+       ============================================ */
 
   /* Basic theme-adaptive filter */
   .img-theme-adaptive {
@@ -657,8 +605,102 @@
 }
 
 /* ============================================
-   ANIMATIONS
-   ============================================ */
+     ANIMATIONS
+     ============================================ */
+
+/* Cloud Drift Animation */
+@keyframes cloudDrift {
+  0% {
+    transform: translateY(-2%) scale(1);
+  }
+  50% {
+    transform: translateY(3%) scale(1.02);
+  }
+  100% {
+    transform: translateY(-2%) scale(1);
+  }
+}
+
+/* Grid Glide Animation */
+@keyframes gridGlide {
+  0% {
+    background-position: center 0px;
+  }
+  50% {
+    background-position: calc(50% + 25px) 30px;
+  }
+  100% {
+    background-position: center 0px;
+  }
+}
+
+/* Lightning Pulse Animation */
+@keyframes lightningPulse {
+  0%,
+  52%,
+  100% {
+    opacity: 0;
+  }
+  53% {
+    opacity: 0.95;
+  }
+  55% {
+    opacity: 0.2;
+  }
+  60% {
+    opacity: 0.7;
+  }
+  63% {
+    opacity: 0;
+  }
+}
+
+/* Lightning Pulse Alt Animation */
+@keyframes lightningPulseAlt {
+  0%,
+  28%,
+  100% {
+    opacity: 0;
+  }
+  29% {
+    opacity: 0.85;
+  }
+  31% {
+    opacity: 0.15;
+  }
+  36% {
+    opacity: 0.6;
+  }
+  38% {
+    opacity: 0;
+  }
+}
+
+/* Lightning Strand Animation */
+@keyframes lightningStrand {
+  0%,
+  70%,
+  100% {
+    opacity: 0;
+    transform: translateX(-10%) skewX(-18deg);
+  }
+  71% {
+    opacity: 0.85;
+    transform: translateX(0%) skewX(-12deg);
+  }
+  73% {
+    opacity: 0.2;
+    transform: translateX(6%) skewX(-8deg);
+  }
+  78% {
+    opacity: 0.65;
+    transform: translateX(-4%) skewX(-16deg);
+  }
+  80% {
+    opacity: 0;
+    transform: translateX(0%) skewX(-18deg);
+  }
+}
 
 /* Shake Animation */
 @keyframes shake-pause {
@@ -787,8 +829,8 @@
 }
 
 /* ============================================
-   GLOW EFFECTS
-   ============================================ */
+     GLOW EFFECTS
+     ============================================ */
 
 .glow {
   animation: neon 1.5s ease-in-out infinite alternate;
@@ -811,8 +853,8 @@
 }
 
 /* ============================================
-   FIRE EFFECT
-   ============================================ */
+     FIRE EFFECT
+     ============================================ */
 
 .fire-background {
   position: relative;
@@ -848,8 +890,8 @@
 }
 
 /* ============================================
-   TOOLTIP
-   ============================================ */
+     TOOLTIP
+     ============================================ */
 
 .tooltip-container {
   position: relative;
@@ -890,8 +932,8 @@
 }
 
 /* ============================================
-   TREND COMPONENT
-   ============================================ */
+     TREND COMPONENT
+     ============================================ */
 
 .trend {
   margin-top: 15px;
@@ -909,8 +951,8 @@
 }
 
 /* ============================================
-   WALLET ADAPTER STYLES
-   ============================================ */
+     WALLET ADAPTER STYLES
+     ============================================ */
 
 .wallet-adapter-button-trigger {
   background-color: var(--neon-lime);

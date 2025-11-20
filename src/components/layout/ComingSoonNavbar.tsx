@@ -10,8 +10,22 @@ type Props = {};
 
 const ComingSoonNavbar = (props: Props) => {
   return (
-    <nav className="w-full py-4 bg-foundation-alternate sticky top-0 z-50 backdrop-blur-sm transition-all duration-300 starry-bg">
-      <Container className="flex items-center justify-between">
+    <nav className="w-full py-4 sticky top-0 z-50 transition-all duration-300 overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-20 z-0 animate-[gridGlide_24s_linear_infinite]"
+        style={{
+          backgroundImage: "url('/images/bg_grid_pattern_white.png')",
+          backgroundSize: "1200px 1200px",
+          backgroundRepeat: "repeat",
+          backgroundBlendMode: "screen",
+          backgroundPosition: "center",
+          mixBlendMode: "screen",
+        }}
+      />
+
+      <div className="absolute inset-0 z-10 backdrop-blur-sm" />
+
+      <Container className="flex items-center justify-between relative z-20">
         <Link href="/" className="flex items-center">
           <Image
             src="/icons/pixsee_icon.svg"
@@ -31,7 +45,9 @@ const ComingSoonNavbar = (props: Props) => {
           >
             <Link href="/contact">
               Contact us
-              <span className="text-lg"><ArrowRightCircle /></span>
+              <span className="text-lg">
+                <ArrowRightCircle />
+              </span>
             </Link>
           </Button>
 

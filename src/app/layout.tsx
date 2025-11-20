@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
-import { Inter, Paytone_One } from "next/font/google"; 
+import { Inter, Paytone_One } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
+import Footer from "@/components/layout/Footer";
+import FooterWrapper from "@/components/layout/FooterWrapper";
 
 const paytone = Paytone_One({
   subsets: ["latin"],
   display: "swap",
   weight: "400",
-  variable: "--font-paytone", 
+  variable: "--font-paytone",
 });
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
@@ -29,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={paytone.variable}>
-      <body className={inter.className}> 
+      <body className={inter.className}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -38,6 +40,7 @@ export default function RootLayout({
         >
           <NavbarWrapper />
           {children}
+          <FooterWrapper />
         </ThemeProvider>
       </body>
     </html>

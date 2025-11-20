@@ -51,21 +51,62 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-foundation-alternate relative overflow-hidden starry-bg">
+    <main className="min-h-screen bg-foundation-alternate relative overflow-hidden">
       <ComingSoonNavbar />
-      <div className="absolute top-0 left-0 right-0 h-[500px] pointer-events-none">
-        <Image
-          src="/images/cloud.png"
-          alt=""
-          fill
-          className="object-cover max-w-4xl mx-auto object-top opacity-90"
-          priority
+      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+        <div className="absolute -top-40 inset-0 flex items-center justify-center z-0">
+          <div className="w-[880px] sm:w-[1100px]">
+            <Image
+              src="/images/cloud.png"
+              alt=""
+              width={1200}
+              height={800}
+              className="w-full h-auto animate-[cloudDrift_16s_ease-in-out_infinite]"
+              priority
+            />
+          </div>
+        </div>
+
+        <div
+          className="absolute inset-0 opacity-20 z-10 animate-[gridGlide_24s_linear_infinite]"
+          style={{
+            backgroundImage: "url('/images/bg_grid_pattern_white.png')",
+            backgroundSize: "900px 400px",
+            backgroundRepeat: "repeat",
+            backgroundBlendMode: "screen",
+            backgroundPosition: "center",
+            mixBlendMode: "screen",
+          }}
         />
+
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <div
+            className="absolute inset-0 animate-[lightningPulse_8s_linear_infinite]"
+            style={{
+              background:
+                "radial-gradient(circle at 68% 42%, rgba(255,255,255,0.45), transparent 55%)",
+            }}
+          />
+          <div
+            className="absolute inset-0 animate-[lightningPulseAlt_12s_linear_infinite]"
+            style={{
+              background:
+                "radial-gradient(circle at 32% 58%, rgba(255,240,200,0.38), transparent 60%)",
+            }}
+          />
+          <div
+            className="absolute inset-0 animate-[lightningStrand_14s_linear_infinite] opacity-70"
+            style={{
+              background:
+                "linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.35) 48%, transparent 55%)",
+            }}
+          />
+        </div>
       </div>
 
       <div
         ref={iconResult.ref}
-        className={`absolute top-[90px] right-[24%] w-[180px] h-[180px] z-20 hidden lg:block ${iconResult.animationClass}`}
+        className={`absolute top-[130px] right-[26%] w-[180px] h-[180px] z-20 hidden lg:block ${iconResult.animationClass}`}
         style={{ transitionDelay: "0.5s" }}
       >
         <Image
@@ -86,7 +127,7 @@ export default function Home() {
               style={{ transitionDelay: "0s" }}
             >
               <Image
-                src="/pixsee-logo.png"
+                src="/images/pixsee-logo.png"
                 alt="Pixsee"
                 width={400}
                 height={175}
@@ -97,7 +138,7 @@ export default function Home() {
 
             <h1
               ref={headingResult.ref}
-              className={`text-3xl md:text-4xl font-medium  text-brand-pixsee-primary ${headingResult.animationClass}`}
+              className={`text-3xl md:text-4xl font-medium font-inter text-brand-pixsee-primary ${headingResult.animationClass}`}
               style={{ transitionDelay: "0.2s" }}
             >
               Be your own box office
@@ -123,7 +164,7 @@ export default function Home() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
                 required
-                className="flex-1 min-w-xs px-4 py-7 border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
+                className="flex-1 min-w-xs px-4 py-7 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
               />
 
               <Button
@@ -134,6 +175,17 @@ export default function Home() {
                 {isSubmitting ? "Submitting..." : "Submit"}
               </Button>
             </form>
+
+            <div>
+              <a
+                href="https://pump.fun/coin/7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-[#692f96] px-6 py-3 text-xs sm:text-sm font-semibold  tracking-wide text-white shadow-md transition-transform duration-150 hover:scale-[1.03] hover:bg-[#7e38b3] active:scale-[0.97]"
+              >
+                7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump
+              </a>
+            </div>
 
             {!!message && (
               <div
@@ -223,6 +275,98 @@ export default function Home() {
           <p>&copy; {new Date().getFullYear()} Pixsee. All rights reserved.</p>
         </footer>
       </div>
+
+      {/* Animation keyframes */}
+      <style jsx global>{`
+        @keyframes cloudDrift {
+          0% {
+            transform: translateY(-2%) scale(1);
+          }
+          50% {
+            transform: translateY(3%) scale(1.02);
+          }
+          100% {
+            transform: translateY(-2%) scale(1);
+          }
+        }
+
+        @keyframes gridGlide {
+          0% {
+            background-position: center 0px;
+          }
+          50% {
+            background-position: calc(50% + 25px) 30px;
+          }
+          100% {
+            background-position: center 0px;
+          }
+        }
+
+        @keyframes lightningPulse {
+          0%,
+          52%,
+          100% {
+            opacity: 0;
+          }
+          53% {
+            opacity: 0.95;
+          }
+          55% {
+            opacity: 0.2;
+          }
+          60% {
+            opacity: 0.7;
+          }
+          63% {
+            opacity: 0;
+          }
+        }
+
+        @keyframes lightningPulseAlt {
+          0%,
+          28%,
+          100% {
+            opacity: 0;
+          }
+          29% {
+            opacity: 0.85;
+          }
+          31% {
+            opacity: 0.15;
+          }
+          36% {
+            opacity: 0.6;
+          }
+          38% {
+            opacity: 0;
+          }
+        }
+
+        @keyframes lightningStrand {
+          0%,
+          70%,
+          100% {
+            opacity: 0;
+            transform: translateX(-10%) skewX(-18deg);
+          }
+          71% {
+            opacity: 0.85;
+            transform: translateX(0%) skewX(-12deg);
+          }
+          73% {
+            opacity: 0.2;
+            transform: translateX(6%) skewX(-8deg);
+          }
+          78% {
+            opacity: 0.65;
+            transform: translateX(-4%) skewX(-16deg);
+          }
+          80% {
+            opacity: 0;
+            transform: translateX(0%) skewX(-18deg);
+          }
+        }
+      `}</style>
     </main>
   );
 }

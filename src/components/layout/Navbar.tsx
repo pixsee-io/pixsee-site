@@ -47,7 +47,6 @@ const Navbar = (props: Props) => {
           ))}
         </div>
 
-        {/* Right Section */}
         <div className="hidden md:flex items-center gap-4">
           <Link
             href="#signin"
