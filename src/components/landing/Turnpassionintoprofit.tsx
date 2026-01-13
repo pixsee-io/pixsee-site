@@ -25,33 +25,33 @@ const TurnPassionIntoProfit = (props: Props) => {
   ];
 
   return (
-    <section className="relative w-full max-h-screen flex justify-center bg-foundation-alternate py-20 px-4">
-      <div className="max-w-[90rem] mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <section className="relative w-full flex justify-center bg-foundation-alternate py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0">
+      <div className="max-w-[90rem] mx-auto w-full">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-10 md:gap-12 lg:gap-16">
           <div
             ref={imageResult.ref}
-            className={`relative order-2 lg:order-1 ${imageResult.animationClass}`}
+            className={`relative w-full lg:w-auto order-1 lg:order-1 ${imageResult.animationClass}`}
             style={{ transitionDelay: "0.4s" }}
           >
-            <div className="relative w-full h-full rounded-3xl overflow-hidden">
+            <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-auto rounded-2xl sm:rounded-3xl overflow-hidden">
               <Image
-                src="/images/phone-mockup.png"
-                alt="Phone Mockup"
+                src="/images/turnPassion.png"
+                alt="Turn Passion Into Profit"
                 width={400}
                 height={800}
-                className="w-full h-auto"
+                className="w-full h-full lg:min-h-[35rem] xl:min-h-[35rem] object-cover"
                 priority
               />
             </div>
           </div>
 
-          <div className="space-y-8 order-1 lg:order-2">
+          <div className="w-full lg:max-w-2xl space-y-5 sm:space-y-6 md:space-y-7 order-2 lg:order-2">
             <div
               ref={badgeResult.ref}
               className={`w-fit ${badgeResult.animationClass}`}
               style={{ transitionDelay: "0s" }}
             >
-              <div className="px-4 py-2 rounded-full text-brand-action text-sm font-semibold bg-brand-primary-light">
+              <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-brand-action text-xs sm:text-sm font-semibold bg-brand-primary-light">
                 For fans
               </div>
             </div>
@@ -61,7 +61,7 @@ const TurnPassionIntoProfit = (props: Props) => {
               className={`${titleResult.animationClass}`}
               style={{ transitionDelay: "0.1s" }}
             >
-              <h2 className="text-xl lg:text-2xl text-neutral-primary-text">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] font-bold text-neutral-primary-text">
                 Turn Passion Into Profit
               </h2>
             </div>
@@ -71,7 +71,7 @@ const TurnPassionIntoProfit = (props: Props) => {
               className={`${descriptionResult.animationClass}`}
               style={{ transitionDelay: "0.2s" }}
             >
-              <p className="max-w-xl text-sm lg:text-base text-neutral-secondary-text leading-relaxed">
+              <p className="max-w-xl text-base sm:text-lg md:text-xl text-neutral-secondary-text leading-relaxed">
                 Your engagement matters. Watch, vote, trade, and earn $PIX
                 tokens for every interaction.
               </p>
@@ -79,18 +79,18 @@ const TurnPassionIntoProfit = (props: Props) => {
 
             <div
               ref={featuresResult.ref}
-              className={`space-y-4 ${featuresResult.animationClass}`}
+              className={`space-y-3 sm:space-y-4 ${featuresResult.animationClass}`}
               style={{ transitionDelay: "0.3s" }}
             >
               {features.map((feature, index) => (
-                <div key={index} className="flex items-start gap-4">
-                  <div className="flex-shrink-0 mt-1">
+                <div key={index} className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex-shrink-0 mt-0.5 sm:mt-1">
                     <CircleCheck
-                      size={24}
-                      className="text-brand-action stroke-[3]"
+                      size={20}
+                      className="sm:w-6 sm:h-6 text-brand-action stroke-[3]"
                     />
                   </div>
-                  <p className="text-neutral-primary-text font-medium text-base">
+                  <p className="text-sm sm:text-base text-neutral-primary-text font-medium">
                     {feature}
                   </p>
                 </div>
@@ -99,16 +99,19 @@ const TurnPassionIntoProfit = (props: Props) => {
 
             <div
               ref={buttonResult.ref}
-              className={`pt-4 ${buttonResult.animationClass}`}
+              className={`pt-2 sm:pt-4 ${buttonResult.animationClass}`}
               style={{ transitionDelay: "0.4s" }}
             >
               <Button
                 asChild
-                className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full lg:w-48 px-8 py-6 font-semibold text-base"
+                className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto sm:min-w-[12rem] lg:w-48 px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
               >
-                <Link href="/start-earning" className="flex items-center gap-2">
+                <Link
+                  href="/start-earning"
+                  className="flex items-center justify-center gap-2"
+                >
                   Start Earning
-                  <ArrowUpRight size={18} />
+                  <ArrowUpRight size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </Link>
               </Button>
             </div>

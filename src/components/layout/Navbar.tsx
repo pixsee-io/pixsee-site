@@ -29,13 +29,13 @@ const Navbar = (props: Props) => {
             alt="Pixsee"
             width={120}
             height={60}
-            className="h-auto object-contain img-purple-to-white"
+            className="w-20 md:w-full h-auto object-contain img-purple-to-white"
             priority
           />
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden lg:flex items-center gap-8">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -47,7 +47,7 @@ const Navbar = (props: Props) => {
           ))}
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <Link
             href="#signin"
             className="text-neutral-primary-text hover:text-brand-pixsee-primary transition-colors duration-200 font-medium text-sm"
@@ -69,7 +69,7 @@ const Navbar = (props: Props) => {
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center gap-3">
+        <div className="lg:hidden flex items-center gap-3">
           <ModeToggle />
           <button
             onClick={() => setIsOpen(!isOpen)}
@@ -87,7 +87,7 @@ const Navbar = (props: Props) => {
 
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden bg-foundation-alternate border-t border-neutral-tertiary-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden bg-foundation-alternate border-t border-neutral-tertiary-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
           <Container className="py-4 flex flex-col gap-3">
             {navItems.map((item) => (
               <Link

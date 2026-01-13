@@ -3,7 +3,6 @@ import { Inter, Paytone_One } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
-import Footer from "@/components/layout/Footer";
 import FooterWrapper from "@/components/layout/FooterWrapper";
 
 const paytone = Paytone_One({
