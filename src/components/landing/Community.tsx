@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, CheckCircle, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import useScrollAnimation from "@/app/hooks/useScrollAnimation";
 import Image from "next/image";
 
@@ -21,11 +21,7 @@ interface SocialLink {
 }
 
 const Community = () => {
-  const section1Result = useScrollAnimation({ animationType: "fade-up" });
-  const section2Result = useScrollAnimation({ animationType: "fade-up" });
   const socialsResult = useScrollAnimation({ animationType: "fade-up" });
-  const section3Result = useScrollAnimation({ animationType: "fade-up" });
-  const betaButtonsResult = useScrollAnimation({ animationType: "fade-up" });
 
   const socialLinks: SocialLink[] = [
     {
@@ -64,14 +60,8 @@ const Community = () => {
         />
 
         <div className="hidden lg:flex flex-col gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
-          <ImageFrame
-            src="/images/community1.png"
-            className="w-64"
-          />
-          <ImageFrame
-            src="/images/community2.png"
-            className="w-64"
-          />
+          <ImageFrame src="/images/community1.png" className="w-64" />
+          <ImageFrame src="/images/community2.png" className="w-64" />
         </div>
 
         <ImageFrame
@@ -176,8 +166,7 @@ const Community = () => {
           </p>
 
           <div
-            ref={socialsResult.ref}
-            className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 ${socialsResult.animationClass}`}
+            className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 `}
             style={{ transitionDelay: "0.1s" }}
           >
             {socialLinks.map((social) => (
