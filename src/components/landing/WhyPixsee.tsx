@@ -61,10 +61,10 @@ const WhyPixsee = (props: Props) => {
         >
           <Button
             variant="outline"
-            className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-secondary-border"
+            className="flex items-center gap-2 text-xs md:text-base rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-secondary-border"
             asChild
           >
-            <Link href="/why-pixsee" className="flex items-center gap-2">
+            <Link href="/about-us">
               Why Pixsee
               <ArrowRight size={16} />
             </Link>
@@ -76,7 +76,7 @@ const WhyPixsee = (props: Props) => {
           className={`text-center mb-6 ${titleResult.animationClass}`}
           style={{ transitionDelay: "0.1s" }}
         >
-          <h2 className="max-w-2xl mx-auto text-4xl lg:text-[55px] font-bold text-neutral-primary-text">
+          <h2 className="max-w-2xl mx-auto text-3xl md:text-4xl lg:text-[55px] font-bold text-neutral-secondary-text">
             Rewriting the Rules of{" "}
             <span className="text-brand-pixsee-secondary">Streaming</span>
           </h2>
@@ -87,7 +87,7 @@ const WhyPixsee = (props: Props) => {
           className={`text-center mb-16 max-w-3xl mx-auto ${descriptionResult.animationClass}`}
           style={{ transitionDelay: "0.2s" }}
         >
-          <p className="text-lg lg:text-2xl text-neutral-secondary-text leading-relaxed">
+          <p className="text-sm md:text-lg lg:text-2xl text-neutral-secondary-text leading-relaxed">
             The entertainment industry is evolving. Pixsee gives creators full
             control, fans real rewards, and both a stake in success.
           </p>
@@ -95,19 +95,19 @@ const WhyPixsee = (props: Props) => {
 
         <div
           ref={cardsResult.ref}
-          className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${cardsResult.animationClass}`}
+          className={`grid grid-cols-1 md:grid-cols-3 gap-6 xl:gap-9 ${cardsResult.animationClass}`}
           style={{ transitionDelay: "0.3s" }}
         >
           {features.map((feature, index) => (
             <div
               key={index}
-              className="bg-neutral-secondary rounded-2xl p-8 hover:shadow-lg transition-all duration-300 hover:scale-105"
+              className="bg-neutral-secondary rounded-xl rounded-tr-4xl border-2 border-muted p-8 hover:shadow-lg transition-all duration-300 hover:scale-105"
             >
               <div className={`${feature.iconBg} w-fit p-2 rounded-lg flex items-center justify-center mb-6 text-3xl`}>
                 <Image src={feature.icon} alt={feature.icon} width={24} height={24} />
               </div>
 
-              <h3 className="text-xl text-neutral-primary-text mb-3">
+              <h3 className="text-xl text-neutral-secondary-text mb-3">
                 {feature.title}
               </h3>
               <p className="text-neutral-secondary-text mb-6">
@@ -116,7 +116,7 @@ const WhyPixsee = (props: Props) => {
 
               <Button
                 variant="outline"
-                className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-primary-text"
+                className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-secondary-text"
                 asChild
               >
                 <Link href={feature.buttonHref} className="flex items-center gap-2">

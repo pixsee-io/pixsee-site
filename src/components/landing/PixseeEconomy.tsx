@@ -3,7 +3,13 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Zap, TrendingUp, CircleCheck, ArrowUpRight } from "lucide-react";
+import {
+  Zap,
+  TrendingUp,
+  CircleCheck,
+  ArrowUpRight,
+  PlayCircle,
+} from "lucide-react";
 import useScrollAnimation from "@/app/hooks/useScrollAnimation";
 import Image from "next/image";
 
@@ -40,7 +46,7 @@ const PixseeEconomy = (props: Props) => {
     {
       id: "creators",
       label: "For Creators",
-      icon: <Zap size={20} />,
+      icon: <PlayCircle size={20} />,
       title: "Own Your Content, Keep Your Revenue",
       description:
         "Upload your shows, set your terms, and earn directly from your audience. No middlemen, no hidden fees.",
@@ -55,7 +61,7 @@ const PixseeEconomy = (props: Props) => {
         href: "/launch-show",
         icon: <ArrowUpRight size={18} />,
       },
-      imageSrc: "/images/attention_economy.png",
+      imageSrc: "/images/attention-economy.png",
       imageAlt: "Creator",
       badge: "For Creators",
       badgeColor: "bg-brand-primary-light",
@@ -109,16 +115,16 @@ const PixseeEconomy = (props: Props) => {
   const currentTab = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
   return (
-    <section className="relative w-full bg-foundation-primary py-20 px-4">
+    <section className="relative w-full bg-foundation-primary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8">
       <div className="max-w-[90rem] mx-auto">
         <div
           ref={headerResult.ref}
-          className={`flex justify-center mb-8 ${headerResult.animationClass}`}
+          className={`flex justify-center mb-6 sm:mb-8 ${headerResult.animationClass}`}
           style={{ transitionDelay: "0s" }}
         >
           <Button
             variant="outline"
-            className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-secondary-border"
+            className="rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base border-neutral-tertiary-border hover:border-neutral-secondary-border"
             asChild
           >
             <Link href="/featured-show" className="flex items-center gap-2">
@@ -130,41 +136,42 @@ const PixseeEconomy = (props: Props) => {
 
         <div
           ref={titleResult.ref}
-          className={`text-center mb-6 ${titleResult.animationClass}`}
+          className={`text-center mb-4 sm:mb-6 ${titleResult.animationClass}`}
           style={{ transitionDelay: "0.1s" }}
         >
-          <h2 className="max-w-4xl mx-auto text-4xl lg:text-[55px] font-bold text-neutral-primary-text">
-            The <span className="text-brand-action">Pixsee </span> Economy
+          <h2 className="max-w-4xl mx-auto text-3xl sm:text-4xl md:text-5xl lg:text-[55px] font-bold text-neutral-primary-text px-4">
+            The <span className="text-brand-action">Pixsee </span> Attention
+            Economy
           </h2>
         </div>
 
         <div
           ref={descriptionResult.ref}
-          className={`text-center mb-12 max-w-2xl mx-auto ${descriptionResult.animationClass}`}
+          className={`text-center mb-8 sm:mb-10 md:mb-12 max-w-2xl mx-auto ${descriptionResult.animationClass}`}
           style={{ transitionDelay: "0.2s" }}
         >
-          <p className="text-lg lg:text-xl text-neutral-secondary-text leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-neutral-secondary-text leading-relaxed px-4">
             A shared ecosystem where creators, fans, and traders earn together.
           </p>
         </div>
 
         <div
           ref={tabsResult.ref}
-          className={`flex justify-center mb-16 ${tabsResult.animationClass}`}
+          className={`flex justify-center mb-10 sm:mb-12 md:mb-16 overflow-x-auto ${tabsResult.animationClass}`}
           style={{ transitionDelay: "0.3s" }}
         >
-          <div className="flex gap-2 border rounded-full p-2 w-fit border-neutral-tertiary-border">
+          <div className="flex gap-1 sm:gap-2 border rounded-full p-1.5 sm:p-2 w-fit border-neutral-tertiary-border min-w-fit">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all duration-300 ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-full font-semibold text-xs sm:text-sm md:text-base transition-all duration-300 whitespace-nowrap ${
                   activeTab === tab.id
-                    ? "text-brand-action bg-brand-primary-light shadow-lg"
+                    ? "text-brand-pixsee-secondary/70 bg-brand-primary-light shadow-lg"
                     : "text-neutral-primary-text hover:bg-neutral-tertiary"
                 }`}
               >
-                {tab.icon}
+                <span className="hidden sm:inline">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
@@ -173,35 +180,36 @@ const PixseeEconomy = (props: Props) => {
 
         <div
           ref={contentResult.ref}
-          className={`grid grid-cols-1 lg:grid-cols-2 gap-12 items-center ${contentResult.animationClass}`}
+          className={`grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center ${contentResult.animationClass}`}
           style={{ transitionDelay: "0.4s" }}
         >
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-7 md:space-y-8 order-2 lg:order-1">
             <div
-              className={`w-fit px-4 py-2 rounded-full text-brand-action text-sm font-semibold ${currentTab.badgeColor}`}
+              className={`w-fit flex gap-2 items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-brand-pixsee-secondary/70 text-xs sm:text-sm font-semibold ${currentTab.badgeColor}`}
             >
+              <PlayCircle size={14} className="sm:w-4 sm:h-4" />
               {currentTab.badge}
             </div>
 
             <div>
-              <h3 className="text-3xl lg:text-4xl font-bold text-neutral-primary-text mb-4">
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-primary-text mb-3 sm:mb-4">
                 {currentTab.title}
               </h3>
-              <p className="text-lg text-neutral-secondary-text leading-relaxed">
+              <p className="text-base sm:text-lg text-neutral-secondary-text leading-relaxed">
                 {currentTab.description}
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {currentTab.features.map((feature, index) => (
-                <div key={index} className="flex items-start gap-4">
-                  <div className="flex-shrink-0 mt-1">
+                <div key={index} className="flex items-start gap-3 sm:gap-4">
+                  <div className="shrink-0 mt-0.5 sm:mt-1">
                     <CircleCheck
-                      size={24}
-                      className="text-brand-action stroke-[3]"
+                      size={20}
+                      className="sm:w-6 sm:h-6 text-brand-pixsee-secondary/70 stroke-3"
                     />
                   </div>
-                  <p className="text-neutral-primary-text font-medium">
+                  <p className="text-sm sm:text-base text-neutral-primary-text font-medium">
                     {feature}
                   </p>
                 </div>
@@ -211,11 +219,11 @@ const PixseeEconomy = (props: Props) => {
             <div>
               <Button
                 asChild
-                className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full lg:w-48 px-8 py-6 font-semibold text-base"
+                className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto sm:min-w-[12rem] lg:w-48 px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
               >
                 <Link
                   href={currentTab.cta.href}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-center gap-2"
                 >
                   {currentTab.cta.text}
                   {currentTab.cta.icon || <ArrowUpRight size={18} />}
@@ -224,8 +232,8 @@ const PixseeEconomy = (props: Props) => {
             </div>
           </div>
 
-          <div className="relative h-full min-h-96">
-            <div className="relative w-full h-full rounded-3xl overflow-hidden bg-gradient-to-br from-brand-action/10 to-brand-action/10">
+          <div className="relative h-64 sm:h-80 md:h-96 lg:h-full lg:min-h-96 order-1 lg:order-2">
+            <div className="relative w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-brand-action/10 to-brand-action/10">
               <Image
                 src={currentTab.imageSrc}
                 alt={currentTab.imageAlt}
@@ -234,7 +242,7 @@ const PixseeEconomy = (props: Props) => {
                 priority
               />
 
-              <div className="absolute bottom-12 left-8 bg-brand-action text-white px-6 py-3 rounded-full font-semibold shadow-lg">
+              <div className="absolute bottom-4 sm:bottom-8 md:bottom-12 left-4 sm:left-6 md:left-8 bg-brand-action text-white px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-full text-xs sm:text-sm md:text-base font-semibold shadow-lg">
                 {currentTab.id === "creators"
                   ? "Keep your Revenue"
                   : currentTab.id === "fans"

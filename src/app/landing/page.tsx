@@ -9,13 +9,14 @@ import Spotlight from "@/components/landing/Spotlight";
 import Testimonials from "@/components/landing/Testimonials";
 import TurnPassionIntoProfit from "@/components/landing/Turnpassionintoprofit";
 import WhyPixsee from "@/components/landing/WhyPixsee";
+import Faq from "@/components/layout/Faq";
 import React from "react";
 
 type Props = {};
 
 const Page = (props: Props) => {
   return (
-    <div>
+    <div className="">
       <Hero />
 
       <WhyPixsee />
@@ -30,11 +31,13 @@ const Page = (props: Props) => {
 
       <OwnYourContent />
 
-      <Spotlight />
+      {/* <Spotlight /> */}
 
       <Community />
 
-      <Testimonials />
+      <Faq/>
+
+      {/* <Testimonials /> */}
 
       <ReadyToCTA />
     </div>

@@ -55,7 +55,7 @@ export default function Home() {
       <ComingSoonNavbar />
       <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
         <div className="absolute -top-40 inset-0 flex items-center justify-center z-0">
-          <div className="w-[880px] sm:w-[1100px]">
+          <div className="w-220 sm:w-275">
             <Image
               src="/images/cloud.png"
               alt=""
@@ -226,7 +226,7 @@ export default function Home() {
                 />
               </Link>
               <Link
-                href="https://twitter.com"
+                href="https://x.com/PixseeIO"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-12 h-12 rounded-full bg-black/10 border-[1.5px] border-neutral-secondary-border flex items-center justify-center hover:border-neutral-primary-border hover:scale-105 transition-all shadow-lg"

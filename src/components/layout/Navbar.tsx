@@ -23,7 +23,7 @@ const Navbar = (props: Props) => {
   return (
     <nav className="w-full py-4 bg-foundation-alternate sticky top-0 z-50 backdrop-blur-sm transition-all duration-300 starry-bg border-b border-neutral-tertiary-border/50">
       <Container className="flex items-center justify-between">
-        <Link href="/" className="flex items-center flex-shrink-0">
+        <Link href="/" className="flex items-center shrink-0">
           <Image
             src="/images/pixsee_logo_purple.png"
             alt="Pixsee"

@@ -151,7 +151,8 @@
   --neutral-inverse-tertiary: #6c6666;
 
   /* Brand - Primary (Purple) */
-  --brand-primary: #8859eb;
+  /* --brand-primary: #8859eb;  */
+  --brand-primary: #6B249A; 
   --brand-primary-dark: #4d3285;
   --brand-secondary: #c8aeff;
   --brand-tertiary: #f5f0ff;
@@ -170,14 +171,16 @@
 
   /* Brand - Pixsee (Blue) */
   --brand-pixsee-primary: #4a9fd8;
-  --brand-pixsee-secondary: #006fc9;
+  --brand-pixsee-secondary: #3BA3F8;
+  /* --brand-pixsee-secondary: #1687e5; */
   --brand-pixsee-tertiary: #e3f2fd;
   --brand-pixsee-hover: #1976d2;
   --brand-pixsee-border: #0871c6;
 
   /* r */
-  --brand-action: #6b249a;
+  --brand-action: #692f96;
   --brand-primary-light: rgba(115, 70, 241, 0.09);
+  --active-tab: #1687e5;
 
   /* Semantic - Success */
   --semantic-success-subtle: #effff6;
@@ -244,8 +247,8 @@
   --secondary-foreground: oklch(0.985 0 0);
 
   /* r */
-  --brand-action: #6B249A;
-  --brand-primary-light: rgba(115, 70, 241, 0.15); 
+  --brand-action: #6b249a;
+  --brand-primary-light: rgba(115, 70, 241, 0.15);
 
   /* Muted */
   --muted: oklch(0.269 0 0);
@@ -992,4 +995,22 @@
   margin-bottom: 0 !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
+}
+
+.discover_bg {
+  background-image: url("/images/discover_bg.svg");
+  background-size: cover;
+  background-position: center;
+}
+
+.shows_bg {
+  background-image: url("/images/shows.svg");
+  background-size: cover;
+  background-position: center;
+}
+
+.cta_bg {
+  background-image: url("/images/cta_bg.svg");
+  background-size: cover;
+  background-position: center;
 }

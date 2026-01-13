@@ -3,7 +3,6 @@ import { Inter, Paytone_One } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
-import Footer from "@/components/layout/Footer";
 import FooterWrapper from "@/components/layout/FooterWrapper";
 
 const paytone = Paytone_One({
@@ -31,6 +30,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={paytone.variable}>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
+
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"

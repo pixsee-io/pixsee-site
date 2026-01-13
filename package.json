@@ -1,5 +1,5 @@
 {
-  "name": "pixsee-landing",
+  "name": "pixsee",
   "version": "1.0.0",
   "main": "index.js",
   "private": true,
@@ -14,6 +14,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/postcss": "^4.1.14",
     "@types/node": "^24.6.1",
@@ -22,6 +24,8 @@
     "autoprefixer": "^10.4.21",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "eslint": "^9.36.0",
     "eslint-config-next": "^15.5.4",
     "lucide-react": "^0.545.0",
