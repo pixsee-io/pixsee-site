@@ -47,23 +47,16 @@ const Footer = (props: Props) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1">
             <Link href="/" className="flex items-center flex-shrink-0">
-              {/* <Image
-                src="/icons/Pixsee_logo.svg"
+              <Image
+                src="/icons/pixsee_brand_logo.svg"
                 alt="Pixsee"
                 width={120}
                 height={60}
                 className="h-auto object-contain img-purple-to-white"
                 priority
-              /> */}
-
-<Image
-                src="/icons/Pixsee_icon.svg"
-                alt="Pixsee"
-                width={70}
-                height={40}
-                className="h-auto object-contain img-purple-to-white"
-                priority
               />
+
+            
             </Link>
 
             <p className="mt-8 text-neutral-secondary-text text-base leading-relaxed max-w-xs">
