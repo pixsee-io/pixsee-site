@@ -55,7 +55,7 @@ export default function Home() {
       <ComingSoonNavbar />
       <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
         <div className="absolute -top-40 inset-0 flex items-center justify-center z-0">
-          <div className="w-[880px] sm:w-[1100px]">
+          <div className="w-220 sm:w-275">
             <Image
               src="/images/cloud.png"
               alt=""
@@ -127,7 +127,7 @@ export default function Home() {
               style={{ transitionDelay: "0s" }}
             >
               <Image
-                src="/images/pixsee-logo.png"
+                src="/images/pixsee_landing_logo.png"
                 alt="Pixsee"
                 width={400}
                 height={175}
