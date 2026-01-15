@@ -25,7 +25,7 @@ const Navbar = (props: Props) => {
       <Container className="flex items-center justify-between">
         <Link href="/" className="flex items-center flex-shrink-0">
           <Image
-            src="/images/pixsee_logo_purple.png"
+            src="/icons/pixsee_logo.svg"
             alt="Pixsee"
             width={120}
             height={60}

@@ -42,7 +42,7 @@ const Footer = (props: Props) => {
   };
 
   return (
-    <footer className="relative w-full bg-foundation-primary py-16 px-4">
+    <footer className="relative w-full bg-foundation-alternate py-16 px-4">
       <div className="max-w-[90rem] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1">
@@ -110,9 +110,10 @@ const Footer = (props: Props) => {
                 required
                 className="w-full px-4 py-3 rounded-full bg-neutral-secondary border border-neutral-tertiary-border text-neutral-primary-text placeholder-neutral-tertiary-text focus:outline-none focus:ring-2 focus:ring-brand-action focus:ring-offset-2 focus:ring-offset-foundation-primary"
               />
+
               <Button
                 type="submit"
-                className="w-full bg-brand-action hover:bg-brand-action/90 text-white rounded-full py-3 font-semibold"
+                className="w-full bg-brand-action hover:bg-brand-action/90 text-white rounded-full py-6 font-semibold"
               >
                 Subscribe Now
               </Button>
