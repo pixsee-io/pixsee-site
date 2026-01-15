@@ -6,8 +6,68 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Globe, TrendingUp } from "lucide-react";
 import useScrollAnimation from "@/app/hooks/useScrollAnimation";
+import { motion } from "framer-motion";
 
 type Props = {};
+
+type FloatingCardProps = {
+  iconSrc: string;
+  topText: string;
+  bottomText: string;
+  delay?: number;
+};
+
+function FloatingCard({
+  iconSrc,
+  topText,
+  bottomText,
+  delay = 0.6,
+}: FloatingCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 50 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{
+        duration: 0.5,
+        delay,
+        type: "spring",
+        stiffness: 120,
+        damping: 18,
+      }}
+      whileHover={{
+        x: 10,
+        transition: {
+          type: "spring",
+          stiffness: 300,
+          damping: 20,
+        },
+      }}
+      className="
+        w-40 sm:w-48 md:w-56 xl:w-61.25 
+        bg-white/90 flex items-center gap-2 sm:gap-3 md:gap-5 
+        backdrop-blur-md rounded-xl sm:rounded-2xl 
+        p-2 sm:p-2.5 md:p-3 
+        shadow-lg
+      "
+    >
+      <Image
+        src={iconSrc}
+        alt=""
+        width={60}
+        height={60}
+        className="w-10 h-10 sm:w-12 sm:h-12 lg:w-15 lg:h-15"
+      />
+
+      <div className="flex flex-col gap-1 sm:gap-1.5 md:gap-2">
+        <p className="text-sm md:text-xl xl:text-2xl text-brand-primary  font-bold">{topText}</p>
+        <p className="text-sm text-black font-medium">
+          {bottomText}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
 
 const Hero = (props: Props) => {
   const headingResult = useScrollAnimation({ animationType: "fade-up" });
@@ -15,7 +75,7 @@ const Hero = (props: Props) => {
   const buttonsResult = useScrollAnimation({ animationType: "fade-up" });
   const phoneResult = useScrollAnimation({ animationType: "fade-left" });
   const featuresResult = useScrollAnimation({ animationType: "fade-up" });
-    const iconResult = useScrollAnimation({ animationType: "fade-right" });
+  const iconResult = useScrollAnimation({ animationType: "fade-right" });
 
   const features = [
     {
@@ -38,31 +98,21 @@ const Hero = (props: Props) => {
 
   return (
     <>
-      <section className="relative min-h-screen flex items-center bg-foundation-primary overflow-hidden pb-10">
-        <div className="absolute -top-70 left-0 -right-160 h-125 pointer-events-none ">
-          <Image
-            src="/images/cloud.png"
-            alt=""
-            fill
-            className="object-cover max-w-4xl mx-auto object-top opacity-90 "
-            priority
-          />
-        </div>
-
-        <div className="w-full max-w-360 mx-auto px-4 flex flex-col lg:flex-row gap-9 md:gap-0 justify-between items-center">
-          <div className="w-full space-y-8 md:max-w-3xl">
+      <section className="relative min-h-screen flex items-center bg-foundation-primary overflow-hidden pb-10 px-4 sm:px-6 md:px-8 landing_hero_bg">
+        <div className="w-full max-w-360 mx-auto flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-16 justify-between items-center">
+          <div className="w-full space-y-6 sm:space-y-7 md:space-y-8 lg:max-w-3xl">
             <div
               ref={headingResult.ref}
-              className={`relative mt-9 md:mt-20 xl:mt-0 space-y-4 ${headingResult.animationClass}`}
+              className={`relative mt-9 md:mt-20 xl:mt-0 space-y-3 sm:space-y-4 ${headingResult.animationClass}`}
               style={{ transitionDelay: "0s" }}
             >
-              <h1 className="max-w-xl text-4xl text-center md:text-start lg:text-[85px] font-paytone text-brand-pixsee-secondary">
+              <h1 className="max-w-xl text-4xl md:text-5xl text-center md:text-start lg:text-6xl xl:text-7xl 2xl:text-[85px] font-paytone text-brand-pixsee-secondary leading-tight">
                 Be Your Own Box Office
               </h1>
 
               <div
                 ref={iconResult.ref}
-                className={`absolute -top-20 right-18 w-27.5 h-27.5 z-20 hidden lg:block ${iconResult.animationClass}`}
+                className={`absolute -top-16 sm:-top-20 right-4 sm:right-12 md:right-18 w-20 h-20 sm:w-24 sm:h-24 md:w-27.5 md:h-27.5 z-20 hidden lg:block ${iconResult.animationClass}`}
                 style={{ transitionDelay: "0.5s" }}
               >
                 <Image
@@ -77,10 +127,10 @@ const Hero = (props: Props) => {
 
             <div
               ref={descriptionResult.ref}
-              className={`w-full space-y-6 ${descriptionResult.animationClass}`}
+              className={`w-full space-y-4 sm:space-y-6 ${descriptionResult.animationClass}`}
               style={{ transitionDelay: "0.2s" }}
             >
-              <p className="text-sm lg:text-2xl text-center md:text-start text-neutral-primary-text leading-relaxed">
+              <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-center md:text-start text-neutral-primary-text leading-relaxed">
                 <span className="font-bold text-brand-pixsee-secondary">
                   Create
                 </span>{" "}
@@ -99,15 +149,15 @@ const Hero = (props: Props) => {
 
             <div
               ref={buttonsResult.ref}
-              className={`flex flex-col md:flex-row gap-4 pt-4 ${buttonsResult.animationClass}`}
+              className={`flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2 sm:pt-4 ${buttonsResult.animationClass}`}
               style={{ transitionDelay: "0.4s" }}
             >
               <Button
                 asChild
-                className="rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm px-5 md:px-8 py-5 md:py-6 font-semibold md:text-base flex items-center gap-2 shadow-lg transition-all duration-200 hover:shadow-xl"
+                className="rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm px-5 md:px-8 py-5 md:py-6 font-semibold md:text-base flex items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:shadow-xl w-full sm:w-auto"
               >
                 <Link href="/explore-shows">
-                  <Globe size={20} />
+                  <Globe size={18} className="sm:w-5 sm:h-5" />
                   Explore Shows
                 </Link>
               </Button>
@@ -115,10 +165,10 @@ const Hero = (props: Props) => {
               <Button
                 asChild
                 variant="outline"
-                className="rounded-full px-5 md:px-8 py-5 md:py-6 font-semibold text-sm md:text-base flex items-center gap-2 border-2 border-neutral-primary-text hover:bg-neutral-secondary transition-all duration-200"
+                className="rounded-full px-5 md:px-8 py-5 md:py-6 font-semibold text-sm md:text-base flex items-center justify-center gap-2 border-2 border-neutral-primary-text hover:bg-neutral-secondary transition-all duration-200 w-full sm:w-auto"
               >
                 <Link href="/begin-trading">
-                  <TrendingUp size={20} />
+                  <TrendingUp size={18} className="sm:w-5 sm:h-5" />
                   Begin Trading
                 </Link>
               </Button>
@@ -127,18 +177,41 @@ const Hero = (props: Props) => {
 
           <div
             ref={phoneResult.ref}
-            className={`w-full md:max-w-3xl relative flex justify-center items-center ${phoneResult.animationClass}`}
+            className={`w-full lg:max-w-2xl xl:max-w-3xl relative flex justify-center items-center ${phoneResult.animationClass}`}
             style={{ transitionDelay: "0.3s" }}
           >
-            <div className="relative w-full ">
+            <div className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-full">
               <Image
-                src="/images/landing-img.png"
+                src="/images/landing_hero.png"
                 alt="Pixsee App"
                 width={705}
                 height={869}
                 className="w-full h-auto drop-shadow-2xl"
                 priority
               />
+
+              <div className="absolute top-1/4 sm:top-1/3 -right-2 sm:-right-8 lg:-right-6 flex flex-col items-center space-y-2 sm:space-y-3 md:space-y-4">
+                <FloatingCard
+                  iconSrc="/icons/create.svg"
+                  topText="Create"
+                  bottomText="Launch"
+                  delay={0.6}
+                />
+
+                <FloatingCard
+                  iconSrc="/icons/watch.svg"
+                  topText="Watch"
+                  bottomText="Vote"
+                  delay={0.7}
+                />
+
+                <FloatingCard
+                  iconSrc="/icons/earnn.svg"
+                  topText="Earn"
+                  bottomText="240 $PIX"
+                  delay={0.8}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -146,17 +219,17 @@ const Hero = (props: Props) => {
 
       <section
         ref={featuresResult.ref}
-        className={`w-full bg-[#7C369B]/90 py-8 px-4 ${featuresResult.animationClass}`}
+        className={`w-full bg-brand-primary py-6 sm:py-8 px-4 sm:px-6 md:px-8 ${featuresResult.animationClass}`}
         style={{ transitionDelay: "0s" }}
       >
-        <div className="max-w-[90rem] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0">
+        <div className="max-w-360 mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-0">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className={`border-l-4 ${feature.borderColor} pl-4 py-4 lg:py-0`}
+                className={`border-l-4 ${feature.borderColor} pl-3 sm:pl-4 py-3 sm:py-4 lg:py-0`}
               >
-                <h3 className="text-white font-bold font-inter text-sm lg:text-lg">
+                <h3 className="text-white font-bold font-inter text-xs sm:text-sm md:text-base lg:text-lg">
                   {feature.title}
                 </h3>
               </div>

@@ -127,7 +127,7 @@ export default function Home() {
               style={{ transitionDelay: "0s" }}
             >
               <Image
-                src="/images/pixsee-logo.png"
+                src="/images/pixsee_landing_logo.png"
                 alt="Pixsee"
                 width={400}
                 height={175}
@@ -226,7 +226,7 @@ export default function Home() {
                 />
               </Link>
               <Link
-                href="https://x.com/PixseeIO"
+                href="https://twitter.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-12 h-12 rounded-full bg-black/10 border-[1.5px] border-neutral-secondary-border flex items-center justify-center hover:border-neutral-primary-border hover:scale-105 transition-all shadow-lg"

@@ -28,7 +28,7 @@ const ComingSoonNavbar = (props: Props) => {
       <Container className="flex items-center justify-between relative z-20">
         <Link href="/" className="flex items-center">
           <Image
-            src="/icons/pixsee_icon.svg"
+            src="/images/pixsee_logo.png"
             alt="Pixsee"
             width={40}
             height={40}

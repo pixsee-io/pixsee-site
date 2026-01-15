@@ -1014,3 +1014,9 @@
   background-size: cover;
   background-position: center;
 }
+
+.landing_hero_bg {
+  background-image: url("/images/landing_hero_bg.svg");
+  background-size: cover;
+  background-position: center;
+}

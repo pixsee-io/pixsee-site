@@ -55,8 +55,8 @@ const Community = () => {
     return (
       <div className="flex flex-col md:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 overflow-x-auto pb-4">
         <ImageFrame
-          src="/images/communityimg1.png"
-          className="w-64 flex-shrink-0"
+          src="/images/community_1.png"
+          className="w-64 hrink-0"
         />
 
         <div className="hidden lg:flex flex-col gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
@@ -75,8 +75,8 @@ const Community = () => {
         </div>
 
         <ImageFrame
-          src="/images/communityimg2.png"
-          className=" w-64 flex-shrink-0"
+              src="/images/community_5.png"
+          className=" w-64 shrink-0"
         />
       </div>
     );
@@ -183,7 +183,7 @@ const Community = () => {
                   className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain"
                   unoptimized
                 />
-                <span className="font-semibold text-neutral-primary-text text-xs sm:text-sm">
+                <span className="font-semibold text-black text-xs sm:text-sm">
                   {social.name}
                 </span>
               </Link>

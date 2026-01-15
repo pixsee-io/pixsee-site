@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Heart, Eye, TrendingUp } from "lucide-react";
 import useScrollAnimation from "@/app/hooks/useScrollAnimation";
-import ShowCard from "./ShowCard";
 import Image from "next/image";
 
 type Props = {};
@@ -52,8 +50,8 @@ const HowPixseeWorks = (props: Props) => {
   ];
 
   return (
-    <section className="relative w-full bg-brand-pixsee-secondary pt-12 sm:pt-16 md:pt-20 px-4 sm:px-6 md:px-8 pb-12 sm:pb-16 md:pb-20 xl:pb-0">
-      <div className="max-w-[90rem] mx-auto">
+    <section className="relative w-full bg-brand-pixsee-secondary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0">
+      <div className="max-w-360 mx-auto">
         <div
           ref={headerResult.ref}
           className={`mb-6 sm:mb-8 ${headerResult.animationClass}`}
@@ -75,7 +73,7 @@ const HowPixseeWorks = (props: Props) => {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 sm:gap-10 md:gap-12 justify-between items-start">
+        <div className="w-full flex flex-col lg:flex-row gap-8 sm:gap-10 md:gap-12 justify-between items-start">
           <div
             ref={stepsResult.ref}
             className={`space-y-4 sm:space-y-5 md:space-y-6 w-full lg:w-auto ${stepsResult.animationClass}`}
@@ -90,7 +88,7 @@ const HowPixseeWorks = (props: Props) => {
                   <div className="absolute hidden md:block left-5 sm:left-6 top-16 sm:top-20 w-0.5 sm:w-1 h-20 sm:h-28 md:h-32 border-l-2 sm:border-l-3 border-dashed border-white/40"></div>
                 )}
 
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-foundation-primary flex items-center justify-center text-lg sm:text-xl md:text-2xl font-bold border-3 sm:border-4 border-white shadow-lg">
                     {step.number}
                   </div>
@@ -101,10 +99,10 @@ const HowPixseeWorks = (props: Props) => {
                   onMouseEnter={() => setActiveStep(step.number)}
                   onTouchStart={() => setActiveStep(step.number)}
                 >
-                  <p className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">{step.title}</p>
-                  <p className="text-sm sm:text-base ">
-                    {step.description}
+                  <p className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3">
+                    {step.title}
                   </p>
+                  <p className="text-sm sm:text-base ">{step.description}</p>
                 </div>
               </div>
             ))}
@@ -112,7 +110,7 @@ const HowPixseeWorks = (props: Props) => {
 
           <div
             ref={mockupResult.ref}
-            className={`relative w-full lg:w-auto flex justify-center lg:justify-start ${mockupResult.animationClass}`}
+            className={`relative xl:-mt-65 w-full lg:w-auto flex justify-center lg:justify-start ${mockupResult.animationClass}`}
             style={{ transitionDelay: "0.3s" }}
           >
             <Image
@@ -120,7 +118,7 @@ const HowPixseeWorks = (props: Props) => {
               alt="How Pixsee Works"
               width={500}
               height={500}
-              className="w-full max-w-[400px] sm:max-w-[450px] md:max-w-[500px] h-auto"
+              className="w-full max-w-100 sm:max-w-112.5 md:max-w-125 h-auto xl:max-w-170 xl:min-h-200"
             />
           </div>
         </div>
