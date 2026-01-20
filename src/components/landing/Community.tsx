@@ -25,9 +25,9 @@ const Community = () => {
 
   const socialLinks: SocialLink[] = [
     {
-      name: "Memecoin",
-      icon: "/images/pix_token.png",
-      href: "https://memecoin.com",
+      name: "Pix",
+      icon: "/images/pix.png",
+      href: "https://pump.fun/coin/7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump",
     },
     {
       name: "Telegram",
@@ -37,7 +37,7 @@ const Community = () => {
     {
       name: "X(Twitter)",
       icon: "/images/p_twitter.png",
-      href: "https://twitter.com",
+      href: "https://x.com/PixseeIO",
     },
     {
       name: "Discord",
