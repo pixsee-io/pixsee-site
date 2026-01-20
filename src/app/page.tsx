@@ -57,7 +57,7 @@ export default function Home() {
         <div className="absolute -top-40 inset-0 flex items-center justify-center z-0">
           <div className="w-220 sm:w-275">
             <Image
-              src="/images/cloud.png"
+              src="/images/cloudy.svg"
               alt=""
               width={1200}
               height={800}
