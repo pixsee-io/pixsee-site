@@ -59,17 +59,17 @@ const Community = () => {
           className="w-64 hrink-0"
         />
 
-        <div className="hidden lg:flex flex-col gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
+        <div className="hidden lg:flex flex-col gap-2 sm:gap-3 md:gap-4 shrink-0">
           <ImageFrame src="/images/community1.png" className="w-64" />
           <ImageFrame src="/images/community2.png" className="w-64" />
         </div>
 
         <ImageFrame
           src="/images/community3.png"
-          className="w-64 h-auto flex-shrink-0"
+          className="w-64 h-auto shrink-0"
         />
 
-        <div className="hidden lg:flex flex-col gap-4 flex-shrink-0">
+        <div className="hidden lg:flex flex-col gap-4 shrink-0">
           <ImageFrame src="/images/community1.png" className="w-64" />
           <ImageFrame src="/images/community2.png" className="w-64" />
         </div>
@@ -134,12 +134,12 @@ const Community = () => {
   }
 
   return (
-    <section className="relative w-full bg-brand-action py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8">
-      <div className="max-w-[90rem] mx-auto relative">
+    <section className="relative w-full bg-brand-action py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 community_bg">
+      <div className="max-w-360 mx-auto relative">
         <TimelineSection delay={0} pl="pl-0 md:pl-20">
           <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] text-white mb-2 sm:mb-3">
             Join our{" "}
-            <span className="text-brand-pixsee-secondary">Community</span>
+            <span className="text-semantic-error-primary">Community</span>
           </h3>
           <p className="text-white text-sm sm:text-base md:text-lg lg:text-xl mb-6 sm:mb-8 max-w-2xl">
             Be a part of the Pixsee Attention Economy, a growing network of
@@ -150,7 +150,7 @@ const Community = () => {
           <CommunityGallery />
         </TimelineSection>
 
-        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-black/30" />
+        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-semantic-error-primary" />
 
         <TimelineSection
           delay={0.2}
@@ -158,7 +158,7 @@ const Community = () => {
           lineHeight="h-60 sm:h-64 md:h-70"
         >
           <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] text-white mb-2 sm:mb-3">
-            Ways to <span className="text-brand-pixsee-secondary">join</span>{" "}
+            Ways to <span className="text-semantic-error-primary">join</span>{" "}
             the Community
           </h3>
           <p className="text-white text-sm sm:text-base md:text-lg lg:text-xl mb-6 sm:mb-8 max-w-2xl">
@@ -191,7 +191,7 @@ const Community = () => {
           </div>
         </TimelineSection>
 
-        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-black/30" />
+        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-semantic-error-primary" />
 
         <TimelineSection
           delay={0.4}

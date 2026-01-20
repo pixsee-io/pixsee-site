@@ -50,7 +50,7 @@ const HowPixseeWorks = (props: Props) => {
   ];
 
   return (
-    <section className="relative w-full bg-brand-pixsee-secondary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0">
+    <section className="relative w-full bg-brand-pixsee-secondary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0 HowPixseeWorks_bg">
       <div className="max-w-360 mx-auto">
         <div
           ref={headerResult.ref}

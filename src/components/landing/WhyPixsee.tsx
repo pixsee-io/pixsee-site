@@ -10,7 +10,7 @@ import Image from "next/image";
 type Props = {};
 
 interface Feature {
-  icon: string; 
+  icon: string;
   title: string;
   description: string;
   buttonText: string;
@@ -26,7 +26,7 @@ const WhyPixsee = (props: Props) => {
 
   const features: Feature[] = [
     {
-      icon: "/icons/outline_video.svg",
+      icon: "/icons/video1.svg",
       title: "Creator Freedom",
       description: "Launch projects without gatekeepers or distributors.",
       buttonText: "Launch",
@@ -34,20 +34,20 @@ const WhyPixsee = (props: Props) => {
       iconBg: "bg-[#BDE1FF]",
     },
     {
-        icon: "/icons/outline_video.svg",
+      icon: "/icons/earn_engage.svg",
       title: "Earn As You Engage",
       description: "Watch, vote, and trade to earn $PIX tokens.",
       buttonText: "Watch & Earn",
       buttonHref: "/watch-earn",
-      iconBg: "bg-[#E5C4FF]",
+      iconBg: "bg-[#82E57C]",
     },
     {
-        icon: "/icons/outline_video.svg",
+      icon: "/icons/community.svg",
       title: "Community First",
       description: "The audience decides what trends, not algorithms.",
       buttonText: "Join Community",
       buttonHref: "/community",
-      iconBg: "bg-[#FFD5E9]",
+      iconBg: "bg-[#FFD73E]",
     },
   ];
 
@@ -103,9 +103,13 @@ const WhyPixsee = (props: Props) => {
               key={index}
               className="bg-neutral-secondary rounded-xl rounded-tr-4xl border-2 border-muted p-8 hover:shadow-lg transition-all duration-300 hover:scale-105"
             >
-              <div className={`${feature.iconBg} w-fit p-2 rounded-lg flex items-center justify-center mb-6 text-3xl`}>
-                <Image src={feature.icon} alt={feature.icon} width={24} height={24} />
-              </div>
+              <Image
+                src={feature.icon}
+                alt={feature.icon}
+                width={24}
+                height={24}
+                className="mb-6 w-6 h-6 md:w-8 md:h-8"
+              />
 
               <h3 className="text-xl text-neutral-secondary-text mb-3">
                 {feature.title}
@@ -119,7 +123,10 @@ const WhyPixsee = (props: Props) => {
                 className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-secondary-text"
                 asChild
               >
-                <Link href={feature.buttonHref} className="flex items-center gap-2">
+                <Link
+                  href={feature.buttonHref}
+                  className="flex items-center gap-2"
+                >
                   {feature.buttonText}
                   <ArrowRight size={16} />
                 </Link>

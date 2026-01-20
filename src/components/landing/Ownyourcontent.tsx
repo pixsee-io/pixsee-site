@@ -9,7 +9,7 @@ import Image from "next/image";
 
 type Props = {};
 
-const OwnYourContent = (props: Props) => {
+const OwnYourContent = React.forwardRef<HTMLElement, Props>((props, ref) => {
   const badgeResult = useScrollAnimation({ animationType: "fade-up" });
   const titleResult = useScrollAnimation({ animationType: "fade-up" });
   const descriptionResult = useScrollAnimation({ animationType: "fade-up" });
@@ -25,7 +25,7 @@ const OwnYourContent = (props: Props) => {
   ];
 
   return (
-    <section className="relative w-full bg-foundation-primary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0 flex justify-center items-center">
+    <section ref={ref} className="relative w-full bg-foundation-primary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0 flex justify-center items-center">
       <div className="max-w-[90rem] mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
           <div className="space-y-5 sm:space-y-6 md:space-y-8 order-2 lg:order-1">
@@ -67,7 +67,7 @@ const OwnYourContent = (props: Props) => {
             >
               {features.map((feature, index) => (
                 <div key={index} className="flex items-start gap-3 sm:gap-4">
-                  <div className="flex-shrink-0 mt-0.5 sm:mt-1">
+                  <div className="shrink-0 mt-0.5 sm:mt-1">
                     <CircleCheck
                       size={20}
                       className="sm:w-6 sm:h-6 text-brand-action stroke-[3]"
@@ -117,6 +117,8 @@ const OwnYourContent = (props: Props) => {
       </div>
     </section>
   );
-};
+});
+
+OwnYourContent.displayName = 'OwnYourContent';
 
 export default OwnYourContent;

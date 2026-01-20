@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Community from "@/components/landing/Community";
 import DiscoverNewShows from "@/components/landing/DiscoverNewShows";
@@ -10,11 +10,14 @@ import ReadyToCTA from "@/components/landing/Readytocta";
 import TurnPassionIntoProfit from "@/components/landing/Turnpassionintoprofit";
 import WhyPixsee from "@/components/landing/WhyPixsee";
 import Faq from "@/components/layout/Faq";
-import React from "react";
+import React, { useRef } from "react";
 
 type Props = {};
 
 const Page = (props: Props) => {
+  const turnPassionRef = useRef<HTMLElement | null>(null);
+  const ownContentRef = useRef<HTMLElement | null>(null);
+
   return (
     <div className="">
       <Hero />
@@ -25,19 +28,18 @@ const Page = (props: Props) => {
 
       <DiscoverNewShows />
 
-      <PixseeEconomy />
+      <PixseeEconomy
+        turnPassionRef={turnPassionRef}
+        ownContentRef={ownContentRef}
+      />
 
-      <TurnPassionIntoProfit />
+      <TurnPassionIntoProfit ref={turnPassionRef} />
 
-      <OwnYourContent />
-
-      {/* <Spotlight /> */}
+      <OwnYourContent ref={ownContentRef} />
 
       <Community />
 
-      <Faq/>
-
-      {/* <Testimonials /> */}
+      <Faq />
 
       <ReadyToCTA />
     </div>
@@ -45,4 +47,3 @@ const Page = (props: Props) => {
 };
 
 export default Page;
-

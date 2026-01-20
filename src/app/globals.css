@@ -171,7 +171,7 @@
 
   /* Brand - Pixsee (Blue) */
   --brand-pixsee-primary: #4a9fd8;
-  --brand-pixsee-secondary: #3BA3F8;
+  --brand-pixsee-secondary: #007DDA;
   /* --brand-pixsee-secondary: #1687e5; */
   --brand-pixsee-tertiary: #e3f2fd;
   --brand-pixsee-hover: #1976d2;
@@ -193,7 +193,7 @@
   /* Semantic - Error */
   --semantic-error-subtle: #fff0f0;
   --semantic-error-bold: #f87171;
-  --semantic-error-primary: #ef4444;
+  --semantic-error-primary: #FF3795; 
   --semantic-error-text: #dc2626;
   --semantic-error-primary-border: #b91c1c;
   --semantic-error-inverse-border: #fecaca;
@@ -1017,6 +1017,24 @@
 
 .landing_hero_bg {
   background-image: url("/images/landing_hero_bg.svg");
+  background-size: cover;
+  background-position: center;
+}
+
+.HowPixseeWorks_bg {
+  background-image: url("/images/HowPixseeWorks_bg.svg");
+  background-size: cover;
+  background-position: center;
+}
+
+.community_bg {
+  background-image: url("/images/community_bg.svg");
+  background-size: cover;
+  background-position: center;
+}
+
+.shared_bg {
+  background-image: url("/images/shared.svg");
   background-size: cover;
   background-position: center;
 }

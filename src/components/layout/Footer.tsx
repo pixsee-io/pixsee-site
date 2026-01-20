@@ -46,7 +46,7 @@ const Footer = (props: Props) => {
       <div className="max-w-[90rem] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1">
-            <Link href="/" className="flex items-center flex-shrink-0">
+            <Link href="/" className="flex items-center shrink-0">
               <Image
                 src="/icons/pixsee_brand_logo.svg"
                 alt="Pixsee"
