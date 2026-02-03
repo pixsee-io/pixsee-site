@@ -52,7 +52,7 @@ const Footer = (props: Props) => {
                 alt="Pixsee"
                 width={120}
                 height={60}
-                className="h-auto object-contain img-purple-to-white"
+                className="h-auto object-contain"
                 priority
               />
 
