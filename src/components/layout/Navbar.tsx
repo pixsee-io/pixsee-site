@@ -34,7 +34,6 @@ const Navbar = (props: Props) => {
     { label: "Trade", href: "#trade" },
   ];
 
-  // Show loading state while Privy is initializing
   const isLoading = !ready;
 
   // Get user's display name or wallet address
@@ -60,7 +59,7 @@ const Navbar = (props: Props) => {
       <Container className="flex items-center justify-between">
         <Link href="/" className="flex items-center shrink-0">
           <Image
-            src="/images/pixsee_logo_purplee.png"
+            src="/images/pixsee_logo_purple.png"
             alt="Pixsee"
             width={120}
             height={60}
