@@ -26,7 +26,7 @@ const OwnYourContent = React.forwardRef<HTMLElement, Props>((props, ref) => {
 
   return (
     <section ref={ref} className="relative w-full bg-foundation-primary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0 flex justify-center items-center">
-      <div className="max-w-[90rem] mx-auto w-full">
+      <div className="max-w-360 mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
           <div className="space-y-5 sm:space-y-6 md:space-y-8 order-2 lg:order-1">
             <div
@@ -44,8 +44,8 @@ const OwnYourContent = React.forwardRef<HTMLElement, Props>((props, ref) => {
               className={`${titleResult.animationClass}`}
               style={{ transitionDelay: "0.1s" }}
             >
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] font-bold text-neutral-primary-text">
-                Own Your Content, Keep Your Revenue
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-primary-text">
+              Monetize the attention that your create
               </h2>
             </div>
 
@@ -104,11 +104,11 @@ const OwnYourContent = React.forwardRef<HTMLElement, Props>((props, ref) => {
           >
             <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-auto rounded-2xl sm:rounded-3xl overflow-hidden">
               <Image
-                src="/images/monetize_img.png"
-                alt="Phone Mockup with Hand"
+                src="/images/monetize.png"
+                alt="monetize"
                 width={500}
                 height={600}
-                className="w-full h-full lg:min-h-[35rem] xl:min-h-[35rem] object-cover"
+                className="w-full h-full lg:min-h-140 xl:min-h-140 object-cover"
                 priority
               />
             </div>

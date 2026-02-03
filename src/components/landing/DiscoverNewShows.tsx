@@ -22,7 +22,7 @@ interface FeaturedShow {
   description: string;
   creator: string;
   creatorAvatar: string;
-  tixPrice: string;
+  pixPrice: string;
   curatorApr: string;
   episodes: string;
   totalMinWatched: string;
@@ -65,7 +65,7 @@ const DiscoverNewShows = (props: Props) => {
         "A mind-bending journey through parallel realities. Join the creator as they explore the boundaries between consciousness and digital existence in this exclusive 8-episode series.",
       creator: "Guillermo Rauch",
       creatorAvatar: "/images/guillermo.png",
-      tixPrice: "$0.015/min",
+      pixPrice: "$0.015/min",
       curatorApr: "24.5%",
       episodes: "8",
       totalMinWatched: "1.2M min",
@@ -77,7 +77,7 @@ const DiscoverNewShows = (props: Props) => {
         "Dive into a noir-inspired world of mystery and intrigue. Uncover secrets that blur the line between reality and nightmare.",
       creator: "Alex Chen",
       creatorAvatar: "/images/guillermo.png",
-      tixPrice: "$0.025/min",
+      pixPrice: "$0.025/min",
       curatorApr: "28.1%",
       episodes: "12",
       totalMinWatched: "2.8M min",
@@ -89,7 +89,7 @@ const DiscoverNewShows = (props: Props) => {
         "Cyberpunk adventure through a dystopian city. Fight for survival and uncover the truth behind the corporate overlords.",
       creator: "Sofia Ramirez",
       creatorAvatar: "/images/guillermo.png",
-      tixPrice: "$0.018/min",
+      pixPrice: "$0.018/min",
       curatorApr: "22.3%",
       episodes: "10",
       totalMinWatched: "1.9M min",
@@ -190,22 +190,22 @@ const DiscoverNewShows = (props: Props) => {
 
                     <div className="grid grid-cols-2 gap-2 w-full lg:w-auto">
                       <div className="border border-gray-700 py-4 px-4 md:px-8 rounded-md flex flex-col gap-2 text-white bg-black/20 backdrop-blur-sm">
-                        <p className="text-sm opacity-80">Current Tix price</p>
+                        <p className="text-sm opacity-80">Current pix price</p>
                         <p className="text-lg md:text-xl font-bold text-[#57C250]">
-                          {show.tixPrice}
+                          {show.pixPrice}
                         </p>
                       </div>
 
                       <div className="border border-gray-700 py-4 px-4 md:px-8 rounded-md flex flex-col gap-2 text-white bg-black/20 backdrop-blur-sm">
                         <p className="text-sm opacity-80">Curator APR</p>
-                        <p className="text-lg md:text-xl font-bold text-[#1687E5]">
+                        <p className="text-lg md:text-xl font-bold text-brand-pixsee-secondary">
                           {show.curatorApr}
                         </p>
                       </div>
 
                       <div className="border border-gray-700 py-4 px-4 md:px-8 rounded-md flex flex-col gap-2 text-white bg-black/20 backdrop-blur-sm">
                         <p className="text-sm opacity-80">Episodes</p>
-                        <p className="text-lg md:text-xl font-bold text-[#1687E5]">
+                        <p className="text-lg md:text-xl font-bold text-brand-pixsee-secondary">
                           {show.episodes}
                         </p>
                       </div>

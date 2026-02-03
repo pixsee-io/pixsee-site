@@ -120,7 +120,7 @@ const WhyPixsee = (props: Props) => {
 
               <Button
                 variant="outline"
-                className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-secondary-text"
+                className="rounded-full px-6 py-2 bg-transparent border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-secondary-text"
                 asChild
               >
                 <Link

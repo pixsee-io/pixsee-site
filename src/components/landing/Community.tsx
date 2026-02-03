@@ -169,7 +169,7 @@ const Community = () => {
             className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 `}
             style={{ transitionDelay: "0.1s" }}
           >
-            {socialLinks.map((social) => (
+            {socialLinks.map((social, index) => (
               <Link
                 key={social.name}
                 href={social.href}
@@ -180,7 +180,7 @@ const Community = () => {
                   alt={social.name}
                   width={32}
                   height={32}
-                  className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain"
+                  className={`${index === 0 && 'h-16 w-16 sm:h-20 sm:w-20 md:h-16 md:w-24'} h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain`}
                   unoptimized
                 />
                 <span className="font-semibold text-black text-xs sm:text-sm">

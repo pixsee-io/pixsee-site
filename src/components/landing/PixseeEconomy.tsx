@@ -55,7 +55,7 @@ const PixseeEconomy = ({ turnPassionRef, ownContentRef }: Props) => {
 
   return (
     <section className="relative w-full bg-foundation-primary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8">
-      <div className="max-w-[90rem] mx-auto">
+      <div className="max-w-360 mx-auto">
         <div
           ref={headerResult.ref}
           className={`flex justify-center mb-6 sm:mb-8 ${headerResult.animationClass}`}
@@ -173,18 +173,14 @@ const PixseeEconomy = ({ turnPassionRef, ownContentRef }: Props) => {
           </div>
 
           <div className="relative h-64 sm:h-80 md:h-96 lg:h-full lg:min-h-96 order-1 lg:order-2">
-            <div className="relative w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-br from-brand-action/10 to-brand-action/10">
+            <div className="relative w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden ">
               <Image
-                src="/images/attention-economy.png"
+                src="/images/attention-image.png"
                 alt="Creator"
                 fill
-                className="object-cover"
+                className="object-contain"
                 priority
               />
-
-              <div className="absolute bottom-4 sm:bottom-8 md:bottom-12 left-4 sm:left-6 md:left-8 bg-brand-action text-white px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-full text-xs sm:text-sm md:text-base font-semibold shadow-lg">
-                Keep your Revenue
-              </div>
             </div>
           </div>
         </div>

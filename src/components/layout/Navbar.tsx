@@ -8,14 +8,24 @@ import { Button } from "../ui/button";
 import { ModeToggle } from "../ui/ModeToggle";
 import { ArrowRightCircle, Menu, X, LogOut, Wallet, User } from "lucide-react";
 import { usePrivy } from "@privy-io/react-auth";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { usePathname } from "next/navigation";
 
 type Props = {};
 
 const Navbar = (props: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const { ready, authenticated, user, login, logout } = usePrivy();
+
+  const pathname = usePathname();
+  const hideModeToggle = pathname === "/landing";
 
   const navItems = [
     { label: "Watch", href: "#watch" },
@@ -50,7 +60,7 @@ const Navbar = (props: Props) => {
       <Container className="flex items-center justify-between">
         <Link href="/" className="flex items-center shrink-0">
           <Image
-            src="/icons/pixsee_brand_logo.svg"
+            src="/images/pixsee_logo_purplee.png"
             alt="Pixsee"
             width={120}
             height={60}
@@ -132,12 +142,12 @@ const Navbar = (props: Props) => {
             </>
           )}
 
-          <ModeToggle />
+          {!hideModeToggle && <ModeToggle />}
         </div>
 
         {/* Mobile Menu Button */}
         <div className="lg:hidden flex items-center gap-3">
-          <ModeToggle />
+          {!hideModeToggle && <ModeToggle />}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 hover:bg-neutral-secondary rounded-lg transition-colors"

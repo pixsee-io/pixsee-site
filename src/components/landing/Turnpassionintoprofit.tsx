@@ -65,7 +65,7 @@ const TurnPassionIntoProfit = React.forwardRef<HTMLElement, Props>(
                 className={`${titleResult.animationClass}`}
                 style={{ transitionDelay: "0.1s" }}
               >
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] font-bold text-neutral-primary-text">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-primary-text">
                   Turn Passion Into Profit
                 </h2>
               </div>
