@@ -48,7 +48,7 @@ const Footer = (props: Props) => {
           <div className="col-span-1">
             <Link href="/" className="flex items-center shrink-0">
               <Image
-                src="/icons/pixsee_brand_logo.svg"
+                src="/images/pixseee.svg"
                 alt="Pixsee"
                 width={120}
                 height={60}

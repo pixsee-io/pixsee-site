@@ -98,7 +98,7 @@ const Hero = (props: Props) => {
 
   return (
     <>
-      <section className="relative min-h-screen flex items-center bg-foundation-primary overflow-hidden pb-10 px-4 sm:px-6 md:px-8 landing_hero_bg_new">
+      <section className="relative min-h-screen flex items-center bg-foundation-alternate overflow-hidden pb-10 px-4 sm:px-6 md:px-8 landing_hero_bg_new">
         <div className="w-full max-w-360 mx-auto flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-16 justify-between items-center">
           <div className="w-full space-y-6 sm:space-y-7 md:space-y-8 lg:max-w-3xl">
             <div

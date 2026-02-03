@@ -52,7 +52,7 @@ const WhyPixsee = (props: Props) => {
   ];
 
   return (
-    <section className="relative w-full bg-foundation-primary py-20 px-4">
+    <section className="relative w-full bg-white py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <div
           ref={headerResult.ref}
