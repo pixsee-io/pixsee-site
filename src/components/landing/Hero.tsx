@@ -182,7 +182,7 @@ const Hero = (props: Props) => {
           >
             <div className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-full">
               <Image
-                src="/images/landing-hero-img.png"
+                src="/images/hero_mage.png"
                 alt="Pixsee App"
                 width={705}
                 height={869}
