@@ -63,7 +63,7 @@ const Navbar = (props: Props) => {
             alt="Pixsee"
             width={120}
             height={60}
-            className="w-20 md:w-full h-auto object-contain img-purple-to-white"
+            className="w-20 md:w-full h-auto object-contain "
             priority
           />
         </Link>
