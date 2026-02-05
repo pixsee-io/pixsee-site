@@ -2,11 +2,22 @@
 
 import { usePathname } from "next/navigation";
 import Navbar from "./Navbar";
+import DashboardHeader from "../dashboard/DashboardHeader";
 
-export default function NavbarWrapper() {
+type NavbarWrapperProps = {
+  onMobileMenuClick?: () => void;
+};
+
+const NavbarWrapper = ({ onMobileMenuClick }: NavbarWrapperProps) => {
   const pathname = usePathname();
 
   if (pathname === "/") return null;
 
+  if (pathname.includes("dashboard")) {
+    return <DashboardHeader onMenuClick={onMobileMenuClick} />;
+  }
+
   return <Navbar />;
-}
+};
+
+export default NavbarWrapper;

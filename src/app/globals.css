@@ -152,7 +152,7 @@
 
   /* Brand - Primary (Purple) */
   /* --brand-primary: #8859eb;  */
-  --brand-primary: #6B249A; 
+  --brand-primary: #6b249a;
   --brand-primary-dark: #4d3285;
   --brand-secondary: #c8aeff;
   --brand-tertiary: #f5f0ff;
@@ -193,7 +193,7 @@
   /* Semantic - Error */
   --semantic-error-subtle: #fff0f0;
   --semantic-error-bold: #f87171;
-  --semantic-error-primary: #FF3795; 
+  --semantic-error-primary: #ff3795;
   --semantic-error-text: #dc2626;
   --semantic-error-primary-border: #b91c1c;
   --semantic-error-inverse-border: #fecaca;
@@ -1043,4 +1043,13 @@
   background-image: url("/images/shared.svg");
   background-size: cover;
   background-position: center;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
