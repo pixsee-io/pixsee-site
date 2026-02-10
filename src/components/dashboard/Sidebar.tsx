@@ -13,7 +13,6 @@ import {
   TrendingUp,
   Wallet,
   ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 type NavItem = {

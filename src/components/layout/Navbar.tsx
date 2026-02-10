@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { usePathname } from "next/navigation";
+import PWAInstallButton from "../PWAInstallButton";
 
 type Props = {};
 
@@ -238,6 +239,8 @@ const Navbar = (props: Props) => {
           </Container>
         </div>
       )}
+
+      <PWAInstallButton />
     </nav>
   );
 };

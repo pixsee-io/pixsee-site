@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import DashboardHeader from "./DashboardHeader";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -16,7 +17,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
     <div className="flex min-h-screen bg-foundation-alternate">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block sticky top-0 h-screen">
+      <div className="hidden xl:block sticky top-0 h-screen">
         <Sidebar
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -26,7 +27,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Mobile Sidebar Overlay */}
       {isMobileSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-50 xl:hidden"
           onClick={() => setIsMobileSidebarOpen(false)}
         />
       )}
@@ -34,7 +35,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Mobile Sidebar */}
       <div
         className={cn(
-          "fixed top-0 left-0 z-50 h-full transition-transform duration-300 lg:hidden",
+          "fixed top-0 left-0 z-50 h-full transition-transform duration-300 xl:hidden",
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -50,7 +51,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Dashboard Header */}
+        <DashboardHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+
+        {/* Page Content */}
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>

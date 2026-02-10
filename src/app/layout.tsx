@@ -4,7 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import NavbarWrapper from "@/components/layout/NavbarWrapper";
 import FooterWrapper from "@/components/layout/FooterWrapper";
-import PrivyProviderWrapper from "./providers/PrivyProviderWrapper";
+import ClientProviders from "@/components/providers/ClientProviders";
 
 const paytone = Paytone_One({
   subsets: ["latin"],
@@ -46,11 +46,11 @@ export default function RootLayout({
           enableSystem
           enableColorScheme
         >
-          <PrivyProviderWrapper>
+          <ClientProviders>
             <NavbarWrapper />
             {children}
             <FooterWrapper />
-          </PrivyProviderWrapper>
+          </ClientProviders>
         </ThemeProvider>
       </body>
     </html>

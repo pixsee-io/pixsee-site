@@ -1045,6 +1045,12 @@
   background-position: center;
 }
 
+.balance_bg {
+  background-image: url("/images/balance-bg.svg");
+  background-size: cover;
+  background-position: center;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

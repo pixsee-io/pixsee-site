@@ -63,13 +63,13 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
       <div className="flex items-center justify-between gap-2">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-lg hover:bg-neutral-secondary transition-colors"
+          className="xl:hidden p-2 rounded-lg hover:bg-neutral-secondary transition-colors"
           aria-label="Open sidebar"
         >
           <Menu className="w-5 h-5 text-neutral-primary-text" />
         </button>
 
-        <Link href="/" className="hidden lg:flex items-center gap-2">
+        <Link href="/" className="hidden xl:flex items-center gap-2">
           <Image
             src="/images/pixseee.svg"
             alt="Pixsee"
@@ -81,7 +81,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
 
         {/* Search Bar */}
         <div className="flex gap-2">
-          <div className="flex-1 w-full xl:min-w-xl">
+          <div className="flex-1 w-full lg:min-w-sm xl:min-w-lg 2xl:min-w-xl">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 md:w-5 md:h-5 text-neutral-tertiary-text" />
               <input
