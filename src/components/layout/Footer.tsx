@@ -89,7 +89,7 @@ const Footer = (props: Props) => {
             <nav className="flex flex-col space-y-4">
               {companyLinks.map((link) => (
                 <Link
-                  key={link.href}
+                  // key={link.href}
                   href={link.href}
                   className="text-neutral-secondary-text hover:text-neutral-primary-text transition-colors duration-200 text-base"
                 >
