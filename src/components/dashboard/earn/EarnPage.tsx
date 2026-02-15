@@ -17,8 +17,20 @@ import {
   HelpCircle,
   ChevronRight,
   ArrowUpRight,
+  Trophy,
+  ThumbsUp,
 } from "lucide-react";
+import RewardsTab from "./tabs/RewardsTab";
+import QuestTab from "./tabs/QuestTab";
+import LeaderboardTab from "./tabs/LeaderBoardTab";
+import AddFundsModal from "./modals/AddFundsModal";
+import TransactionSuccessModal from "./modals/TransactionSuccessModal";
+import ReferralModal from "./modals/ReferralModal";
+import ClaimRewardModal from "./modals/ClaimRewardModal";
+import UserProfileModal from "./modals/UserProfileModal";
+import WithdrawModal from "./modals/WithdrawModal";
 
+// Types
 type TabId = "earn" | "rewards" | "leaderboard" | "quest" | "votes";
 
 type OverviewStat = {
@@ -160,7 +172,7 @@ const earningStreams: EarningStream[] = [
     ],
     buttonText: "Invite Friends",
     buttonColor: "bg-semantic-success-primary hover:bg-semantic-success-text",
-    cardBg: "bg-[#57C250]/20",
+    cardBg: "bg-white",
     borderColor: "border-neutral-tertiary-border",
   },
   {
@@ -219,8 +231,9 @@ const recentEarnings: RecentEarning[] = [
   },
 ];
 
+// Sub-components
 const OverviewCard = ({ stat }: { stat: OverviewStat }) => (
-  <div className="bg-white rounded-xl p-4 lg:py-8 border border-neutral-tertiary-border">
+  <div className="bg-white rounded-xl px-4 py-6 border border-neutral-tertiary-border">
     <p className="text-sm text-neutral-tertiary-text mb-1">{stat.label}</p>
     <p className="text-2xl md:text-3xl font-bold text-neutral-primary-text">
       {stat.value}
@@ -228,8 +241,14 @@ const OverviewCard = ({ stat }: { stat: OverviewStat }) => (
   </div>
 );
 
-const RewardProgressCard = ({ reward }: { reward: RewardCard }) => (
-  <div className="bg-white rounded-xl p-4 lg:py-6 border border-neutral-tertiary-border">
+const RewardProgressCard = ({
+  reward,
+  onClaim,
+}: {
+  reward: RewardCard;
+  onClaim: (reward: RewardCard) => void;
+}) => (
+  <div className="bg-white rounded-xl px-4 py-6 border border-neutral-tertiary-border">
     <div
       className={cn(
         "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
@@ -256,7 +275,6 @@ const RewardProgressCard = ({ reward }: { reward: RewardCard }) => (
       <span className="text-neutral-tertiary-text">{reward.percentage}%</span>
     </div>
 
-    {/* Progress bar */}
     <div className="h-1.5 bg-neutral-tertiary rounded-full mb-3 overflow-hidden">
       <div
         className={cn("h-full rounded-full", reward.progressColor)}
@@ -272,6 +290,7 @@ const RewardProgressCard = ({ reward }: { reward: RewardCard }) => (
     </div>
 
     <Button
+      onClick={() => reward.status === "claimable" && onClaim(reward)}
       className={cn(
         "w-full rounded-full text-sm",
         reward.status === "claimable"
@@ -284,7 +303,13 @@ const RewardProgressCard = ({ reward }: { reward: RewardCard }) => (
   </div>
 );
 
-const EarningStreamCard = ({ stream }: { stream: EarningStream }) => (
+const EarningStreamCard = ({
+  stream,
+  onAction,
+}: {
+  stream: EarningStream;
+  onAction: (streamId: string) => void;
+}) => (
   <div
     className={cn("rounded-xl p-5 border", stream.cardBg, stream.borderColor)}
   >
@@ -319,6 +344,7 @@ const EarningStreamCard = ({ stream }: { stream: EarningStream }) => (
     </div>
 
     <Button
+      onClick={() => onAction(stream.id)}
       className={cn("w-full rounded-full text-white", stream.buttonColor)}
     >
       {stream.buttonText}
@@ -352,18 +378,154 @@ const RecentEarningRow = ({ earning }: { earning: RecentEarning }) => (
 const EarnPage = () => {
   const [activeTab, setActiveTab] = useState<TabId>("earn");
   const [showBalance, setShowBalance] = useState(true);
+  const [currentBalance, setCurrentBalance] = useState(80);
+
+  // Modal states
+  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showTransactionSuccess, setShowTransactionSuccess] = useState(false);
+  const [transactionType, setTransactionType] = useState<
+    "deposit" | "withdraw"
+  >("deposit");
+  const [transactionAmount, setTransactionAmount] = useState(0);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [showClaimRewardModal, setShowClaimRewardModal] = useState(false);
+  const [selectedReward, setSelectedReward] = useState<RewardCard | null>(null);
+  const [showUserProfileModal, setShowUserProfileModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
 
   const tabs: { id: TabId; label: string; icon?: React.ReactNode }[] = [
     { id: "earn", label: "Earn", icon: <Coins className="w-4 h-4" /> },
-    { id: "rewards", label: "Rewards" },
-    { id: "leaderboard", label: "Leaderboard" },
-    { id: "quest", label: "Quest" },
-    { id: "votes", label: "Votes" },
+    { id: "rewards", label: "Rewards", icon: <Gift className="w-4 h-4" /> },
+    { id: "votes", label: "Voting", icon: <ThumbsUp className="w-4 h-4" /> },
+    { id: "quest", label: "Quest", icon: <HelpCircle className="w-4 h-4" /> },
+    {
+      id: "leaderboard",
+      label: "Leaderboard",
+      icon: <Trophy className="w-4 h-4" />,
+    },
   ];
+
+  const handleAddFundsSuccess = (amount: number) => {
+    setShowAddFundsModal(false);
+    setTransactionType("deposit");
+    setTransactionAmount(amount);
+    setCurrentBalance((prev) => prev + amount);
+    setShowTransactionSuccess(true);
+  };
+
+  const handleWithdrawSuccess = (amount: number) => {
+    setShowWithdrawModal(false);
+    setTransactionType("withdraw");
+    setTransactionAmount(amount);
+    setCurrentBalance((prev) => prev - amount);
+    setShowTransactionSuccess(true);
+  };
+
+  const handleClaimReward = (reward: RewardCard) => {
+    setSelectedReward(reward);
+    setShowClaimRewardModal(true);
+  };
+
+  const handleEarningStreamAction = (streamId: string) => {
+    if (streamId === "referrals") {
+      setShowReferralModal(true);
+    }
+    // Handle other stream actions
+  };
+
+  const handleUserClick = (user: any) => {
+    setSelectedUser({
+      name: user.name,
+      avatarUrl: user.avatarUrl,
+      rank: user.rank,
+      followers: user.followers,
+      points: user.points,
+    });
+    setShowUserProfileModal(true);
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "rewards":
+        return <RewardsTab onClaimReward={handleClaimReward as any} />;
+      case "quest":
+        return <QuestTab />;
+      case "leaderboard":
+        return <LeaderboardTab onUserClick={handleUserClick} />;
+      case "earn":
+      default:
+        return (
+          <>
+            {/* Overview Section */}
+            <section className="mb-8">
+              <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
+                Overview
+              </h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {overviewStats.map((stat, index) => (
+                  <OverviewCard key={index} stat={stat} />
+                ))}
+              </div>
+            </section>
+
+            {/* Your Next Rewards Section */}
+            <section className="mb-8">
+              <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
+                Your Next Rewards
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {rewardCards.map((reward) => (
+                  <RewardProgressCard
+                    key={reward.id}
+                    reward={reward}
+                    onClaim={handleClaimReward}
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* Earning Streams Section */}
+            <section className="mb-8">
+              <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
+                Earning Streams
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {earningStreams.map((stream) => (
+                  <EarningStreamCard
+                    key={stream.id}
+                    stream={stream}
+                    onAction={handleEarningStreamAction}
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* Recent Earnings Section */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text">
+                  Recents Earnings
+                </h2>
+                <button className="text-brand-pixsee-secondary hover:underline text-sm font-medium">
+                  View all Activity
+                </button>
+              </div>
+              <div className="space-y-3">
+                {recentEarnings.map((earning) => (
+                  <RecentEarningRow key={earning.id} earning={earning} />
+                ))}
+              </div>
+            </section>
+          </>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-foundation-alternate pb-12">
-      <div className="max-w-350 mx-auto px-4 md:px-6 lg:px-8 py-6">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-6">
+        {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-paytone text-neutral-primary-text">
             Earn
@@ -373,12 +535,13 @@ const EarnPage = () => {
           </p>
         </div>
 
-        <div className="relative rounded-2xl overflow-hidden mb-8 bg-brand-primary p-6 md:p-8 xl:p-16 balance_bg">
-          <div className="relative z-10 text-center">
+        {/* Balance Card */}
+        <div className="relative rounded-2xl overflow-hidden mb-8 bg-brand-primary p-6 md:p-8 md:py-12 balance_bg">
+          <div className="relative z-10 text-center ">
             <p className="text-white/80 text-sm mb-2">Balance</p>
             <div className="flex items-center justify-center gap-2 mb-6">
               <h2 className="text-4xl md:text-5xl font-bold text-white">
-                {showBalance ? "$80.00" : "••••••"}
+                {showBalance ? `$${currentBalance.toFixed(2)}` : "••••••"}
               </h2>
               <button
                 onClick={() => setShowBalance(!showBalance)}
@@ -393,13 +556,17 @@ const EarnPage = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-              <Button className="w-full sm:w-auto bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-8 py-2 gap-2">
+              <Button
+                onClick={() => setShowAddFundsModal(true)}
+                className="w-full sm:w-auto bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-8 py-2 gap-2"
+              >
                 Fund Wallet
                 <Plus className="w-4 h-4" />
               </Button>
               <Button
+                onClick={() => setShowWithdrawModal(true)}
                 variant="outline"
-                className="w-full sm:w-auto bg-transparent hover:bg-white/10 text-white border-white/50 rounded-full px-8 py-2 gap-2"
+                className="w-full sm:w-auto bg-transparent text-white border-white/50 rounded-full px-8 py-2 gap-2"
               >
                 Withdraw
                 <Plus className="w-4 h-4" />
@@ -411,16 +578,16 @@ const EarnPage = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-6 mb-8 border-b border-neutral-tertiary-border overflow-x-auto">
+        <div className="flex gap-2 md:gap-4 mb-8 overflow-x-auto pb-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "pb-3 text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-2",
+                "px-4 md:px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 border",
                 activeTab === tab.id
-                  ? "text-brand-pixsee-secondary border-b-2 border-brand-pixsee-secondary"
-                  : "text-neutral-tertiary-text hover:text-neutral-secondary-text"
+                  ? "bg-brand-primary text-white border-brand-primary"
+                  : "bg-white text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
               )}
             >
               {tab.icon}
@@ -429,60 +596,70 @@ const EarnPage = () => {
           ))}
         </div>
 
-        {/* Overview Section */}
-        <section className="mb-8">
-          <h2 className="text-xl font-paytone text-neutral-primary-text mb-4">
-            Overview
-          </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {overviewStats.map((stat, index) => (
-              <OverviewCard key={index} stat={stat} />
-            ))}
-          </div>
-        </section>
-
-        {/* Your Next Rewards Section */}
-        <section className="mb-8">
-          <h2 className="text-xl font-paytone text-neutral-primary-text mb-4">
-            Your Next Rewards
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {rewardCards.map((reward) => (
-              <RewardProgressCard key={reward.id} reward={reward} />
-            ))}
-          </div>
-        </section>
-
-        {/* Earning Streams Section */}
-        <section className="mb-8">
-          <h2 className="text-xl font-paytone text-neutral-primary-text mb-4">
-            Earning Streams
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {earningStreams.map((stream) => (
-              <EarningStreamCard key={stream.id} stream={stream} />
-            ))}
-          </div>
-        </section>
-
-        {/* Recent Earnings Section */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-paytone text-neutral-primary-text">
-              Recents Earnings
-            </h2>
-            <button className="text-brand-pixsee-secondary hover:underline text-sm font-medium">
-              View all Activity
-            </button>
-          </div>
-
-          <div className="space-y-3 border p-5 rounded-lg">
-            {recentEarnings.map((earning) => (
-              <RecentEarningRow key={earning.id} earning={earning} />
-            ))}
-          </div>
-        </section>
+        {/* Tab Content */}
+        {renderTabContent()}
       </div>
+
+      {/* Modals */}
+      <AddFundsModal
+        isOpen={showAddFundsModal}
+        onClose={() => setShowAddFundsModal(false)}
+        onSuccess={handleAddFundsSuccess}
+        currentBalance={currentBalance}
+      />
+
+      <WithdrawModal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        onSuccess={handleWithdrawSuccess}
+        currentBalance={currentBalance}
+      />
+
+      <TransactionSuccessModal
+        isOpen={showTransactionSuccess}
+        onClose={() => setShowTransactionSuccess(false)}
+        type={transactionType}
+        amount={transactionAmount}
+      />
+
+      <ReferralModal
+        isOpen={showReferralModal}
+        onClose={() => setShowReferralModal(false)}
+        referralLink="Https://www.Pixsee.com/refer-1234"
+        referralProgress={{ current: 1, total: 5 }}
+      />
+
+      {selectedReward && (
+        <ClaimRewardModal
+          isOpen={showClaimRewardModal}
+          onClose={() => {
+            setShowClaimRewardModal(false);
+            setSelectedReward(null);
+          }}
+          onClaim={() => {
+            setShowClaimRewardModal(false);
+            setSelectedReward(null);
+            // Handle claim success
+          }}
+          reward={{
+            title: selectedReward.title,
+            progress: "5 of 5 Referral",
+            tixAmount: 2000,
+            usdAmount: 20,
+          }}
+        />
+      )}
+
+      {selectedUser && (
+        <UserProfileModal
+          isOpen={showUserProfileModal}
+          onClose={() => {
+            setShowUserProfileModal(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+        />
+      )}
     </div>
   );
 };

@@ -30,7 +30,7 @@ const WhyPixsee = (props: Props) => {
       title: "Creator Freedom",
       description: "Launch projects without gatekeepers or distributors.",
       buttonText: "Launch",
-      buttonHref: "/launch",
+      buttonHref: "/dashboard/create",
       iconBg: "bg-[#BDE1FF]",
     },
     {
@@ -38,7 +38,7 @@ const WhyPixsee = (props: Props) => {
       title: "Earn As You Engage",
       description: "Watch, vote, and trade to earn $PIX tokens.",
       buttonText: "Watch & Earn",
-      buttonHref: "/watch-earn",
+      buttonHref: "/dashboard/earn",
       iconBg: "bg-[#82E57C]",
     },
     {
@@ -46,7 +46,7 @@ const WhyPixsee = (props: Props) => {
       title: "Community First",
       description: "The audience decides what trends, not algorithms.",
       buttonText: "Join Community",
-      buttonHref: "/community",
+      buttonHref: "#",
       iconBg: "bg-[#FFD73E]",
     },
   ];

@@ -217,7 +217,7 @@ const Community = () => {
               className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
             >
               <Link
-                href="/beta-testing"
+                href=""
                 className="flex items-center justify-center gap-2"
               >
                 Join Beta Testing 🎉
@@ -230,7 +230,7 @@ const Community = () => {
               asChild
             >
               <Link
-                href="/feedback"
+                href=""
                 className="flex items-center justify-center gap-2"
               >
                 Share your Feedback

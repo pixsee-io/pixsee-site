@@ -142,20 +142,6 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/portfolio" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  My Portfolio
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/wallet" className="cursor-pointer">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Wallet
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={logout}
                 className="cursor-pointer text-red-600"

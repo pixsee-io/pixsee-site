@@ -1051,6 +1051,12 @@
   background-position: center;
 }
 
+.refer_bg {
+  background-image: url("/images/refer_bg.png");
+  background-size: cover;
+  background-position: center;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Wallet,
   ChevronLeft,
+  User,
 } from "lucide-react";
 
 type NavItem = {
@@ -43,9 +44,9 @@ const navItems: NavItem[] = [
     icon: <TrendingUp className="w-5 h-5" />,
   },
   {
-    label: "My Portfolio",
-    href: "/dashboard/portfolio",
-    icon: <Wallet className="w-5 h-5" />,
+    label: "My Profile",
+    href: "/dashboard/profile",
+    icon: <User className="w-5 h-5" />,
   },
 ];
 

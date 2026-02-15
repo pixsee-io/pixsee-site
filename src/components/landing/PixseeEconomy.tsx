@@ -162,7 +162,7 @@ const PixseeEconomy = ({ turnPassionRef, ownContentRef }: Props) => {
                 className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto sm:min-w-[12rem] lg:w-48 px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
               >
                 <Link
-                  href="/launch-show"
+                  href="/dashboard/create"
                   className="flex items-center justify-center gap-2"
                 >
                   Launch Show

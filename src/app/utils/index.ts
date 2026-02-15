@@ -146,3 +146,48 @@ export const featuredShows: FeaturedShowData[] = [
     episodeCount: 12,
   },
 ];
+
+export const publishedShows = [
+  {
+    id: "1",
+    title: "Point of Impact",
+    thumbnailUrl: "/images/movie1.png",
+    creatorName: "Alex Chen",
+    views: "1.2M",
+    likes: "1.2M",
+    genre: "Drama",
+    episodeCount: 10,
+    description:
+      "Six years ago, Regina chose to break up with her boyfriend Julian to avoid. Six years ago, Regina chose to break with her boyfriend Julian to avoid a tragic fate. Now, as they reunite, they must confront their past and the consequences of their choices in this emotional rollercoaster of love and redemption.",
+  },
+  {
+    id: "2",
+    title: "Last Text",
+    thumbnailUrl: "/images/movie2.png",
+    creatorName: "Alex Chen",
+    views: "1.2M",
+    likes: "1.2M",
+    description:
+      "Six years ago, Regina chose to break up with her boyfriend Julian to avoid. Six years ago, Regina chose to break with her boyfriend Julian to avoid a tragic fate. Now, as they reunite, they must confront their past and the consequences of their choices in this emotional rollercoaster of love and redemption.",
+  },
+  {
+    id: "3",
+    title: "Second Chance",
+    thumbnailUrl: "/images/movie3.png",
+    creatorName: "Alex Chen",
+    views: "1.2M",
+    likes: "1.2M",
+    description:
+      "Six years ago, Regina chose to break up with her boyfriend Julian to avoid. Six years ago, Regina chose to break with her boyfriend Julian to avoid a tragic fate. Now, as they reunite, they must confront their past and the consequences of their choices in this emotional rollercoaster of love and redemption.",
+  },
+  {
+    id: "4",
+    title: "Code Black",
+    thumbnailUrl: "/images/movie4.png",
+    creatorName: "Alex Chen",
+    views: "1.2M",
+    likes: "1.2M",
+    description:
+      "Six years ago, Regina chose to break up with her boyfriend Julian to avoid. Six years ago, Regina chose to break with her boyfriend Julian to avoid a tragic fate. Now, as they reunite, they must confront their past and the consequences of their choices in this emotional rollercoaster of love and redemption.",
+  },
+];

@@ -29,10 +29,10 @@ const Navbar = (props: Props) => {
   const hideModeToggle = pathname === "/landing";
 
   const navItems = [
-    { label: "Watch", href: "#watch" },
-    { label: "Create", href: "#create" },
-    { label: "Earn", href: "#earn" },
-    { label: "Trade", href: "#trade" },
+    { label: "Watch", href: "/dashboard/watch" },
+    { label: "Create", href: "/dashboard/create" },
+    { label: "Earn", href: "/dashboard/earn" },
+    { label: "Trade", href: "/dashboard/trade" },
   ];
 
   const isLoading = !ready;
@@ -104,12 +104,7 @@ const Navbar = (props: Props) => {
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/wallet" className="cursor-pointer">
-                    <Wallet className="mr-2 h-4 w-4" />
-                    Wallet
-                  </Link>
-                </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={logout}

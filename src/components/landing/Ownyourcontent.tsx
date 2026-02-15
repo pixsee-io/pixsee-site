@@ -89,7 +89,7 @@ const OwnYourContent = React.forwardRef<HTMLElement, Props>((props, ref) => {
                 asChild
                 className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto sm:min-w-[12rem] px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
               >
-                <Link href="/start-earning" className="flex items-center justify-center gap-2">
+                <Link href="/dashboard/earn" className="flex items-center justify-center gap-2">
                   Start Earning XP
                   <ArrowUpRight size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </Link>

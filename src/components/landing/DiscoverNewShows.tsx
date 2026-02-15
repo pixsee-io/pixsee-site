@@ -181,7 +181,7 @@ const DiscoverNewShows = (props: Props) => {
                         className="w-fit rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white px-9 py-3 md:py-5 font-medium text-sm flex items-center gap-2 shadow-lg transition-all duration-200"
                         asChild
                       >
-                        <Link href={`/shows/${show.id}`}>
+                        <Link href={`/dashboard/watch/${show.id}`}>
                           Play show
                           <CircleArrowOutUpRight size={18} />
                         </Link>

@@ -21,17 +21,17 @@ const Footer = (props: Props) => {
   const [email, setEmail] = useState("");
 
   const platformLinks: FooterLink[] = [
-    { label: "Watch", href: "/watch" },
-    { label: "Create", href: "/create" },
-    { label: "Earn", href: "/earn" },
-    { label: "Token", href: "/token" },
+    { label: "Watch", href: "/dashboard/watch" },
+    { label: "Create", href: "/dashboard/create" },
+    { label: "Earn", href: "/dashboard/earn" },
+    { label: "Token", href: "" },
   ];
 
   const companyLinks: FooterLink[] = [
-    { label: "About", href: "/about" },
-    { label: "Career", href: "/career" },
-    { label: "Contact", href: "/contact" },
-    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "About", href: "" },
+    { label: "Career", href: "" },
+    { label: "Contact", href: "" },
+    { label: "Privacy Policy", href: "" },
   ];
 
   const handleSubscribe = (e: React.FormEvent) => {
