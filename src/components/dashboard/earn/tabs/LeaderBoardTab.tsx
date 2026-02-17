@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Trophy, Diamond } from "lucide-react";
+import { Trophy, Diamond, Gem } from "lucide-react";
 
 type TopRanker = {
   id: string;
@@ -137,24 +137,10 @@ type LeaderboardTabProps = {
 };
 
 const LeaderboardTab = ({ onUserClick }: LeaderboardTabProps) => {
-  // Podium colors
-  const podiumColors = {
-    1: "bg-gradient-to-b from-purple-600 to-purple-800",
-    2: "bg-gradient-to-b from-blue-400 to-blue-600",
-    3: "bg-gradient-to-b from-pink-400 to-pink-600",
-  };
-
-  const podiumHeights = {
-    1: "h-44",
-    2: "h-36",
-    3: "h-28",
-  };
-
   return (
     <div className="space-y-8">
-      {/* User Rank Banner */}
       <div className="bg-white rounded-xl p-4 border border-neutral-tertiary-border text-center">
-        <p className="text-neutral-secondary-text">
+        <p className="text-sm sm:text-base text-neutral-secondary-text">
           You Are on NO{" "}
           <span className="font-bold text-neutral-primary-text">
             {userRank.position}
@@ -164,7 +150,7 @@ const LeaderboardTab = ({ onUserClick }: LeaderboardTabProps) => {
             {userRank.totalUsers.toLocaleString()} users
           </span>
           <span className="inline-flex items-center gap-1 ml-2">
-            <Diamond className="w-4 h-4 text-brand-pixsee-secondary" />
+            <Gem className="w-4 h-4 text-brand-pixsee-secondary" />
             <span className="font-bold text-brand-pixsee-secondary">
               {userRank.points}
             </span>
@@ -174,40 +160,41 @@ const LeaderboardTab = ({ onUserClick }: LeaderboardTabProps) => {
 
       {/* Top Rankers Podium */}
       <section>
-        <h2 className="text-xl font-paytone text-neutral-primary-text mb-6">
+        <h2 className="text-xl font-paytone text-neutral-primary-text mb-10 md:mb-6">
           Top Rankers
         </h2>
-        <div className="flex items-end justify-center gap-4">
+
+        <div className="flex flex-col md:flex-row items-center md:items-end justify-center gap-9 md:gap-4">
           {topRankers.map((ranker) => (
-            <div key={ranker.id} className="flex flex-col items-center">
-              {/* Podium */}
-              <div className="relative">
+            <div key={ranker.id} className="flex flex-col items-center flex-1 ">
+              <div className="relative w-full">
                 <Image
                   src={ranker.podiumImage}
-                  alt="podium1"
+                  alt={`Podium position ${ranker.position}`}
                   width={460}
                   height={250}
+                  className="w-full h-auto"
                 />
-                <div className="absolute inset-0 flex flex-col items-center justify-start pb-4">
-                  <div className="md:-mt-12 mb-4">
-                    <div className="p-2 rounded-full flex items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 flex flex-col items-center justify-start pb-2 sm:pb-4">
+                  <div className="-mt-6 sm:-mt-8 md:-mt-12 mb-1 sm:mb-2 md:mb-4">
+                    <div className="p-1 rounded-full flex items-center justify-center overflow-hidden">
                       <Image
                         src={"/images/guillermo.png"}
-                        alt="podium1"
+                        alt={ranker.name}
                         width={110}
                         height={110}
+                        className="w-22 h-22 md:w-20 md:h-20 lg:w-25 lg:h-25 rounded-full object-cover"
                       />
                     </div>
-
-                    <p className="text-white font-semibold text-center text-sm md:text-base mb-2">
+                    <p className="text-white font-semibold text-center text-base mb-1 sm:mb-2 leading-tight px-1 truncate">
                       {ranker.name}
                     </p>
                   </div>
 
-                  <div className="w-10 h-10 rounded-lg bg-yellow-400 flex items-center justify-center mb-2">
+                  <div className="p-2 rounded-lg bg-yellow-400 flex items-center justify-center mb-1 sm:mb-2">
                     <Trophy className="w-5 h-5 text-yellow-800" />
                   </div>
-                  <p className="text-white/80 text-xs md:text-sm">
+                  <p className="text-white/80 text-xs md:text-sm text-center px-1">
                     Earn {ranker.points}
                   </p>
                 </div>
@@ -223,46 +210,62 @@ const LeaderboardTab = ({ onUserClick }: LeaderboardTabProps) => {
           Full Ranking
         </h2>
         <div className="bg-white rounded-xl border border-neutral-tertiary-border overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-4 gap-4 px-6 py-3 bg-neutral-secondary text-sm font-medium text-brand-pixsee-secondary">
-            <span>Rank</span>
-            <span>User name</span>
-            <span>Followers</span>
-            <span className="text-right">Point</span>
-          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-120">
+              <thead>
+                <tr className="bg-neutral-secondary text-xs sm:text-sm font-medium text-brand-pixsee-secondary">
+                  <th className="text-left px-4 sm:px-6 py-3 font-medium w-16">
+                    Rank
+                  </th>
+                  <th className="text-left px-4 sm:px-6 py-3 font-medium">
+                    User name
+                  </th>
+                  <th className="text-left px-4 sm:px-6 py-3 font-medium">
+                    Followers
+                  </th>
+                  <th className="text-right px-4 sm:px-6 py-3 font-medium">
+                    Point
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-tertiary-border">
+                {fullRanking.map((user) => (
+                  <tr
+                    key={user.id}
+                    onClick={() => onUserClick(user)}
+                    className="hover:bg-neutral-secondary cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 font-medium text-sm text-neutral-primary-text">
+                      {user.rank}
+                    </td>
 
-          {/* Table Rows */}
-          <div className="divide-y divide-neutral-tertiary-border">
-            {fullRanking.map((user) => (
-              <div
-                key={user.id}
-                onClick={() => onUserClick(user)}
-                className="grid grid-cols-4 gap-4 px-6 py-4 items-center hover:bg-neutral-secondary cursor-pointer transition-colors"
-              >
-                <span className="font-medium text-neutral-primary-text">
-                  {user.rank}
-                </span>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center overflow-hidden">
-                    <span className="text-lg">👤</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-neutral-primary-text">
-                      {user.name}
-                    </p>
-                    <p className="text-xs text-neutral-tertiary-text">
-                      {user.username}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-neutral-secondary-text">
-                  {user.followers}
-                </span>
-                <span className="text-right font-medium text-neutral-primary-text">
-                  {user.points}
-                </span>
-              </div>
-            ))}
+                    <td className="px-4 sm:px-6 py-3 sm:py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <span className="text-lg">👤</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-neutral-primary-text whitespace-nowrap">
+                            {user.name}
+                          </p>
+                          <p className="text-xs text-neutral-tertiary-text whitespace-nowrap">
+                            {user.username}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 text-sm text-neutral-secondary-text whitespace-nowrap">
+                      {user.followers}
+                    </td>
+
+                    <td className="px-4 sm:px-6 py-3 sm:py-4 text-right text-sm font-medium text-neutral-primary-text whitespace-nowrap">
+                      {user.points}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

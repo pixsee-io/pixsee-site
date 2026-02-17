@@ -243,22 +243,22 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
           {claimedRewards.map((reward) => (
             <div
               key={reward.id}
-              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border flex items-center justify-between"
+              className="bg-white rounded-xl p-3 sm:p-4 border border-neutral-tertiary-border flex items-center justify-between"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
+                    "p-2 rounded-full flex items-center justify-center",
                     reward.iconBg
                   )}
                 >
                   {reward.icon}
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-primary-text">
+                  <p className="text-sm md:text-base font-semibold text-neutral-primary-text">
                     {reward.title}
                   </p>
-                  <p className="text-sm text-neutral-tertiary-text">
+                  <p className="text-xs md:text-sm text-neutral-tertiary-text">
                     {reward.description}
                   </p>
                 </div>
@@ -267,7 +267,7 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
                 <span className="inline-block px-3 py-1 bg-semantic-success-subtle text-semantic-success-text text-xs rounded-full mb-1">
                   Claimed
                 </span>
-                <p className="font-semibold text-neutral-primary-text">
+                <p className="text-xs md:text-sm font-semibold text-neutral-primary-text">
                   {reward.reward}
                 </p>
               </div>
@@ -290,17 +290,17 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
+                    "p-2 rounded-full flex items-center justify-center",
                     reward.iconBg
                   )}
                 >
                   {reward.icon}
                 </div>
                 <div>
-                  <p className="font-semibold text-neutral-tertiary-text">
+                  <p className="text-sm md:text-base font-bold text-neutral-tertiary-text">
                     {reward.title}
                   </p>
-                  <p className="text-sm text-neutral-tertiary-text">
+                  <p className="text-xs sm:text-sm text-neutral-tertiary-text">
                     {reward.requirement}
                   </p>
                 </div>
@@ -309,7 +309,7 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
                 <span className="inline-block px-3 py-1 bg-pink-50 text-pink-400 text-xs rounded-full mb-1">
                   Locked
                 </span>
-                <p className="font-semibold text-neutral-tertiary-text">
+                <p className="text-xs md:text-base font-semibold text-neutral-tertiary-text">
                   {reward.reward}
                 </p>
               </div>

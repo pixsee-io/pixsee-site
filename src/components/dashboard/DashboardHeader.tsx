@@ -69,16 +69,6 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
           <Menu className="w-5 h-5 text-neutral-primary-text" />
         </button>
 
-        <Link href="/" className="hidden xl:flex items-center gap-2">
-          <Image
-            src="/images/pixseee.svg"
-            alt="Pixsee"
-            width={100}
-            height={32}
-            className="transition-all duration-300 object-contain"
-          />
-        </Link>
-
         {/* Search Bar */}
         <div className="flex gap-2">
           <div className="flex-1 w-full lg:min-w-sm xl:min-w-lg 2xl:min-w-xl">

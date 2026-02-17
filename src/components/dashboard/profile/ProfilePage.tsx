@@ -10,11 +10,11 @@ import {
   DollarSign,
   Play,
   Plus,
-  CheckCircle,
   Calendar,
   ArrowUp,
-  ExternalLink,
   EyeOff,
+  Verified,
+  Edit,
 } from "lucide-react";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
 import EditProfileModal from "./modals/EditProfileModal";
@@ -127,8 +127,6 @@ const analyticsStats: AnalyticsStat[] = [
   },
 ];
 
-// Using ShowCard compatible data structure
-
 const watchHistory: WatchHistoryItem[] = [
   {
     id: "1",
@@ -204,7 +202,7 @@ const rewardSources: RewardSource[] = [
   { label: "Referrals", percentage: 30, color: "bg-pink-500" },
 ];
 
-// Sub-components (only unique ones - not duplicating ShowCard)
+// Sub-components
 const AnalyticsCard = ({ stat }: { stat: AnalyticsStat }) => (
   <div className="bg-white rounded-xl px-4 py-6 border border-neutral-tertiary-border">
     <div
@@ -232,9 +230,10 @@ const AnalyticsCard = ({ stat }: { stat: AnalyticsStat }) => (
 
 const WatchHistoryCard = ({ item }: { item: WatchHistoryItem }) => (
   <div className="bg-white rounded-xl p-4 border border-neutral-tertiary-border">
-    <div className="flex gap-4">
-      {/* Thumbnail */}
-      <div className="relative w-40 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-neutral-tertiary">
+    {/* Mobile: stacked layout. sm+: side-by-side */}
+    <div className="flex flex-col sm:flex-row gap-4">
+      {/* Thumbnail — full width on mobile, fixed width on sm+ */}
+      <div className="relative w-full sm:w-40 h-44 sm:h-24 rounded-lg overflow-hidden shrink-0 bg-neutral-tertiary">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
             <Play className="w-5 h-5 text-brand-pixsee-secondary fill-brand-pixsee-secondary" />
@@ -246,17 +245,17 @@ const WatchHistoryCard = ({ item }: { item: WatchHistoryItem }) => (
       </div>
 
       {/* Content */}
-      <div className="flex-1">
-        <div className="flex items-start justify-between">
-          <div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
             <p className="text-xs text-neutral-tertiary-text">
               Episode {item.episodeNumber}
             </p>
-            <h4 className="font-semibold text-brand-pixsee-secondary">
+            <h4 className="font-semibold text-brand-pixsee-secondary truncate">
               {item.title}
             </h4>
           </div>
-          <span className="text-xs text-brand-pixsee-secondary bg-brand-pixsee-secondary/30 px-2 py-1 rounded-lg">
+          <span className="text-xs text-brand-pixsee-secondary bg-brand-pixsee-secondary/30 px-2 py-1 rounded-lg whitespace-nowrap shrink-0">
             Earn {item.earnAmount}
           </span>
         </div>
@@ -304,16 +303,16 @@ const ProfilePage = () => {
       case "published":
         return (
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h2 className="text-xl font-paytone text-neutral-primary-text">
                 Published Shows
               </h2>
-              <Button className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full gap-2">
+              <Button className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full gap-2 w-full sm:w-auto">
                 Upload New Shows
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {publishedShows.map((show) => (
                 <ShowCard key={show.id} {...show} />
               ))}
@@ -341,7 +340,7 @@ const ProfilePage = () => {
             <h2 className="text-xl font-paytone text-neutral-primary-text mb-6">
               Saved shows
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
               {savedShows.map((show) => (
                 <ShowCard key={show.id} {...show} />
               ))}
@@ -357,11 +356,11 @@ const ProfilePage = () => {
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Balance Card */}
-              <div className="relative rounded-2xl overflow-hidden bg-brand-primary p-6 balance_bg">
+              <div className="relative rounded-2xl overflow-hidden bg-brand-primary p-6 py-16 sm:py-20 balance_bg">
                 <div className="flex flex-col items-center justify-center relative z-10">
                   <p className="text-white/80 text-sm mb-2">Balance</p>
                   <div className="flex items-center gap-2 mb-6">
-                    <p className="text-4xl font-bold text-white">
+                    <p className="text-3xl sm:text-4xl font-bold text-white">
                       {showBalance ? "$80.00" : "••••••"}
                     </p>
                     <button
@@ -377,7 +376,7 @@ const ProfilePage = () => {
                   </div>
                   <Button
                     variant="outline"
-                    className="min-w-lg bg-transparent hover:bg-white/10 text-white border-white/50 rounded-full px-8 py-6 gap-2"
+                    className="bg-transparent hover:bg-white/10 text-white border-white/50 rounded-full px-8 py-6 gap-2 w-full sm:w-auto"
                   >
                     Withdraw
                     <Plus className="w-4 h-4" />
@@ -422,7 +421,7 @@ const ProfilePage = () => {
             <h2 className="text-xl font-paytone text-neutral-primary-text mb-6">
               Analytics Overview
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               {analyticsStats.map((stat) => (
                 <AnalyticsCard key={stat.id} stat={stat} />
               ))}
@@ -434,8 +433,7 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-foundation-alternate pb-12">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-6">
-        {/* Header */}
+      <div className="max-w-350 mx-auto px-4 md:px-6 lg:px-8 py-6">
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-paytone text-neutral-primary-text">
             My profile
@@ -446,11 +444,10 @@ const ProfilePage = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-2xl p-6 mb-6 border border-neutral-tertiary-border">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="relative">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 mb-6 border border-neutral-tertiary-border">
+          <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col items-center md:flex-row md:items-center gap-4 w-full md:w-auto">
+              <div className="relative shrink-0">
                 <div className="rounded-full bg-neutral-tertiary overflow-hidden">
                   <Image
                     src={"/images/guillermo.png"}
@@ -460,27 +457,27 @@ const ProfilePage = () => {
                   />
                 </div>
                 {userProfile.isCreator && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-[#ECE5FF] text-black text-xs px-3 py-1 rounded-full">
+                  <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-[#ECE5FF] text-black text-xs px-3 py-1 rounded-full whitespace-nowrap">
                     Creator
                   </span>
                 )}
               </div>
 
-              {/* Info */}
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-semibold text-neutral-primary-text">
+              {/* Name + stats */}
+              <div className="mt-6 md:mt-0 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <p className="text-xl font-semibold text-neutral-primary-text">
                     {userProfile.name}
-                  </h2>
+                  </p>
                   {userProfile.isVerified && (
-                    <CheckCircle className="w-5 h-5 text-brand-pixsee-secondary fill-brand-pixsee-secondary" />
+                    <Verified className="w-5 h-5 text-brand-primary shrink-0" />
                   )}
                 </div>
-                <p className="text-neutral-tertiary-text">
+                <p className="text-sm text-neutral-tertiary-text">
                   {userProfile.username}
                 </p>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex flex-col items-start gap-1">
+                <div className="flex items-center justify-center md:justify-start gap-4 mt-2">
+                  <div className="flex flex-col items-center md:items-start gap-1">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4 text-neutral-tertiary-text" />
                       <span className="text-sm text-neutral-tertiary-text">
@@ -492,9 +489,9 @@ const ProfilePage = () => {
                     </span>
                   </div>
 
-                  <div className="h-8 w-0.5 bg-gray-400"/>
+                  <div className="h-8 w-0.5 bg-gray-400" />
 
-                  <div className="flex flex-col items-start gap-1">
+                  <div className="flex flex-col items-center md:items-start gap-1">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4 text-neutral-tertiary-text" />
                       <span className="text-sm text-neutral-tertiary-text">
@@ -509,30 +506,30 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            {/* Right: joined date + edit button */}
+            <div className="flex flex-col items-center gap-3 w-full md:w-auto">
               <p className="text-sm text-neutral-tertiary-text">
                 Joined {userProfile.joinedDate}
               </p>
               <Button
                 variant="outline"
                 onClick={() => setShowEditProfile(true)}
-                className="rounded-full gap-2"
+                className="border border-black/50 rounded-full gap-2 w-full sm:w-auto md:min-w-40"
               >
                 Edit Profile
-                <ExternalLink className="w-4 h-4" />
+                <Edit className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-6 mb-8 border-b border-neutral-tertiary-border overflow-x-auto">
+        <div className="flex gap-4 sm:gap-6 mb-8 border-b border-neutral-tertiary-border overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "pb-3 text-sm font-medium whitespace-nowrap transition-colors",
+                "pb-3 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors shrink-0",
                 activeTab === tab.id
                   ? "text-brand-pixsee-secondary border-b-2 border-brand-pixsee-secondary"
                   : "text-neutral-tertiary-text hover:text-neutral-secondary-text"
@@ -547,7 +544,6 @@ const ProfilePage = () => {
         {renderTabContent()}
       </div>
 
-      {/* Edit Profile Modal */}
       <EditProfileModal
         isOpen={showEditProfile}
         onClose={() => setShowEditProfile(false)}

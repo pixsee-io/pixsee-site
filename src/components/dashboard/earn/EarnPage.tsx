@@ -19,6 +19,9 @@ import {
   ArrowUpRight,
   Trophy,
   ThumbsUp,
+  ThumbsUpIcon,
+  CircleQuestionMark,
+  User,
 } from "lucide-react";
 import RewardsTab from "./tabs/RewardsTab";
 import QuestTab from "./tabs/QuestTab";
@@ -129,8 +132,8 @@ const rewardCards: RewardCard[] = [
 const earningStreams: EarningStream[] = [
   {
     id: "watch",
-    icon: <Play className="w-5 h-5 text-white" />,
-    iconBg: "bg-brand-pixsee-secondary",
+    icon: <Play className="w-5 h-5 text-brand-pixsee-secondary" />,
+    iconBg: "bg-white",
     title: "Watch & Engage",
     subtitle: "Earn while you watch",
     stats: [
@@ -145,8 +148,8 @@ const earningStreams: EarningStream[] = [
   },
   {
     id: "voting",
-    icon: <Gift className="w-5 h-5 text-white" />,
-    iconBg: "bg-pink-500",
+    icon: <ThumbsUpIcon className="w-5 h-5 text-[#FF3795]" />,
+    iconBg: "bg-white",
     title: "Voting",
     subtitle: "Vote on shows you believe in",
     stats: [
@@ -155,14 +158,16 @@ const earningStreams: EarningStream[] = [
       { label: "Earnings", value: "$122.50" },
     ],
     buttonText: "Manage Votes",
-    buttonColor: "bg-pink-500 hover:bg-pink-600",
+    buttonColor: "bg-[#FF3795] hover:bg-pink-600",
     cardBg: "bg-pink-50",
     borderColor: "border-pink-200",
   },
   {
     id: "referrals",
-    icon: <Users className="w-5 h-5 text-white" />,
-    iconBg: "bg-semantic-success-primary",
+    icon: (
+      <Users className="w-5 h-5 text-semantic-success-primary fill-semantic-success-primary" />
+    ),
+    iconBg: "bg-white",
     title: "Referrals",
     subtitle: "Invite friends and earn together",
     stats: [
@@ -172,13 +177,13 @@ const earningStreams: EarningStream[] = [
     ],
     buttonText: "Invite Friends",
     buttonColor: "bg-semantic-success-primary hover:bg-semantic-success-text",
-    cardBg: "bg-white",
+    cardBg: "bg-semantic-success-primary/20",
     borderColor: "border-neutral-tertiary-border",
   },
   {
     id: "quests",
-    icon: <HelpCircle className="w-5 h-5 text-white" />,
-    iconBg: "bg-brand-primary",
+    icon: <CircleQuestionMark className="w-5 h-5 text-brand-primary" />,
+    iconBg: "bg-white",
     title: "Quests",
     subtitle: "Complete challenges for rewards",
     stats: [
@@ -233,9 +238,11 @@ const recentEarnings: RecentEarning[] = [
 
 // Sub-components
 const OverviewCard = ({ stat }: { stat: OverviewStat }) => (
-  <div className="bg-white rounded-xl px-4 py-6 border border-neutral-tertiary-border">
-    <p className="text-sm text-neutral-tertiary-text mb-1">{stat.label}</p>
-    <p className="text-2xl md:text-3xl font-bold text-neutral-primary-text">
+  <div className="bg-white rounded-xl px-3 py-4 sm:px-4 sm:py-6 border border-neutral-tertiary-border">
+    <p className="text-xs sm:text-sm text-neutral-tertiary-text mb-1 leading-tight">
+      {stat.label}
+    </p>
+    <p className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-primary-text truncate">
       {stat.value}
     </p>
   </div>
@@ -311,18 +318,22 @@ const EarningStreamCard = ({
   onAction: (streamId: string) => void;
 }) => (
   <div
-    className={cn("rounded-xl p-5 border", stream.cardBg, stream.borderColor)}
+    className={cn(
+      "rounded-xl p-4 sm:p-5 border",
+      stream.cardBg,
+      stream.borderColor
+    )}
   >
     <div className="flex items-start gap-3 mb-4">
       <div
         className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center",
+          "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
           stream.iconBg
         )}
       >
         {stream.icon}
       </div>
-      <div>
+      <div className="min-w-0">
         <h3 className="font-semibold text-neutral-primary-text">
           {stream.title}
         </h3>
@@ -332,11 +343,11 @@ const EarningStreamCard = ({
 
     <div className="space-y-2 mb-4">
       {stream.stats.map((stat, index) => (
-        <div key={index} className="flex items-center justify-between">
-          <span className="text-sm text-neutral-secondary-text">
+        <div key={index} className="flex items-center justify-between gap-2">
+          <span className="text-sm text-neutral-secondary-text truncate">
             {stat.label}
           </span>
-          <span className="text-sm font-semibold text-neutral-primary-text">
+          <span className="text-sm font-semibold text-neutral-primary-text flex-shrink-0">
             {stat.value}
           </span>
         </div>
@@ -345,7 +356,10 @@ const EarningStreamCard = ({
 
     <Button
       onClick={() => onAction(stream.id)}
-      className={cn("w-full rounded-full text-white", stream.buttonColor)}
+      className={cn(
+        "w-full h-10 md:h-11 rounded-full text-sm text-white",
+        stream.buttonColor
+      )}
     >
       {stream.buttonText}
       <ChevronRight className="w-4 h-4 ml-1" />
@@ -354,23 +368,29 @@ const EarningStreamCard = ({
 );
 
 const RecentEarningRow = ({ earning }: { earning: RecentEarning }) => (
-  <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-neutral-tertiary-border">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center">
-        <ArrowUpRight className="w-5 h-5 text-pink-500" />
+  <div className="flex items-center justify-between gap-3 p-3 py-5 sm:p-4 bg-white rounded-xl border border-neutral-tertiary-border">
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-pink-50 flex items-center justify-center shrink-0">
+        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF3795]" />
       </div>
-      <div>
-        <p className="font-medium text-neutral-primary-text">{earning.type}</p>
-        <p className="text-sm text-neutral-tertiary-text">
+      <div className="min-w-0">
+        <p className="font-medium text-sm sm:text-base text-neutral-primary-text truncate">
+          {earning.type}
+        </p>
+        <p className="text-xs sm:text-sm text-neutral-tertiary-text truncate">
           {earning.description}
         </p>
       </div>
     </div>
-    <div className="text-right">
-      <p className="font-semibold text-semantic-success-text flex items-center gap-1">
-        + <Coins className="w-4 h-4" /> {earning.amount}
+
+    {/* Right: amount + date — flex-shrink-0 so it never compresses */}
+    <div className="text-right flex-shrink-0">
+      <p className="font-semibold text-sm sm:text-base text-semantic-success-text flex items-center justify-end gap-1">
+        + <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {earning.amount}
       </p>
-      <p className="text-sm text-neutral-tertiary-text">{earning.date}</p>
+      <p className="text-xs sm:text-sm text-neutral-tertiary-text">
+        {earning.date}
+      </p>
     </div>
   </div>
 );
@@ -431,7 +451,6 @@ const EarnPage = () => {
     if (streamId === "referrals") {
       setShowReferralModal(true);
     }
-    // Handle other stream actions
   };
 
   const handleUserClick = (user: any) => {
@@ -459,10 +478,10 @@ const EarnPage = () => {
           <>
             {/* Overview Section */}
             <section className="mb-8">
-              <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
                 Overview
               </h2>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 {overviewStats.map((stat, index) => (
                   <OverviewCard key={index} stat={stat} />
                 ))}
@@ -471,10 +490,10 @@ const EarnPage = () => {
 
             {/* Your Next Rewards Section */}
             <section className="mb-8">
-              <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
                 Your Next Rewards
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {rewardCards.map((reward) => (
                   <RewardProgressCard
                     key={reward.id}
@@ -487,10 +506,10 @@ const EarnPage = () => {
 
             {/* Earning Streams Section */}
             <section className="mb-8">
-              <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4">
                 Earning Streams
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 {earningStreams.map((stream) => (
                   <EarningStreamCard
                     key={stream.id}
@@ -504,10 +523,10 @@ const EarnPage = () => {
             {/* Recent Earnings Section */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text">
                   Recents Earnings
                 </h2>
-                <button className="text-brand-pixsee-secondary hover:underline text-sm font-medium">
+                <button className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap ml-2">
                   View all Activity
                 </button>
               </div>
@@ -536,11 +555,11 @@ const EarnPage = () => {
         </div>
 
         {/* Balance Card */}
-        <div className="relative rounded-2xl overflow-hidden mb-8 bg-brand-primary p-6 md:p-8 md:py-12 balance_bg">
-          <div className="relative z-10 text-center ">
+        <div className="relative rounded-2xl overflow-hidden mb-8 bg-brand-primary p-5 sm:p-6 md:p-8 py-10 sm:py-12 md:py-14 balance_bg">
+          <div className="relative z-10 text-center">
             <p className="text-white/80 text-sm mb-2">Balance</p>
             <div className="flex items-center justify-center gap-2 mb-6">
-              <h2 className="text-4xl md:text-5xl font-bold text-white">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">
                 {showBalance ? `$${currentBalance.toFixed(2)}` : "••••••"}
               </h2>
               <button
@@ -566,7 +585,7 @@ const EarnPage = () => {
               <Button
                 onClick={() => setShowWithdrawModal(true)}
                 variant="outline"
-                className="w-full sm:w-auto bg-transparent text-white border-white/50 rounded-full px-8 py-2 gap-2"
+                className="w-full sm:w-auto bg-transparent text-white border-white/50 rounded-full px-8 py-2 gap-2 hover:bg-white/10"
               >
                 Withdraw
                 <Plus className="w-4 h-4" />
@@ -577,23 +596,25 @@ const EarnPage = () => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 md:gap-4 mb-8 overflow-x-auto pb-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "px-4 md:px-6 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all flex items-center gap-2 border",
-                activeTab === tab.id
-                  ? "bg-brand-primary text-white border-brand-primary"
-                  : "bg-white text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
-              )}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
+        {/* Tab Navigation — edge-bleed scroll on mobile */}
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-8">
+          <div className="flex gap-2 md:gap-3 pb-1 w-max md:w-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 border",
+                  activeTab === tab.id
+                    ? "bg-brand-primary text-white border-brand-primary"
+                    : "bg-white text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
+                )}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Tab Content */}
@@ -639,7 +660,6 @@ const EarnPage = () => {
           onClaim={() => {
             setShowClaimRewardModal(false);
             setSelectedReward(null);
-            // Handle claim success
           }}
           reward={{
             title: selectedReward.title,

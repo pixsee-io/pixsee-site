@@ -5,6 +5,8 @@ import Sidebar from "./Sidebar";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import DashboardHeader from "./DashboardHeader";
+import Link from "next/link";
+import Image from "next/image";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -13,6 +15,10 @@ type DashboardLayoutProps = {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const handleMobileNavClick = () => {
+    setIsMobileSidebarOpen(false);
+  };
 
   return (
     <div className="flex min-h-screen bg-foundation-alternate">
@@ -40,23 +46,33 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         )}
       >
         <div className="relative">
-          <button
-            onClick={() => setIsMobileSidebarOpen(false)}
-            className="absolute top-4 right-4 p-2 rounded-lg bg-neutral-secondary hover:bg-neutral-tertiary transition-colors z-10"
-            aria-label="Close sidebar"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <Sidebar />
+          <div className="w-full absolute top-4 px-3 flex items-center justify-between">
+            <Link href="/" className=" xl:hidden items-center gap-2">
+              <Image
+                src="/images/pixseee.svg"
+                alt="Pixsee"
+                width={100}
+                height={32}
+                className="transition-all duration-300 object-contain"
+              />
+            </Link>
+
+            {/* <button
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="rounded-lg bg-neutral-secondary hover:bg-neutral-tertiary transition-colors z-10"
+              aria-label="Close sidebar"
+            >
+              <X className="w-5 h-5" />
+            </button> */}
+          </div>
+
+          <Sidebar onNavClick={handleMobileNavClick} />
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Dashboard Header */}
         <DashboardHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
 
-        {/* Page Content */}
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
     </div>

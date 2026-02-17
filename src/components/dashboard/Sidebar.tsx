@@ -12,8 +12,8 @@ import {
   Coins,
   TrendingUp,
   Wallet,
-  ChevronLeft,
   User,
+  ChevronsLeft,
 } from "lucide-react";
 
 type NavItem = {
@@ -54,12 +54,14 @@ type SidebarProps = {
   className?: string;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  onNavClick?: () => void;
 };
 
 const Sidebar = ({
   className,
   isCollapsed = false,
   onToggleCollapse,
+  onNavClick,
 }: SidebarProps) => {
   const pathname = usePathname();
   const { user } = usePrivy();
@@ -69,13 +71,23 @@ const Sidebar = ({
   return (
     <aside
       className={cn(
-        "h-screen bg-white border-r border-neutral-tertiary-border flex flex-col transition-all duration-300",
+        "h-screen bg-white border-r border-neutral-tertiary-border flex flex-col px-3 py-4  transition-all duration-300",
         isCollapsed ? "w-20" : "w-64",
         className
       )}
     >
+      <Link href="/" className="hidden xl:flex items-center gap-2">
+        <Image
+          src="/images/pixseee.svg"
+          alt="Pixsee"
+          width={100}
+          height={32}
+          className="transition-all duration-300 object-contain"
+        />
+      </Link>
+      
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="mt-20 md:mt-14 flex-1 space-y-1">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
@@ -84,6 +96,7 @@ const Sidebar = ({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavClick}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200",
                 isActive
@@ -116,7 +129,7 @@ const Sidebar = ({
               className="p-1.5 rounded-lg bg-brand-primary transition-colors hidden lg:flex"
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <ChevronLeft
+              <ChevronsLeft
                 className={`w-4 h-4 text-white transition-transform duration-300 ${
                   isCollapsed ? "rotate-180" : "rotate-0"
                 }`}

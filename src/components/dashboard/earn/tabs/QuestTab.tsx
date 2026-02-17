@@ -116,17 +116,17 @@ const upcomingQuests: Quest[] = [
 const QuestTab = () => {
   return (
     <div className="space-y-8">
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Overview Stats — 1 col on mobile, 3 on md+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {overviewStats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl px-4 py-6 border border-neutral-tertiary-border"
+            className="bg-white rounded-xl px-4 py-5 sm:py-6 border border-neutral-tertiary-border"
           >
             <p className="text-sm text-neutral-tertiary-text mb-1">
               {stat.label}
             </p>
-            <p className="text-3xl font-bold text-neutral-primary-text mb-1">
+            <p className="text-2xl sm:text-3xl font-bold text-neutral-primary-text mb-1">
               {stat.value}
             </p>
             <p
@@ -150,20 +150,21 @@ const QuestTab = () => {
           {activeQuests.map((quest) => (
             <div
               key={quest.id}
-              className="bg-white rounded-xl p-5 border border-neutral-tertiary-border"
+              className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-tertiary-border"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
+              {/* Top row: icon+info on left, button on right (stacks on mobile) */}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                <div className="flex items-start gap-3 min-w-0">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
                       quest.iconBg
                     )}
                   >
                     {quest.icon}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-neutral-primary-text">
                         {quest.title}
                       </p>
@@ -179,8 +180,13 @@ const QuestTab = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* Button — full width on mobile, auto on sm+ */}
                 <Button
-                  className={cn("rounded-full text-white", quest.buttonColor)}
+                  className={cn(
+                    "rounded-full text-white text-sm w-full sm:w-auto flex-shrink-0",
+                    quest.buttonColor
+                  )}
                 >
                   {quest.buttonText}
                 </Button>
@@ -206,7 +212,7 @@ const QuestTab = () => {
                 </>
               )}
 
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm flex-wrap">
                 <span className="text-neutral-tertiary-text">Reward</span>
                 <span className="font-semibold text-brand-pixsee-secondary">
                   {quest.reward}
@@ -228,33 +234,37 @@ const QuestTab = () => {
           {completedQuests.map((quest) => (
             <div
               key={quest.id}
-              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border flex items-center justify-between"
+              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border"
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
-                    quest.iconBg
-                  )}
-                >
-                  {quest.icon}
+              {/* Stack on mobile, row on sm+ */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                      quest.iconBg
+                    )}
+                  >
+                    {quest.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-neutral-primary-text truncate">
+                      {quest.title}
+                    </p>
+                    <p className="text-sm text-neutral-tertiary-text">
+                      {quest.description}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-neutral-primary-text">
-                    {quest.title}
-                  </p>
-                  <p className="text-sm text-neutral-tertiary-text">
-                    {quest.description}
+                {/* Badge + reward — left-aligned on mobile, right-aligned on sm+ */}
+                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 flex-shrink-0">
+                  <span className="inline-block px-3 py-1 bg-semantic-success-subtle text-semantic-success-text text-xs rounded-full">
+                    Completed
+                  </span>
+                  <p className="font-semibold text-neutral-primary-text text-sm">
+                    {quest.reward}
                   </p>
                 </div>
-              </div>
-              <div className="text-right">
-                <span className="inline-block px-3 py-1 bg-semantic-success-subtle text-semantic-success-text text-xs rounded-full mb-1">
-                  Completed
-                </span>
-                <p className="font-semibold text-neutral-primary-text">
-                  {quest.reward}
-                </p>
               </div>
             </div>
           ))}
@@ -270,33 +280,37 @@ const QuestTab = () => {
           {upcomingQuests.map((quest) => (
             <div
               key={quest.id}
-              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border flex items-center justify-between"
+              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border"
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
-                    quest.iconBg
-                  )}
-                >
-                  {quest.icon}
+              {/* Stack on mobile, row on sm+ */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                      quest.iconBg
+                    )}
+                  >
+                    {quest.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-neutral-tertiary-text truncate">
+                      {quest.title}
+                    </p>
+                    <p className="text-sm text-neutral-tertiary-text">
+                      {quest.description}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-neutral-tertiary-text">
-                    {quest.title}
-                  </p>
-                  <p className="text-sm text-neutral-tertiary-text">
-                    {quest.description}
+                {/* Badge + reward — left-aligned on mobile, right-aligned on sm+ */}
+                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 flex-shrink-0">
+                  <span className="inline-block px-3 py-1 bg-neutral-secondary text-neutral-tertiary-text text-xs rounded-full">
+                    Inactive
+                  </span>
+                  <p className="font-semibold text-neutral-tertiary-text text-sm">
+                    {quest.reward}
                   </p>
                 </div>
-              </div>
-              <div className="text-right">
-                <span className="inline-block px-3 py-1 bg-neutral-secondary text-neutral-tertiary-text text-xs rounded-full mb-1">
-                  Inactive
-                </span>
-                <p className="font-semibold text-neutral-tertiary-text">
-                  {quest.reward}
-                </p>
               </div>
             </div>
           ))}

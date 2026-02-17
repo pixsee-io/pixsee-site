@@ -42,8 +42,8 @@ const Footer = (props: Props) => {
   };
 
   return (
-    <footer className="relative w-full bg-foundation-alternate py-16 px-4">
-      <div className="max-w-[90rem] mx-auto">
+    <footer className="relative w-full bg-foundation-alternate py-16 px-4 border border-t">
+      <div className="max-w-360 mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1">
             <Link href="/" className="flex items-center shrink-0">
