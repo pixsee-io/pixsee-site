@@ -168,7 +168,7 @@ const Hero = (props: Props) => {
                 className="rounded-full px-5 md:px-8 py-5 md:py-6 font-semibold text-sm md:text-base flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.25)] border hover:bg-neutral-secondary transition-all duration-200 w-full sm:w-auto"
               >
                 <Link href="/dashboard/trade">
-                  Begin Trading
+                  Begin Earning
                   <ArrowRightCircle size={18} className="sm:w-6 sm:h-6" />
                 </Link>
               </Button>
