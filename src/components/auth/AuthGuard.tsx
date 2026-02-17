@@ -22,7 +22,7 @@ const AuthGuard = ({ children, fallback }: AuthGuardProps) => {
   useEffect(() => {
     if (ready && !authenticated) {
       // Store the intended destination for redirect after login
-      const redirectUrl = encodeURIComponent(pathname);
+      const redirectUrl = encodeURIComponent(pathname ?? "/");
       router.push(`/landing?redirect=${redirectUrl}`);
     }
   }, [ready, authenticated, router, pathname]);

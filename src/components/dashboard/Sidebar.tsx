@@ -38,11 +38,11 @@ const navItems: NavItem[] = [
     href: "/dashboard/earn",
     icon: <Coins className="w-5 h-5" />,
   },
-  {
-    label: "Trade",
-    href: "/dashboard/trade",
-    icon: <TrendingUp className="w-5 h-5" />,
-  },
+  // {
+  //   label: "Trade",
+  //   href: "/dashboard/trade",
+  //   icon: <TrendingUp className="w-5 h-5" />,
+  // },
   {
     label: "My Profile",
     href: "/dashboard/profile",
@@ -89,8 +89,10 @@ const Sidebar = ({
       {/* Navigation */}
       <nav className="mt-20 md:mt-14 flex-1 space-y-1">
         {navItems.map((item) => {
+          const currentPath = pathname ?? "";
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            currentPath === item.href ||
+            currentPath.startsWith(item.href + "/");
 
           return (
             <Link

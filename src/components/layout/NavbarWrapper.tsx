@@ -5,11 +5,12 @@ import Navbar from "./Navbar";
 
 const NavbarWrapper = () => {
   const pathname = usePathname();
+  const currentPath = pathname ?? "/";
 
   // Don't show navbar on root page
-  if (pathname === "/") return null;
+  if (currentPath === "/") return null;
 
-  if (pathname.includes("dashboard")) return null;
+  if (currentPath.includes("dashboard")) return null;
 
   return <Navbar />;
 };
