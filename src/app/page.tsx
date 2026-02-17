@@ -160,12 +160,12 @@ export default function Home() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
                   required
-                  className="w-full px-4 rounded-full border border-neutral-tertiary-border bg-neutral-primary focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="w-full px-4 py-5 rounded-full border border-neutral-tertiary-border bg-neutral-primary focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover"
+                  className="w-full py-5 rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover"
                 >
                   {isSubmitting ? "Submitting..." : "Submit"}
                 </Button>
