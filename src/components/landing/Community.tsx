@@ -170,9 +170,11 @@ const Community = () => {
             style={{ transitionDelay: "0.1s" }}
           >
             {socialLinks.map((social, index) => (
-              <Link
+              <a
                 key={social.name}
                 href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 className="bg-white border-2 border-neutral-tertiary-border rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-center hover:border-brand-action hover:shadow-lg transition-all duration-300 flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4"
               >
                 <Image
@@ -186,7 +188,7 @@ const Community = () => {
                 <span className="font-semibold text-black text-xs sm:text-sm">
                   {social.name}
                 </span>
-              </Link>
+              </a>
             ))}
           </div>
         </TimelineSection>
