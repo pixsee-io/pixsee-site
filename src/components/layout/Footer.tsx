@@ -55,8 +55,6 @@ const Footer = (props: Props) => {
                 className="h-auto object-contain"
                 priority
               />
-
-            
             </Link>
 
             <p className="mt-8 text-neutral-secondary-text text-base leading-relaxed max-w-xs">
@@ -127,7 +125,8 @@ const Footer = (props: Props) => {
 
         <div className="flex flex-col md:flex-row items-center justify-center">
           <p className="text-neutral-secondary-text text-sm text-center md:text-left">
-            © Copyright 2025, All Rights Reserved by Pixsee Inc
+            © Copyright {new Date().getFullYear()}, All Rights Reserved by
+            Pixsee Inc
           </p>
         </div>
       </div>

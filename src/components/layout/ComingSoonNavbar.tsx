@@ -55,7 +55,7 @@ const ComingSoonNavbar = (props: Props) => {
             </a>
           </Button>
 
-          <ModeToggle />
+          {/* <ModeToggle /> */}
         </div>
       </Container>
     </nav>
