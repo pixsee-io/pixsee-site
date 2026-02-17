@@ -236,7 +236,7 @@ export default function Home() {
                   imgClass: "w-9 h-9",
                 },
                 {
-                  href: "https://twitter.com",
+                  href: "https://x.com/PixseeIO",
                   src: "/images/x-logo.png",
                   alt: "X (Twitter)",
                   imgClass: "w-6 h-6",

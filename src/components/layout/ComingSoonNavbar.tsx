@@ -43,12 +43,12 @@ const ComingSoonNavbar = (props: Props) => {
             className="rounded-full bg-transparent px-3 py-3 md:px-6 md:py-5 flex items-center gap-2 border-gray-300 hover:border-gray-400 shadow-lg"
             asChild
           >
-            <Link href="/contact">
+            <a href="https://x.com/PixseeIO">
               Contact us
               <span className="text-lg">
                 <ArrowRightCircle />
               </span>
-            </Link>
+            </a>
           </Button>
 
           <ModeToggle />
