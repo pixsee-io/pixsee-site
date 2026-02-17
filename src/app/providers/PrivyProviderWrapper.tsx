@@ -2,6 +2,7 @@
 
 import { PrivyProvider } from "@privy-io/react-auth";
 import { useTheme } from "next-themes";
+import AuthNavigationGuard from "@/components/auth/AuthNavigationGuard";
 
 export default function PrivyProviderWrapper({
   children,
@@ -35,6 +36,7 @@ export default function PrivyProviderWrapper({
         },
       }}
     >
+      <AuthNavigationGuard />
       {children}
     </PrivyProvider>
   );

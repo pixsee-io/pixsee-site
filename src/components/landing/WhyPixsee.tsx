@@ -46,7 +46,7 @@ const WhyPixsee = (props: Props) => {
       title: "Community First",
       description: "The audience decides what trends, not algorithms.",
       buttonText: "Join Community",
-      buttonHref: "#",
+      buttonHref: "https://x.com/PixseeIO",
       iconBg: "bg-[#FFD73E]",
     },
   ];
@@ -123,13 +123,15 @@ const WhyPixsee = (props: Props) => {
                 className="rounded-full px-6 py-2 bg-transparent border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-secondary-text"
                 asChild
               >
-                <Link
+                <a
                   href={feature.buttonHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2"
                 >
                   {feature.buttonText}
                   <ArrowRight size={16} />
-                </Link>
+                </a>
               </Button>
             </div>
           ))}
