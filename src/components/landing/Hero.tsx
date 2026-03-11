@@ -183,7 +183,7 @@ const Hero = (props: Props) => {
             <div className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-full">
               <Image
                 src="/images/header-imag.png"
-                alt="Pixsee-App"
+                alt="Pixsee App"
                 width={705}
                 height={869}
                 className="w-full h-auto drop-shadow-2xl"
