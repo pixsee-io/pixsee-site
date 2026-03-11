@@ -62,7 +62,7 @@ const ShowCard = ({
             {title}
           </h3>
           <div className="flex items-center gap-2 mt-1">
-            <div className="w-5 h-5 rounded-full bg-neutral-tertiary overflow-hidden flex-shrink-0">
+            <div className="w-5 h-5 rounded-full bg-neutral-tertiary overflow-hidden shrink-0">
               {creatorAvatar ? (
                 <Image
                   src={creatorAvatar}

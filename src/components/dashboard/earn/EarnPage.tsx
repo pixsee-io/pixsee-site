@@ -327,7 +327,7 @@ const EarningStreamCard = ({
     <div className="flex items-start gap-3 mb-4">
       <div
         className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+          "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
           stream.iconBg
         )}
       >
@@ -347,7 +347,7 @@ const EarningStreamCard = ({
           <span className="text-sm text-neutral-secondary-text truncate">
             {stat.label}
           </span>
-          <span className="text-sm font-semibold text-neutral-primary-text flex-shrink-0">
+          <span className="text-sm font-semibold text-neutral-primary-text shrink-0">
             {stat.value}
           </span>
         </div>
@@ -383,8 +383,8 @@ const RecentEarningRow = ({ earning }: { earning: RecentEarning }) => (
       </div>
     </div>
 
-    {/* Right: amount + date — flex-shrink-0 so it never compresses */}
-    <div className="text-right flex-shrink-0">
+    {/* Right: amount + date — shrink-0 so it never compresses */}
+    <div className="text-right shrink-0">
       <p className="font-semibold text-sm sm:text-base text-semantic-success-text flex items-center justify-end gap-1">
         + <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {earning.amount}
       </p>

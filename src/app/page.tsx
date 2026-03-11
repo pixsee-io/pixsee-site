@@ -183,7 +183,7 @@ export default function Home() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="py-6 px-8 rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover m-1 flex-shrink-0"
+                  className="py-6 px-8 rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover m-1 shrink-0"
                 >
                   {isSubmitting ? "Submitting..." : "Submit"}
                 </Button>

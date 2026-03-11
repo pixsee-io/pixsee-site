@@ -157,7 +157,7 @@ const QuestTab = () => {
                 <div className="flex items-start gap-3 min-w-0">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                      "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
                       quest.iconBg
                     )}
                   >
@@ -184,7 +184,7 @@ const QuestTab = () => {
                 {/* Button — full width on mobile, auto on sm+ */}
                 <Button
                   className={cn(
-                    "rounded-full text-white text-sm w-full sm:w-auto flex-shrink-0",
+                    "rounded-full text-white text-sm w-full sm:w-auto shrink-0",
                     quest.buttonColor
                   )}
                 >
@@ -241,7 +241,7 @@ const QuestTab = () => {
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                      "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
                       quest.iconBg
                     )}
                   >
@@ -257,7 +257,7 @@ const QuestTab = () => {
                   </div>
                 </div>
                 {/* Badge + reward — left-aligned on mobile, right-aligned on sm+ */}
-                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 flex-shrink-0">
+                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 shrink-0">
                   <span className="inline-block px-3 py-1 bg-semantic-success-subtle text-semantic-success-text text-xs rounded-full">
                     Completed
                   </span>
@@ -287,7 +287,7 @@ const QuestTab = () => {
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                      "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
                       quest.iconBg
                     )}
                   >
@@ -303,7 +303,7 @@ const QuestTab = () => {
                   </div>
                 </div>
                 {/* Badge + reward — left-aligned on mobile, right-aligned on sm+ */}
-                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 flex-shrink-0">
+                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1 shrink-0">
                   <span className="inline-block px-3 py-1 bg-neutral-secondary text-neutral-tertiary-text text-xs rounded-full">
                     Inactive
                   </span>

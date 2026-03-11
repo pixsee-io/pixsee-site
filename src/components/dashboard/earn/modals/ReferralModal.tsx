@@ -38,7 +38,7 @@ const ReferralModal = ({
         <div className="refer_bg p-4 mb-5">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2 bg-white text-black px-3 sm:px-4 py-2 rounded-lg">
-              <Coins className="w-4 h-4 flex-shrink-0" />
+              <Coins className="w-4 h-4 shrink-0" />
               <span className="font-semibold text-sm sm:text-base">
                 Earn 1000 TIX
               </span>
@@ -82,19 +82,19 @@ const ReferralModal = ({
           </h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <Link2 className="w-5 h-5 text-neutral-tertiary-text flex-shrink-0" />
+              <Link2 className="w-5 h-5 text-neutral-tertiary-text shrink-0" />
               <span className="text-sm sm:text-base text-neutral-secondary-text">
                 Share your invite link
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <Link2 className="w-5 h-5 text-neutral-tertiary-text flex-shrink-0" />
+              <Link2 className="w-5 h-5 text-neutral-tertiary-text shrink-0" />
               <span className="text-sm sm:text-base text-neutral-secondary-text">
                 Share your invite link
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <Coins className="w-5 h-5 text-semantic-warning-primary flex-shrink-0" />
+              <Coins className="w-5 h-5 text-semantic-warning-primary shrink-0" />
               <span className="text-sm sm:text-base text-neutral-secondary-text">
                 You Earn 200 TIX for each referral
               </span>
@@ -113,7 +113,7 @@ const ReferralModal = ({
               the link side just shrinks via min-w-0 + truncate. */}
           <div className="flex items-center gap-2 p-1.5 sm:p-2 border rounded-full">
             <div className="flex-1 flex items-center gap-2 px-2 sm:px-4 min-w-0">
-              <Link2 className="w-4 h-4 text-neutral-tertiary-text flex-shrink-0" />
+              <Link2 className="w-4 h-4 text-neutral-tertiary-text shrink-0" />
               <span className="text-xs sm:text-sm text-neutral-secondary-text truncate">
                 {referralLink}
               </span>
@@ -121,7 +121,7 @@ const ReferralModal = ({
 
             <Button
               onClick={handleCopyLink}
-              className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-4 sm:px-6 text-xs sm:text-sm flex-shrink-0 gap-1.5"
+              className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-4 sm:px-6 text-xs sm:text-sm shrink-0 gap-1.5"
             >
               {copied ? (
                 <>

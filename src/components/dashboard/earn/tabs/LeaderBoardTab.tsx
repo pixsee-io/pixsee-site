@@ -241,7 +241,7 @@ const LeaderboardTab = ({ onUserClick }: LeaderboardTabProps) => {
 
                     <td className="px-4 sm:px-6 py-3 sm:py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-orange-200 flex items-center justify-center overflow-hidden shrink-0">
                           <span className="text-lg">👤</span>
                         </div>
                         <div>
