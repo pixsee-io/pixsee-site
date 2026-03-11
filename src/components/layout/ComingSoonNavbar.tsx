@@ -28,11 +28,11 @@ const ComingSoonNavbar = (props: Props) => {
       <Container className="flex items-center justify-between relative z-20">
         <Link href="/" className="flex items-center">
           <Image
-            src="/icons/pixsee_icon.svg"
+            src="/images/pixsee_logo.png"
             alt="Pixsee"
             width={40}
             height={40}
-            className="h-auto object-contain img-to-white-dark"
+            className="h-10 md:h-auto object-contain img-to-white-dark"
             priority
           />
         </Link>
@@ -40,18 +40,22 @@ const ComingSoonNavbar = (props: Props) => {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            className="rounded-full bg-transparent px-6 py-6 flex items-center gap-2 border-gray-300 hover:border-gray-400 shadow-lg"
+            className="rounded-full bg-transparent px-3 py-3 md:px-6 md:py-5 flex items-center gap-2 border-gray-300 hover:border-gray-400 shadow-lg"
             asChild
           >
-            <Link href="/contact">
+            <a
+              href="https://x.com/PixseeIO"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Contact us
               <span className="text-lg">
                 <ArrowRightCircle />
               </span>
-            </Link>
+            </a>
           </Button>
 
-          <ModeToggle />
+          {/* <ModeToggle /> */}
         </div>
       </Container>
     </nav>

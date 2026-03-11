@@ -53,7 +53,7 @@ const ReadyToCTA = (props: Props) => {
                 asChild
                 className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-8 py-3 md:py-6 font-semibold text-base shadow-lg"
               >
-                <Link href="/explore-shows" className="flex items-center gap-2">
+                <Link href="/dashboard/watch" className="flex items-center gap-2">
                   <Globe size={20} />
                   Explore Shows
                 </Link>
@@ -63,7 +63,7 @@ const ReadyToCTA = (props: Props) => {
                 asChild
                 className="bg-white hover:bg-white/90 text-brand-action rounded-full px-8 py-3 md:py-6 font-semibold text-base shadow-lg"
               >
-                <Link href="/launch-show" className="flex items-center gap-2">
+                <Link href="/dashboard/create" className="flex items-center gap-2">
                   Launch a show
                   <ArrowUpRight size={20} />
                 </Link>

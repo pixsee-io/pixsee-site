@@ -134,7 +134,7 @@ const Testimonials = (props: Props) => {
               className="bg-foundation-primary border border-neutral-tertiary-border rounded-2xl p-6 lg:p-8 shadow-sm hover:shadow-md transition-all duration-300"
             >
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0">
                   <Image
                     src={testimonial.avatar}
                     alt={testimonial.name}

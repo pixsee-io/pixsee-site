@@ -25,9 +25,9 @@ const Community = () => {
 
   const socialLinks: SocialLink[] = [
     {
-      name: "Memecoin",
-      icon: "/images/pix_token.png",
-      href: "https://memecoin.com",
+      name: "Pix",
+      icon: "/images/pix.png",
+      href: "https://pump.fun/coin/7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump",
     },
     {
       name: "Telegram",
@@ -37,7 +37,7 @@ const Community = () => {
     {
       name: "X(Twitter)",
       icon: "/images/p_twitter.png",
-      href: "https://twitter.com",
+      href: "https://x.com/PixseeIO",
     },
     {
       name: "Discord",
@@ -55,28 +55,28 @@ const Community = () => {
     return (
       <div className="flex flex-col md:flex-row items-center justify-center gap-3 sm:gap-4 md:gap-6 overflow-x-auto pb-4">
         <ImageFrame
-          src="/images/communityimg1.png"
-          className="w-64 flex-shrink-0"
+          src="/images/community_1.png"
+          className="w-64 hrink-0"
         />
 
-        <div className="hidden lg:flex flex-col gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
+        <div className="hidden lg:flex flex-col gap-2 sm:gap-3 md:gap-4 shrink-0">
           <ImageFrame src="/images/community1.png" className="w-64" />
           <ImageFrame src="/images/community2.png" className="w-64" />
         </div>
 
         <ImageFrame
           src="/images/community3.png"
-          className="w-64 h-auto flex-shrink-0"
+          className="w-64 h-auto shrink-0"
         />
 
-        <div className="hidden lg:flex flex-col gap-4 flex-shrink-0">
+        <div className="hidden lg:flex flex-col gap-4 shrink-0">
           <ImageFrame src="/images/community1.png" className="w-64" />
           <ImageFrame src="/images/community2.png" className="w-64" />
         </div>
 
         <ImageFrame
-          src="/images/communityimg2.png"
-          className=" w-64 flex-shrink-0"
+              src="/images/community_5.png"
+          className=" w-64 shrink-0"
         />
       </div>
     );
@@ -134,12 +134,12 @@ const Community = () => {
   }
 
   return (
-    <section className="relative w-full bg-brand-action py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8">
-      <div className="max-w-[90rem] mx-auto relative">
+    <section className="relative w-full bg-brand-action py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 community_bg">
+      <div className="max-w-360 mx-auto relative">
         <TimelineSection delay={0} pl="pl-0 md:pl-20">
           <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] text-white mb-2 sm:mb-3">
             Join our{" "}
-            <span className="text-brand-pixsee-secondary">Community</span>
+            <span className="text-semantic-error-primary">Community</span>
           </h3>
           <p className="text-white text-sm sm:text-base md:text-lg lg:text-xl mb-6 sm:mb-8 max-w-2xl">
             Be a part of the Pixsee Attention Economy, a growing network of
@@ -150,7 +150,7 @@ const Community = () => {
           <CommunityGallery />
         </TimelineSection>
 
-        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-black/30" />
+        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-semantic-error-primary" />
 
         <TimelineSection
           delay={0.2}
@@ -158,7 +158,7 @@ const Community = () => {
           lineHeight="h-60 sm:h-64 md:h-70"
         >
           <h3 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] text-white mb-2 sm:mb-3">
-            Ways to <span className="text-brand-pixsee-secondary">join</span>{" "}
+            Ways to <span className="text-semantic-error-primary">join</span>{" "}
             the Community
           </h3>
           <p className="text-white text-sm sm:text-base md:text-lg lg:text-xl mb-6 sm:mb-8 max-w-2xl">
@@ -169,10 +169,12 @@ const Community = () => {
             className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 `}
             style={{ transitionDelay: "0.1s" }}
           >
-            {socialLinks.map((social) => (
-              <Link
+            {socialLinks.map((social, index) => (
+              <a
                 key={social.name}
                 href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 className="bg-white border-2 border-neutral-tertiary-border rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-center hover:border-brand-action hover:shadow-lg transition-all duration-300 flex flex-col items-center justify-center gap-2 sm:gap-3 md:gap-4"
               >
                 <Image
@@ -180,18 +182,18 @@ const Community = () => {
                   alt={social.name}
                   width={32}
                   height={32}
-                  className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain"
+                  className={`${index === 0 && 'h-16 w-16 sm:h-20 sm:w-20 md:h-16 md:w-24'} h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 object-contain`}
                   unoptimized
                 />
                 <span className="font-semibold text-black text-xs sm:text-sm">
                   {social.name}
                 </span>
-              </Link>
+              </a>
             ))}
           </div>
         </TimelineSection>
 
-        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-black/30" />
+        <div className="w-full h-px mb-12 sm:mb-16 md:mb-20 bg-semantic-error-primary" />
 
         <TimelineSection
           delay={0.4}
@@ -217,7 +219,7 @@ const Community = () => {
               className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
             >
               <Link
-                href="/beta-testing"
+                href=""
                 className="flex items-center justify-center gap-2"
               >
                 Join Beta Testing 🎉
@@ -230,7 +232,7 @@ const Community = () => {
               asChild
             >
               <Link
-                href="/feedback"
+                href=""
                 className="flex items-center justify-center gap-2"
               >
                 Share your Feedback

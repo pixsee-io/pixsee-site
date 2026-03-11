@@ -3,10 +3,16 @@
 import { usePathname } from "next/navigation";
 import Navbar from "./Navbar";
 
-export default function NavbarWrapper() {
+const NavbarWrapper = () => {
   const pathname = usePathname();
+  const currentPath = pathname ?? "/";
 
-  if (pathname === "/") return null;
+  // Don't show navbar on root page
+  if (currentPath === "/") return null;
+
+  if (currentPath.includes("dashboard")) return null;
 
   return <Navbar />;
-}
+};
+
+export default NavbarWrapper;

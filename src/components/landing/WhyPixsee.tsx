@@ -26,33 +26,33 @@ const WhyPixsee = (props: Props) => {
 
   const features: Feature[] = [
     {
-      icon: "/icons/outline_video.svg",
+      icon: "/icons/video1.svg",
       title: "Creator Freedom",
       description: "Launch projects without gatekeepers or distributors.",
       buttonText: "Launch",
-      buttonHref: "/launch",
+      buttonHref: "/dashboard/create",
       iconBg: "bg-[#BDE1FF]",
     },
     {
-      icon: "/icons/outline_video.svg",
+      icon: "/icons/earn_engage.svg",
       title: "Earn As You Engage",
       description: "Watch, vote, and trade to earn $PIX tokens.",
       buttonText: "Watch & Earn",
-      buttonHref: "/watch-earn",
-      iconBg: "bg-[#E5C4FF]",
+      buttonHref: "/dashboard/earn",
+      iconBg: "bg-[#82E57C]",
     },
     {
-      icon: "/icons/outline_video.svg",
+      icon: "/icons/community.svg",
       title: "Community First",
       description: "The audience decides what trends, not algorithms.",
       buttonText: "Join Community",
-      buttonHref: "/community",
-      iconBg: "bg-[#FFD5E9]",
+      buttonHref: "https://x.com/PixseeIO",
+      iconBg: "bg-[#FFD73E]",
     },
   ];
 
   return (
-    <section className="relative w-full bg-foundation-primary py-20 px-4">
+    <section className="relative w-full bg-white py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <div
           ref={headerResult.ref}
@@ -103,16 +103,13 @@ const WhyPixsee = (props: Props) => {
               key={index}
               className="bg-neutral-secondary rounded-xl rounded-tr-4xl border-2 border-muted p-8 hover:shadow-lg transition-all duration-300 hover:scale-105"
             >
-              <div
-                className={`${feature.iconBg} w-fit p-2 rounded-lg flex items-center justify-center mb-6 text-3xl`}
-              >
-                <Image
-                  src={feature.icon}
-                  alt={feature.icon}
-                  width={24}
-                  height={24}
-                />
-              </div>
+              <Image
+                src={feature.icon}
+                alt={feature.icon}
+                width={24}
+                height={24}
+                className="mb-6 w-6 h-6 md:w-8 md:h-8"
+              />
 
               <h3 className="text-xl text-neutral-secondary-text mb-3">
                 {feature.title}
@@ -123,16 +120,18 @@ const WhyPixsee = (props: Props) => {
 
               <Button
                 variant="outline"
-                className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-secondary-text"
+                className="rounded-full px-6 py-2 bg-transparent border-neutral-tertiary-border hover:border-neutral-primary-border hover:text-neutral-secondary-text"
                 asChild
               >
-                <Link
+                <a
                   href={feature.buttonHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2"
                 >
                   {feature.buttonText}
                   <ArrowRight size={16} />
-                </Link>
+                </a>
               </Button>
             </div>
           ))}

@@ -9,7 +9,7 @@ import Image from "next/image";
 
 type Props = {};
 
-const OwnYourContent = (props: Props) => {
+const OwnYourContent = React.forwardRef<HTMLElement, Props>((props, ref) => {
   const badgeResult = useScrollAnimation({ animationType: "fade-up" });
   const titleResult = useScrollAnimation({ animationType: "fade-up" });
   const descriptionResult = useScrollAnimation({ animationType: "fade-up" });
@@ -25,8 +25,8 @@ const OwnYourContent = (props: Props) => {
   ];
 
   return (
-    <section className="relative w-full bg-foundation-primary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0 flex justify-center items-center">
-      <div className="max-w-[90rem] mx-auto w-full">
+    <section ref={ref} className="relative w-full bg-foundation-primary py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 xl:pb-0 flex justify-center items-center">
+      <div className="max-w-360 mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
           <div className="space-y-5 sm:space-y-6 md:space-y-8 order-2 lg:order-1">
             <div
@@ -44,8 +44,8 @@ const OwnYourContent = (props: Props) => {
               className={`${titleResult.animationClass}`}
               style={{ transitionDelay: "0.1s" }}
             >
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[55px] font-bold text-neutral-primary-text">
-                Own Your Content, Keep Your Revenue
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-primary-text">
+              Monetize the attention that your create
               </h2>
             </div>
 
@@ -67,7 +67,7 @@ const OwnYourContent = (props: Props) => {
             >
               {features.map((feature, index) => (
                 <div key={index} className="flex items-start gap-3 sm:gap-4">
-                  <div className="flex-shrink-0 mt-0.5 sm:mt-1">
+                  <div className="shrink-0 mt-0.5 sm:mt-1">
                     <CircleCheck
                       size={20}
                       className="sm:w-6 sm:h-6 text-brand-action stroke-[3]"
@@ -89,10 +89,7 @@ const OwnYourContent = (props: Props) => {
                 asChild
                 className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto sm:min-w-[12rem] px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
               >
-                <Link
-                  href="/start-earning"
-                  className="flex items-center justify-center gap-2"
-                >
+                <Link href="/dashboard/earn" className="flex items-center justify-center gap-2">
                   Start Earning XP
                   <ArrowUpRight size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </Link>
@@ -107,11 +104,11 @@ const OwnYourContent = (props: Props) => {
           >
             <div className="relative w-full h-64 sm:h-80 md:h-96 lg:h-auto rounded-2xl sm:rounded-3xl overflow-hidden">
               <Image
-                src="/images/monetize_img.png"
-                alt="Phone Mockup with Hand"
+                src="/images/monetize.png"
+                alt="monetize"
                 width={500}
                 height={600}
-                className="w-full h-full lg:min-h-[35rem] xl:min-h-[35rem] object-cover"
+                className="w-full h-full lg:min-h-140 xl:min-h-140 object-cover"
                 priority
               />
             </div>
@@ -120,6 +117,8 @@ const OwnYourContent = (props: Props) => {
       </div>
     </section>
   );
-};
+});
+
+OwnYourContent.displayName = 'OwnYourContent';
 
 export default OwnYourContent;

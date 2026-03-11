@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp } from "lucide-react";
+import { ArrowRightCircle, Globe, TrendingUp } from "lucide-react";
 import useScrollAnimation from "@/app/hooks/useScrollAnimation";
 import { motion } from "framer-motion";
 
@@ -60,10 +60,10 @@ function FloatingCard({
       />
 
       <div className="flex flex-col gap-1 sm:gap-1.5 md:gap-2">
-        <p className="text-xs sm:text-sm text-black">{topText}</p>
-        <p className="text-sm sm:text-base md:text-lg text-brand-primary font-bold">
-          {bottomText}
+        <p className="text-sm md:text-xl xl:text-2xl text-brand-primary  font-bold">
+          {topText}
         </p>
+        <p className="text-sm text-black font-medium">{bottomText}</p>
       </div>
     </motion.div>
   );
@@ -98,17 +98,7 @@ const Hero = (props: Props) => {
 
   return (
     <>
-      <section className="relative min-h-screen flex items-center bg-foundation-primary overflow-hidden pb-10 px-4 sm:px-6 md:px-8">
-        <div className="absolute -top-70 left-0 -right-160 h-125 pointer-events-none">
-          <Image
-            src="/images/cloud.png"
-            alt=""
-            fill
-            className="object-cover max-w-4xl mx-auto object-top opacity-90"
-            priority
-          />
-        </div>
-
+      <section className="relative min-h-screen flex items-center bg-foundation-alternate overflow-hidden pb-10 px-4 sm:px-6 md:px-8 landing_hero_bg_new">
         <div className="w-full max-w-360 mx-auto flex flex-col lg:flex-row gap-8 md:gap-12 lg:gap-16 justify-between items-center">
           <div className="w-full space-y-6 sm:space-y-7 md:space-y-8 lg:max-w-3xl">
             <div
@@ -152,8 +142,8 @@ const Hero = (props: Props) => {
                 <span className="font-bold text-brand-pixsee-secondary">
                   Earn
                 </span>{" "}
-                by Creating, Watching, Voting and Trading to share in the upside
-                of the content you make, watch, and support.
+                by Creating, Watching, Voting and Trading to monetize the
+                attention that you create.
               </p>
             </div>
 
@@ -166,20 +156,20 @@ const Hero = (props: Props) => {
                 asChild
                 className="rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm px-5 md:px-8 py-5 md:py-6 font-semibold md:text-base flex items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:shadow-xl w-full sm:w-auto"
               >
-                <Link href="/explore-shows">
-                  <Globe size={18} className="sm:w-5 sm:h-5" />
+                <Link href="/dashboard/watch">
                   Explore Shows
+                  <Globe size={18} className="sm:w-5 sm:h-5" />
                 </Link>
               </Button>
 
               <Button
                 asChild
                 variant="outline"
-                className="rounded-full px-5 md:px-8 py-5 md:py-6 font-semibold text-sm md:text-base flex items-center justify-center gap-2 border-2 border-neutral-primary-text hover:bg-neutral-secondary transition-all duration-200 w-full sm:w-auto"
+                className="rounded-full px-5 md:px-8 py-5 md:py-6 font-semibold text-sm md:text-base flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.25)] border hover:bg-neutral-secondary transition-all duration-200 w-full sm:w-auto"
               >
-                <Link href="/begin-trading">
-                  <TrendingUp size={18} className="sm:w-5 sm:h-5" />
-                  Begin Trading
+                <Link href="/dashboard/earn">
+                  Begin Earning
+                  <ArrowRightCircle size={18} className="sm:w-6 sm:h-6" />
                 </Link>
               </Button>
             </div>
@@ -192,7 +182,7 @@ const Hero = (props: Props) => {
           >
             <div className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-full">
               <Image
-                src="/images/labding-image.png"
+                src="/images/header-imag.png"
                 alt="Pixsee App"
                 width={705}
                 height={869}
@@ -202,23 +192,23 @@ const Hero = (props: Props) => {
 
               <div className="absolute top-1/4 sm:top-1/3 -right-2 sm:-right-8 lg:-right-6 flex flex-col items-center space-y-2 sm:space-y-3 md:space-y-4">
                 <FloatingCard
-                  iconSrc="/icons/video.svg"
+                  iconSrc="/icons/create.svg"
                   topText="Create"
                   bottomText="Launch"
                   delay={0.6}
                 />
 
                 <FloatingCard
-                  iconSrc="/icons/play.svg"
+                  iconSrc="/icons/watch.svg"
                   topText="Watch"
                   bottomText="Vote"
                   delay={0.7}
                 />
 
                 <FloatingCard
-                  iconSrc="/icons/earn.svg"
+                  iconSrc="/icons/earnn.svg"
                   topText="Earn"
-                  bottomText="240 $PIX"
+                  bottomText="$PIX"
                   delay={0.8}
                 />
               </div>

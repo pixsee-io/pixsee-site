@@ -21,17 +21,17 @@ const Footer = (props: Props) => {
   const [email, setEmail] = useState("");
 
   const platformLinks: FooterLink[] = [
-    { label: "Watch", href: "/watch" },
-    { label: "Create", href: "/create" },
-    { label: "Earn", href: "/earn" },
-    { label: "Token", href: "/token" },
+    { label: "Watch", href: "/dashboard/watch" },
+    { label: "Create", href: "/dashboard/create" },
+    { label: "Earn", href: "/dashboard/earn" },
+    { label: "Token", href: "" },
   ];
 
   const companyLinks: FooterLink[] = [
-    { label: "About", href: "/about" },
-    { label: "Career", href: "/career" },
-    { label: "Contact", href: "/contact" },
-    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "About", href: "" },
+    { label: "Career", href: "" },
+    { label: "Contact", href: "" },
+    { label: "Privacy Policy", href: "" },
   ];
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -42,17 +42,17 @@ const Footer = (props: Props) => {
   };
 
   return (
-    <footer className="relative w-full bg-foundation-primary py-16 px-4">
-      <div className="max-w-[90rem] mx-auto">
+    <footer className="relative w-full bg-foundation-alternate py-16 px-4 border border-t">
+      <div className="max-w-360 mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1">
-            <Link href="/" className="flex items-center flex-shrink-0">
+            <Link href="/" className="flex items-center shrink-0">
               <Image
-                src="/images/pixsee_logo_purple.png"
+                src="/images/pixseee.svg"
                 alt="Pixsee"
                 width={120}
                 height={60}
-                className="h-auto object-contain img-purple-to-white"
+                className="h-auto object-contain"
                 priority
               />
             </Link>
@@ -87,7 +87,7 @@ const Footer = (props: Props) => {
             <nav className="flex flex-col space-y-4">
               {companyLinks.map((link) => (
                 <Link
-                  key={link.href}
+                  // key={link.href}
                   href={link.href}
                   className="text-neutral-secondary-text hover:text-neutral-primary-text transition-colors duration-200 text-base"
                 >
@@ -110,9 +110,10 @@ const Footer = (props: Props) => {
                 required
                 className="w-full px-4 py-3 rounded-full bg-neutral-secondary border border-neutral-tertiary-border text-neutral-primary-text placeholder-neutral-tertiary-text focus:outline-none focus:ring-2 focus:ring-brand-action focus:ring-offset-2 focus:ring-offset-foundation-primary"
               />
+
               <Button
                 type="submit"
-                className="w-full bg-brand-action hover:bg-brand-action/90 text-white rounded-full py-3 font-semibold"
+                className="w-full bg-brand-action hover:bg-brand-action/90 text-white rounded-full py-6 font-semibold"
               >
                 Subscribe Now
               </Button>
@@ -124,7 +125,8 @@ const Footer = (props: Props) => {
 
         <div className="flex flex-col md:flex-row items-center justify-center">
           <p className="text-neutral-secondary-text text-sm text-center md:text-left">
-            © Copyright 2025, All Rights Reserved by Pixsee Inc
+            © Copyright {new Date().getFullYear()}, All Rights Reserved by
+            Pixsee Inc
           </p>
         </div>
       </div>
