@@ -89,20 +89,6 @@ export default function Home() {
       </div>
 
       <ComingSoonNavbar />
-<<<<<<< HEAD
-      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-        <div className="absolute -top-40 inset-0 flex items-center justify-center z-0">
-          <div className="w-220 sm:w-275">
-            <Image
-              src="/images/cloud.png"
-              alt=""
-              width={1200}
-              height={800}
-              className="w-full h-auto animate-[cloudDrift_16s_ease-in-out_infinite]"
-              priority
-            />
-          </div>
-=======
 
       <div className="w-full relative mx-auto max-w-6xl z-10 px-4 sm:px-6">
         <div className="absolute -top-10 md:-top-30 left-1/2 -translate-x-1/2 w-[150vw] sm:w-[150vw] lg:w-[110vw] xl:w-275 pointer-events-none z-0">
@@ -114,7 +100,6 @@ export default function Home() {
             className="w-full h-auto animate-[cloudDrift_16s_ease-in-out_infinite]"
             priority
           />
->>>>>>> fork/main
         </div>
 
         <div
