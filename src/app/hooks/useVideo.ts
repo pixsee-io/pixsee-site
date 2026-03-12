@@ -6,6 +6,7 @@ import { ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
+// ─── Helpers (exported for use in other components) ────────────────────────
 
 export function formatCount(n?: number): string {
   if (!n) return "0";
@@ -22,6 +23,7 @@ export function getCreator(video: ApiVideo) {
   };
 }
 
+// ─── Mappers ───────────────────────────────────────────────────────────────
 
 function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
   const creator = video.creator ?? video.user;
@@ -32,7 +34,7 @@ function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
       video.thumbnail_url ?? video.cover_url ?? "/images/movie1.png",
     creatorName: creator?.name ?? creator?.username ?? "Unknown",
     creatorAvatar: creator?.avatar_url ?? creator?.profile_image_url,
-    views: formatCount(video.view_count), 
+    views: formatCount(video.view_count), // fixed: view_count not views_count
     likes: formatCount(video.likes_count),
     description: video.description,
   };
@@ -148,15 +150,22 @@ export function useVideos({
 
 // ─── useVideo (single) ─────────────────────────────────────────────────────
 
+type GetAccessToken = () => Promise<string | null>;
+
 type UseVideoReturn = {
   video: ApiVideo | null;
+  playbackToken: string | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
 };
 
-export function useVideo(id: string | number): UseVideoReturn {
+export function useVideo(
+  id: string | number,
+  getAccessToken?: GetAccessToken
+): UseVideoReturn {
   const [video, setVideo] = useState<ApiVideo | null>(null);
+  const [playbackToken, setPlaybackToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -171,12 +180,37 @@ export function useVideo(id: string | number): UseVideoReturn {
       setIsLoading(true);
       setError(null);
       try {
+        // 1. Fetch video metadata
         const res = await fetch(`${BASE_URL}/api/v1/videos/${id}`);
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const json = await res.json();
-        // Response may be { data: {...} } or the object directly
         const videoData: ApiVideo = json?.data ?? json;
         if (!cancelled) setVideo(videoData);
+
+        // 2. Fetch signed playback token
+        if (getAccessToken) {
+          const authToken = await getAccessToken();
+          if (authToken && !cancelled) {
+            const pbRes = await fetch(
+              `${BASE_URL}/api/v1/videos/${id}/playback`,
+              {
+                headers: { Authorization: `Bearer ${authToken}` },
+              }
+            );
+            if (pbRes.ok) {
+              const pbJson = await pbRes.json();
+              // Extract ?token= from the signed URL
+              const signedUrl: string = pbJson?.playback_url ?? "";
+              try {
+                const muxToken = new URL(signedUrl).searchParams.get("token");
+                if (!cancelled) setPlaybackToken(muxToken);
+              } catch {
+                // signedUrl may not be a valid URL — store as-is for direct use
+                if (!cancelled) setPlaybackToken(signedUrl);
+              }
+            }
+          }
+        }
       } catch (err) {
         if (!cancelled)
           setError(
@@ -193,5 +227,5 @@ export function useVideo(id: string | number): UseVideoReturn {
     };
   }, [id, tick]);
 
-  return { video, isLoading, error, refetch };
+  return { video, playbackToken, isLoading, error, refetch };
 }

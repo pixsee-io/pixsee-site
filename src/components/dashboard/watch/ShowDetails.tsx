@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import MuxPlayer from "@mux/mux-player-react";
+import { usePrivy } from "@privy-io/react-auth";
 import {
   ArrowLeft,
   Star,
@@ -30,13 +31,16 @@ function formatDuration(seconds?: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// ─── VideoPlayer ───────────────────────────────────────────────────────────
 
 const VideoPlayer = ({
   playbackId,
+  playbackToken,
   thumbnailUrl,
   title,
 }: {
   playbackId: string | null;
+  playbackToken?: string | null;
   thumbnailUrl: string | null;
   title: string;
 }) => {
@@ -63,15 +67,16 @@ const VideoPlayer = ({
     <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black">
       <MuxPlayer
         playbackId={playbackId}
+        {...(playbackToken ? { tokens: { playback: playbackToken } } : {})}
         poster={thumbnailUrl ?? undefined}
         style={{ width: "100%", height: "100%" }}
         streamType="on-demand"
-        preferPlayback="mse"
       />
     </div>
   );
 };
 
+// ─── Skeleton ──────────────────────────────────────────────────────────────
 
 const ShowDetailsSkeleton = () => (
   <div className="animate-pulse space-y-6">
@@ -142,6 +147,7 @@ const CommentCard = ({ comment }: { comment: Comment }) => (
   </div>
 );
 
+// ─── Main Component ────────────────────────────────────────────────────────
 
 type ShowDetailsProps = {
   id: string;
@@ -149,7 +155,11 @@ type ShowDetailsProps = {
 
 const ShowDetails = ({ id }: ShowDetailsProps) => {
   const router = useRouter();
-  const { video, isLoading, error } = useVideo(id);
+  const { getAccessToken } = usePrivy();
+  const { video, playbackToken, isLoading, error } = useVideo(
+    id,
+    getAccessToken
+  );
   const { shows: relatedShows } = useVideos({
     perPage: 8,
     sort: "-published_at",
@@ -185,6 +195,7 @@ const ShowDetails = ({ id }: ShowDetailsProps) => {
 
   return (
     <div className="min-h-screen bg-foundation-alternate pb-12">
+      {/* Back nav */}
       <div className="max-w-350 mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4">
         <Link
           href="/dashboard/watch"
@@ -200,8 +211,10 @@ const ShowDetails = ({ id }: ShowDetailsProps) => {
           <ShowDetailsSkeleton />
         ) : (
           <>
+            {/* ── Video player (replaces banner) ── */}
             <VideoPlayer
               playbackId={playbackId}
+              playbackToken={playbackToken}
               thumbnailUrl={video?.thumbnail_url ?? null}
               title={video?.title ?? ""}
             />
@@ -224,7 +237,7 @@ const ShowDetails = ({ id }: ShowDetailsProps) => {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
                   variant="outline"
                   className="bg-white/10 hover:bg-white/20 border-neutral-tertiary-border rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm"
@@ -244,6 +257,7 @@ const ShowDetails = ({ id }: ShowDetailsProps) => {
 
             {/* ── Info grid ── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-6">
+              {/* About + stats */}
               <div className="lg:col-span-2 bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 flex flex-col">
                 <h2 className="text-lg sm:text-xl font-paytone text-neutral-primary-text mb-3">
                   About this video
@@ -397,7 +411,7 @@ const ShowDetails = ({ id }: ShowDetailsProps) => {
                 ))}
               </div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-full bg-brand-pixsee-secondary flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                <div className="w-8 h-8 rounded-full bg-brand-pixsee-secondary flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                   Y
                 </div>
                 <div className="relative flex-1">
