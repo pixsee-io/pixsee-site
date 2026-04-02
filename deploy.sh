@@ -10,9 +10,8 @@ npm install
 
 # Check if .env.local exists
 if [ ! -f .env.local ]; then
-    echo "⚠️  Creating .env.local from template..."
-    cp .env.local.example .env.local
-    echo "📝 Please update .env.local with your MongoDB URI before running the application"
+    echo "⚠️  .env.local not found."
+    echo "📝 Create .env.local with required environment variables before running the application"
 fi
 
 # Build the application
@@ -22,7 +21,7 @@ npm run build
 echo "✅ Setup complete!"
 echo ""
 echo "Next steps:"
-echo "1. Update .env.local with your MongoDB connection string"
+echo "1. Ensure .env.local contains required environment variables"
 echo "2. Run 'npm run dev' for development or 'npm start' for production"
 echo "3. Open http://localhost:3000 in your browser"
 echo ""

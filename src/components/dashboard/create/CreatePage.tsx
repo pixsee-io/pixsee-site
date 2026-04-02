@@ -17,7 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Image from "next/image";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/app/hooks/useAuth";
 import { EpisodeUploadState, useCreateShow } from "@/app/hooks/useCreateShow";
 
 type StepId = "details" | "upload" | "pricing" | "review" | "launch";
@@ -283,7 +283,7 @@ const UploadQueue = ({
 
 const CreatePage = () => {
   const router = useRouter();
-  const { getAccessToken } = usePrivy();
+  const { getAccessToken } = useAuth();
   const {
     episodes: uploadStates,
     isPublishing,

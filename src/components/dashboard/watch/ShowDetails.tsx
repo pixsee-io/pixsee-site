@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import MuxPlayer from "@mux/mux-player-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/app/hooks/useAuth";
 import {
   ArrowLeft,
   Star,
@@ -155,7 +155,7 @@ type ShowDetailsProps = {
 
 const ShowDetails = ({ id }: ShowDetailsProps) => {
   const router = useRouter();
-  const { getAccessToken } = usePrivy();
+  const { getAccessToken } = useAuth();
   const { video, playbackToken, isLoading, error } = useVideo(
     id,
     getAccessToken

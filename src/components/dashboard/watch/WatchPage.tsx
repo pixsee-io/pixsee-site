@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/app/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
 import FilterTabs, { FilterTab } from "@/components/dashboard/watch/FilterTabs";
@@ -34,7 +34,7 @@ const SORT_MAP: Record<string, string> = {
 const WatchPage = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const { user } = usePrivy();
+  const { user } = useAuth();
 
   const sort = SORT_MAP[activeFilter] ?? "-published_at";
 

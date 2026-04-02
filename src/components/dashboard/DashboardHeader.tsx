@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/app/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,7 +18,6 @@ import {
   Plus,
   Wallet,
   Bell,
-  User,
   LogOut,
   ChevronDown,
 } from "lucide-react";
@@ -30,7 +29,7 @@ type DashboardHeaderProps = {
 
 const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { user, logout } = usePrivy();
+  const { user, logout } = useAuth();
 
   const getUserDisplay = () => {
     if (!user) return "User";
