@@ -192,7 +192,7 @@ const VideoPlayer = ({
     );
   }
 
-  // Locked episode — show paywall
+  // Locked episode — show paywal
   if (!episode.is_free && !hasAccess) {
     return (
       <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative flex items-center justify-center">
