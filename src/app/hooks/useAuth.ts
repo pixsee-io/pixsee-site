@@ -1,5 +1,7 @@
 "use client";
 
+import { usePrivy } from "@privy-io/react-auth";
+
 export type AuthUser = {
   email?: { address?: string | null } | null;
   wallet?: { address?: string | null } | null;
@@ -14,16 +16,23 @@ type AuthState = {
   getAccessToken: () => Promise<string | null>;
 };
 
-const noop = async () => {};
-const noToken = async () => null;
-
 export function useAuth(): AuthState {
+  const { ready, authenticated, user, login, logout, getAccessToken } =
+    usePrivy();
+
   return {
-    ready: true,
-    authenticated: false,
-    user: null,
-    login: noop,
-    logout: noop,
-    getAccessToken: noToken,
+    ready,
+    authenticated,
+    user: user
+      ? {
+          email: user.email ?? null,
+          wallet: user.wallet ?? null,
+        }
+      : null,
+    login: async () => {
+      login();
+    },
+    logout,
+    getAccessToken,
   };
 }

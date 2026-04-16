@@ -24,14 +24,14 @@ const Footer = (props: Props) => {
     { label: "Watch", href: "/dashboard/watch" },
     { label: "Create", href: "/dashboard/create" },
     { label: "Earn", href: "/dashboard/earn" },
-    { label: "Token", href: "" },
+    // { label: "Token", href: "" },
   ];
 
   const companyLinks: FooterLink[] = [
-    { label: "About", href: "" },
-    { label: "Career", href: "" },
-    { label: "Contact", href: "" },
-    { label: "Privacy Policy", href: "" },
+    { label: "About", href: "/about" },
+    { label: "Career", href: "/career" },
+    { label: "Contact", href: "/contact" },
+    { label: "Privacy Policy", href: "/privacy" },
   ];
 
   const handleSubscribe = (e: React.FormEvent) => {
