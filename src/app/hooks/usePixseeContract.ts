@@ -385,8 +385,15 @@ export function usePixseeContract() {
 
         console.log("createShow tx hash:", tx);
 
+        // Quick check: is the tx visible on Base Sepolia at all?
+        setTimeout(async () => {
+          const pending = await publicClient.getTransaction({ hash: tx }).catch(() => null);
+          console.log("createShow tx on Base Sepolia (after 3s):", pending ? `nonce=${pending.nonce} blockNumber=${pending.blockNumber}` : "NOT FOUND — wrong chain?");
+        }, 3000);
+
         const receipt = await publicClient.waitForTransactionReceipt({
           hash: tx,
+          timeout: 120_000,
         });
         console.log("createShow receipt status:", receipt.status);
 
