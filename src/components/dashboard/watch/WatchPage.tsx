@@ -155,7 +155,7 @@ const WatchPage = () => {
   );
 };
 
-// ─── Skeleton ──────────────────────────────────────────────────────────────
+//  Skeleton ─
 
 function ShowCardSkeleton({ count }: { count: number }) {
   return (

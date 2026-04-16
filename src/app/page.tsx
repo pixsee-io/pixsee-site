@@ -11,8 +11,16 @@ import ComingSoonNavbar from "@/components/layout/ComingSoonNavbar";
 export default function Home() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState("");
-  const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
+  const [message, setMessage] = useState(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("pixsee_subscribed_msg") || ""
+      : ""
+  );
+  const [isSuccess, setIsSuccess] = useState<boolean | null>(() =>
+    typeof window !== "undefined"
+      ? localStorage.getItem("pixsee_subscribed") === "true"
+      : null
+  );
 
   const logoResult = useScrollAnimation({ animationType: "fade-up" });
   const headingResult = useScrollAnimation({ animationType: "fade-up" });
@@ -22,26 +30,35 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // prevent re-submission
+    if (localStorage.getItem("pixsee_subscribed") === "true") {
+      setIsSuccess(true);
+      setMessage("You're already subscribed!");
+      return;
+    }
+
     setIsSubmitting(true);
     setMessage("");
     setIsSuccess(null);
 
     try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
+      await fetch(
+        "https://docs.google.com/forms/u/0/d/e/1FAIpQLSdCMIwAWgmGeNRq2qTgTTKYMcn0slRv85ZdSva3b8bRKLp2Og/formResponse",
+        {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ "entry.1372311933": email }),
+        }
+      );
 
-      if (res.ok) {
-        setIsSuccess(true);
-        setMessage("Thank you for subscribing! We'll keep you updated.");
-        setEmail("");
-      } else {
-        setIsSuccess(false);
-        setMessage(data.error || "Something went wrong. Please try again.");
-      }
+      const successMsg = "Thank you for subscribing! We'll keep you updated.";
+      setIsSuccess(true);
+      setMessage(successMsg);
+      setEmail("");
+      localStorage.setItem("pixsee_subscribed", "true");
+      localStorage.setItem("pixsee_subscribed_msg", successMsg);
     } catch {
       setIsSuccess(false);
       setMessage("Something went wrong. Please try again.");
@@ -190,7 +207,7 @@ export default function Home() {
               </div>
             </form>
 
-            <div>
+            {/* <div>
               <a
                 href="https://pump.fun/coin/7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump"
                 target="_blank"
@@ -202,7 +219,7 @@ export default function Home() {
                   7Lafx33QDj3ATpT3gHzUuwukav2CUjGAhKwgZpM2pump
                 </span>
               </a>
-            </div>
+            </div> */}
 
             {!!message && (
               <div

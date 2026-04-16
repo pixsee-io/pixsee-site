@@ -14,6 +14,7 @@ import {
   Wallet,
   User,
   ChevronsLeft,
+  Clapperboard,
 } from "lucide-react";
 
 type NavItem = {
@@ -37,6 +38,11 @@ const navItems: NavItem[] = [
     label: "Earn",
     href: "/dashboard/earn",
     icon: <Coins className="w-5 h-5" />,
+  },
+  {
+    label: "Studio",
+    href: "/dashboard/studio",
+    icon: <Clapperboard />,
   },
   // {
   //   label: "Trade",
@@ -85,7 +91,7 @@ const Sidebar = ({
           className="transition-all duration-300 object-contain"
         />
       </Link>
-      
+
       {/* Navigation */}
       <nav className="mt-20 md:mt-14 flex-1 space-y-1">
         {navItems.map((item) => {

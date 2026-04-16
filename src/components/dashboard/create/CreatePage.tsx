@@ -15,10 +15,15 @@ import {
   Lightbulb,
   X,
   Loader2,
+  Film,
+  LayoutList,
 } from "lucide-react";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 import { EpisodeUploadState, useCreateShow } from "@/app/hooks/useCreateShow";
+import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+
+//  Types
 
 type StepId = "details" | "upload" | "pricing" | "review" | "launch";
 
@@ -27,7 +32,6 @@ type Episode = {
   title: string;
   description: string;
   isPaid: boolean;
-  price: string;
   previewUrl?: string; // object URL from selected video file
 };
 
@@ -54,7 +58,7 @@ const steps: { id: StepId; label: string; number: number }[] = [
 ];
 
 const initialEpisodes: Episode[] = [
-  { id: "1", title: "Episode 1", description: "", isPaid: false, price: "" },
+  { id: "1", title: "Episode 1", description: "", isPaid: false },
 ];
 
 const ToggleSwitch = ({
@@ -68,7 +72,7 @@ const ToggleSwitch = ({
     type="button"
     onClick={() => onChange(!enabled)}
     className={cn(
-      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0",
+      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0",
       enabled ? "bg-brand-pixsee-secondary" : "bg-neutral-tertiary"
     )}
   >
@@ -99,7 +103,7 @@ const StepIndicator = ({
             <React.Fragment key={step.id}>
               <div
                 className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium shrink-0 transition-all",
+                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 transition-all",
                   isCompleted
                     ? "bg-brand-primary text-white"
                     : isCurrent
@@ -208,11 +212,13 @@ const StepNav = ({
       </Button>
     </div>
     <p className="flex items-center gap-2 text-sm text-semantic-error-primary mt-4">
-      <Info className="w-4 h-4 shrink-0" />
-      You can edit everything later in Studio before making it public.
+      <Info className="w-4 h-4 flex-shrink-0" />
+      You can edit everything later in Studio.
     </p>
   </>
 );
+
+//  Upload Queue (now driven by real EpisodeUploadState)
 
 const UploadQueue = ({
   uploadStates,
@@ -251,7 +257,7 @@ const UploadQueue = ({
                   </p>
                 )}
               </div>
-              <span className="text-sm text-neutral-tertiary-text shrink-0">
+              <span className="text-sm text-neutral-tertiary-text flex-shrink-0">
                 {ep.uploadProgress}%
               </span>
             </div>
@@ -279,24 +285,35 @@ const UploadQueue = ({
   </div>
 );
 
-// ─── Main Page ─────────────────────────────────────────────────────────────
+//  Main Page
 
 const CreatePage = () => {
-  const router = useRouter();
   const { getAccessToken } = usePrivy();
+  const { createShow: createOnChainShow, addEpisode: addEpisodeOnChain, walletAddress } = usePixseeContract();
+
+  const router = useRouter();
   const {
     episodes: uploadStates,
     isPublishing,
     publishError,
+    showId,
+    onChainInfo, // contains showContract, bondingCurve etc after launch
     initEpisodes,
     attachFile,
+    addUploadSlot,
     uploadAll,
     pollUntilReady,
     publishAll,
-  } = useCreateShow(getAccessToken);
+  } = useCreateShow({
+    getAccessToken,
+    walletAddress,
+    createOnChainShow,
+    addEpisodeOnChain,
+  });
 
   const [currentStep, setCurrentStep] = useState<StepId>("details");
   const [completedSteps, setCompletedSteps] = useState<StepId[]>([]);
+  const [contentType, setContentType] = useState<"single" | "series">("single");
   const [episodes, setEpisodes] = useState<Episode[]>(initialEpisodes);
   const [tagInput, setTagInput] = useState("");
   const [showDetails, setShowDetails] = useState<ShowDetails>({
@@ -324,7 +341,7 @@ const CreatePage = () => {
 
   const goToStep = (id: StepId) => setCurrentStep(id);
 
-  // ── Step handlers ────────────────────────────────────────────────────
+  //  Step handlers
 
   const handleDetailsNext = () => {
     if (!showDetails.title.trim()) return;
@@ -340,17 +357,27 @@ const CreatePage = () => {
   };
 
   const handleUploadNext = async () => {
+    const showType = contentType === "series" ? "tv_show" : "movie";
+
     const ok = await uploadAll({
       title: showDetails.title,
       description: showDetails.description,
       tags: showDetails.tags,
       language: showDetails.language,
       thumbnailFile: showDetails.thumbnail,
+      showType,
+      episodesMeta: episodes.map((ep) => ({
+        localId: ep.id,
+        title: ep.title,
+        description: ep.description,
+        isPaid: ep.isPaid,
+        // ❌ no price — bonding curve determines price
+      })),
     });
+
     if (ok) {
       markComplete("upload");
       goToStep("pricing");
-      // Polling starts automatically inside uploadAll after each episode uploads
     }
   };
 
@@ -375,7 +402,22 @@ const CreatePage = () => {
   };
 
   const handlePublish = async () => {
-    const ok = await publishAll();
+    const ok = await publishAll({
+      title: showDetails.title,
+      description: showDetails.description,
+      tags: showDetails.tags,
+      language: showDetails.language,
+      thumbnailFile: showDetails.thumbnail,
+      showType: contentType === "series" ? "tv_show" : "movie",
+      // Pass final pricing here — this is after the pricing step
+      // so isPaid values are now correct
+      episodesMeta: episodes.map((ep) => ({
+        localId: ep.id,
+        title: ep.title,
+        description: ep.description,
+        isPaid: ep.isPaid,
+      })),
+    });
     if (ok) router.push("/dashboard/watch");
   };
 
@@ -384,7 +426,7 @@ const CreatePage = () => {
     if (prevIndex >= 0) setCurrentStep(steps[prevIndex].id);
   };
 
-  // ── Helpers
+  //  Helpers
 
   const removeTag = (tag: string) =>
     setShowDetails((d) => ({ ...d, tags: d.tags.filter((t) => t !== tag) }));
@@ -411,16 +453,16 @@ const CreatePage = () => {
 
   const addEpisode = () => {
     const newId = String(episodes.length + 1);
-    setEpisodes((eps) => [
-      ...eps,
-      {
-        id: newId,
-        title: `Episode ${newId}`,
-        description: "",
-        isPaid: false,
-        price: "",
-      },
-    ]);
+    const newEp = {
+      id: newId,
+      title: `Episode ${newId}`,
+      description: "",
+      isPaid: false,
+      price: "",
+    };
+    setEpisodes((eps) => [...eps, newEp]);
+    // Sync a new empty slot into uploadStates without wiping existing files
+    addUploadSlot(newId, `Episode ${newId}`);
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -447,6 +489,8 @@ const CreatePage = () => {
       prev.map((ep) => (ep.id === episodeId ? { ...ep, previewUrl } : ep))
     );
   };
+
+  //  Shared row
 
   const LanguageLicenceRow = ({ disabled = false }: { disabled?: boolean }) => (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-8 mb-6">
@@ -486,6 +530,10 @@ const CreatePage = () => {
     </div>
   );
 
+  // ─
+  // Step renderers
+  // ─
+
   const renderDetails = () => (
     <div className="bg-white rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
       <h2 className="text-xl font-paytone text-neutral-primary-text mb-2">
@@ -494,6 +542,58 @@ const CreatePage = () => {
       <p className="text-neutral-tertiary-text mb-6">
         Describe your show so viewers and algorithms can find it.
       </p>
+
+      {/* Content type toggle */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-neutral-primary-text mb-3">
+          Content Type
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {(["single", "series"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => {
+                setContentType(type);
+                // Reset episodes to a single slot when switching
+                setEpisodes([
+                  {
+                    id: "1",
+                    title: "Episode 1",
+                    description: "",
+                    isPaid: false,
+                    price: "",
+                  },
+                ]);
+              }}
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors text-sm font-medium",
+                contentType === type
+                  ? "border-brand-pixsee-secondary bg-brand-pixsee-secondary/5 text-brand-pixsee-secondary"
+                  : "border-neutral-tertiary-border text-neutral-tertiary-text hover:border-brand-pixsee-secondary/50"
+              )}
+            >
+              {type === "single" ? (
+                <>
+                  <Film className="w-6 h-6" />
+                  <span>Single Video</span>
+                  <span className="text-xs font-normal text-neutral-tertiary-text">
+                    A movie, short, or reel
+                  </span>
+                </>
+              ) : (
+                <>
+                  <LayoutList className="w-6 h-6" />
+                  <span>Series / Episodes</span>
+                  <span className="text-xs font-normal text-neutral-tertiary-text">
+                    Multiple episodes in a series
+                  </span>
+                </>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Thumbnail */}
       <div className="mb-6">
@@ -569,7 +669,7 @@ const CreatePage = () => {
           Tags
         </label>
         <div className="flex items-center gap-2 flex-wrap p-3 border border-neutral-tertiary-border rounded-xl">
-          <Tag className="w-4 h-4 text-neutral-tertiary-text shrink-0" />
+          <Tag className="w-4 h-4 text-neutral-tertiary-text flex-shrink-0" />
           {showDetails.tags.map((tag) => (
             <span
               key={tag}
@@ -649,8 +749,9 @@ const CreatePage = () => {
         Upload media
       </h2>
       <p className="text-neutral-tertiary-text mb-6 text-center text-sm sm:text-base">
-        Upload single or multiple episodes. Your media will remain private until
-        you launch.
+        {contentType === "single"
+          ? "Upload your video. It will remain private until you launch."
+          : "Upload single or multiple episodes. Your media will remain private until you launch."}
       </p>
 
       {episodes.map((ep, index) => {
@@ -660,9 +761,11 @@ const CreatePage = () => {
             key={ep.id}
             className="mb-6 border border-neutral-tertiary-border rounded-xl p-4"
           >
-            <p className="text-sm font-semibold text-neutral-primary-text mb-3">
-              Episode {index + 1}
-            </p>
+            {contentType === "series" && (
+              <p className="text-sm font-semibold text-neutral-primary-text mb-3">
+                Episode {index + 1}
+              </p>
+            )}
 
             {/* Drop zone per episode */}
             <input
@@ -701,46 +804,53 @@ const CreatePage = () => {
               )}
             </label>
 
-            <div className="mb-3">
-              <label className="block text-sm font-medium text-neutral-primary-text mb-2">
-                Episode Title
-              </label>
-              <input
-                type="text"
-                value={ep.title}
-                onChange={(e) =>
-                  updateEpisode(ep.id, { title: e.target.value })
-                }
-                className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-primary-text mb-2">
-                Description
-              </label>
-              <textarea
-                value={ep.description}
-                onChange={(e) =>
-                  updateEpisode(ep.id, { description: e.target.value })
-                }
-                placeholder="Short description"
-                rows={2}
-                className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary resize-none"
-              />
-            </div>
+            {/* Only show episode-level title/description for series */}
+            {contentType === "series" && (
+              <>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-neutral-primary-text mb-2">
+                    Episode Title
+                  </label>
+                  <input
+                    type="text"
+                    value={ep.title}
+                    onChange={(e) =>
+                      updateEpisode(ep.id, { title: e.target.value })
+                    }
+                    className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-neutral-primary-text mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    value={ep.description}
+                    onChange={(e) =>
+                      updateEpisode(ep.id, { description: e.target.value })
+                    }
+                    placeholder="Short description"
+                    rows={2}
+                    className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary resize-none"
+                  />
+                </div>
+              </>
+            )}
           </div>
         );
       })}
 
-      <div className="flex justify-end mb-6">
-        <button
-          onClick={addEpisode}
-          className="flex items-center gap-2 text-brand-pixsee-secondary hover:underline text-sm"
-        >
-          Add New Episode <Plus className="w-4 h-4" />
-        </button>
-      </div>
+      {/* Only allow adding more episodes in series mode */}
+      {contentType === "series" && (
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={addEpisode}
+            className="flex items-center gap-2 text-brand-pixsee-secondary hover:underline text-sm"
+          >
+            Add New Episode <Plus className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {uploadStates.some((ep) => ep.file) && (
         <div className="mb-6">
@@ -756,7 +866,10 @@ const CreatePage = () => {
         onNext={handleUploadNext}
         nextLabel="Upload & Continue"
         nextDisabled={
-          !uploadStates.some((ep) => ep.file) && uploadStates.length === 0
+          (!uploadStates.some((ep) => ep.file) && uploadStates.length === 0) ||
+          uploadStates.some(
+            (ep) => ep.file && ep.uploadProgress > 0 && ep.uploadProgress < 100
+          )
         }
       />
     </div>
@@ -765,10 +878,12 @@ const CreatePage = () => {
   const renderPricing = () => (
     <div className="bg-white rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
       <h2 className="text-xl font-paytone text-neutral-primary-text mb-2">
-        Episode Pricing
+        {contentType === "single" ? "Pricing" : "Episode Pricing"}
       </h2>
       <p className="text-neutral-tertiary-text mb-6 text-sm sm:text-base">
-        Set pricing for each episode. You can always adjust before launch.
+        {contentType === "single"
+          ? "Set pricing for your video. You can always adjust before launch."
+          : "Set pricing for each episode. You can always adjust before launch."}
       </p>
 
       <div className="block lg:hidden mb-6">
@@ -782,6 +897,7 @@ const CreatePage = () => {
               key={episode.id}
               episode={episode}
               editable
+              contentType={contentType}
               onUpdate={updateEpisode}
             />
           ))}
@@ -913,11 +1029,15 @@ const CreatePage = () => {
 
         <div className="mb-6">
           <h3 className="text-lg font-paytone text-neutral-primary-text mb-4">
-            Episode Pricing
+            {contentType === "single" ? "Pricing" : "Episode Pricing"}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {episodes.map((episode) => (
-              <EpisodePricingCard key={episode.id} episode={episode} />
+              <EpisodePricingCard
+                key={episode.id}
+                episode={episode}
+                contentType={contentType}
+              />
             ))}
           </div>
         </div>
@@ -1023,12 +1143,12 @@ const CreatePage = () => {
   );
 };
 
-// ─── Shared sub-components ─────────────────────────────────────────────────
+//  Shared sub-components
 
 const PricingTips = () => (
   <div className="bg-brand-tertiary rounded-xl p-4">
     <div className="flex items-center gap-2 mb-4">
-      <Lightbulb className="w-5 h-5 text-semantic-warning-primary shrink-0" />
+      <Lightbulb className="w-5 h-5 text-semantic-warning-primary flex-shrink-0" />
       <h3 className="font-semibold text-neutral-primary-text">Pricing Tips</h3>
     </div>
     <div className="space-y-4 text-sm">
@@ -1062,17 +1182,19 @@ const PricingTips = () => (
 type EpisodePricingCardProps = {
   episode: Episode;
   editable?: boolean;
+  contentType?: "single" | "series";
   onUpdate?: (id: string, updates: Partial<Episode>) => void;
 };
 
 const EpisodePricingCard = ({
   episode,
   editable = false,
+  contentType = "series",
   onUpdate,
 }: EpisodePricingCardProps) => (
   <div className="border border-neutral-tertiary-border rounded-xl p-4">
     <div className="flex flex-col sm:flex-row gap-4">
-      <div className="w-[120px] sm:w-[160px] h-36 rounded-lg bg-neutral-tertiary overflow-hidden shrink-0">
+      <div className="w-[120px] sm:w-[160px] h-36 rounded-lg bg-neutral-tertiary overflow-hidden flex-shrink-0">
         {episode.previewUrl ? (
           <video
             src={episode.previewUrl}
@@ -1081,7 +1203,6 @@ const EpisodePricingCard = ({
             playsInline
             preload="metadata"
             onLoadedMetadata={(e) => {
-              // Seek to 10% into the video to get a non-black frame
               const v = e.currentTarget;
               v.currentTime = Math.min(v.duration * 0.1, 3);
             }}
@@ -1093,35 +1214,42 @@ const EpisodePricingCard = ({
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <label className="block text-xs text-neutral-tertiary-text mb-1">
-          Episode
-        </label>
-        <input
-          type="text"
-          value={episode.title}
-          readOnly={!editable}
-          onChange={(e) => onUpdate?.(episode.id, { title: e.target.value })}
-          className={cn(
-            "w-full px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm mb-3",
-            !editable && "bg-neutral-secondary"
-          )}
-        />
-        <label className="block text-xs text-neutral-tertiary-text mb-1">
-          Description
-        </label>
-        {editable ? (
-          <textarea
-            value={episode.description}
-            onChange={(e) =>
-              onUpdate?.(episode.id, { description: e.target.value })
-            }
-            rows={2}
-            className="w-full min-h-20 px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm resize-none mb-3"
-          />
-        ) : (
-          <p className="text-xs text-neutral-secondary-text line-clamp-2 mb-3">
-            {episode.description || "No description"}
-          </p>
+        {/* Only show title/description fields for series */}
+        {contentType === "series" && (
+          <>
+            <label className="block text-xs text-neutral-tertiary-text mb-1">
+              Episode
+            </label>
+            <input
+              type="text"
+              value={episode.title}
+              readOnly={!editable}
+              onChange={(e) =>
+                onUpdate?.(episode.id, { title: e.target.value })
+              }
+              className={cn(
+                "w-full px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm mb-3",
+                !editable && "bg-neutral-secondary"
+              )}
+            />
+            <label className="block text-xs text-neutral-tertiary-text mb-1">
+              Description
+            </label>
+            {editable ? (
+              <textarea
+                value={episode.description}
+                onChange={(e) =>
+                  onUpdate?.(episode.id, { description: e.target.value })
+                }
+                rows={2}
+                className="w-full min-h-[5rem] px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm resize-none mb-3"
+              />
+            ) : (
+              <p className="text-xs text-neutral-secondary-text line-clamp-2 mb-3">
+                {episode.description || "No description"}
+              </p>
+            )}
+          </>
         )}
         <div className="flex items-center gap-2 mb-3">
           <ToggleSwitch
@@ -1130,24 +1258,14 @@ const EpisodePricingCard = ({
           />
           <span className="text-sm text-neutral-primary-text">Paid</span>
         </div>
-        <label className="block text-xs text-neutral-tertiary-text mb-1">
-          Price per episode
-        </label>
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-tertiary-text text-sm">
-            $
-          </span>
-          <input
-            type="text"
-            value={episode.price}
-            readOnly={!editable}
-            onChange={(e) => onUpdate?.(episode.id, { price: e.target.value })}
-            className={cn(
-              "w-full pl-8 pr-4 py-2 border border-neutral-tertiary-border rounded-lg text-sm",
-              !editable && "bg-neutral-secondary"
-            )}
-          />
-        </div>
+
+        {episode.isPaid && (
+          <p className="text-xs text-neutral-tertiary-text mt-2 bg-brand-pixsee-secondary/5 rounded-lg p-2">
+            💡 Price is set automatically by the bonding curve — starts at
+            $0.001/min and adjusts based on demand. Early viewers get the best
+            price.
+          </p>
+        )}
       </div>
     </div>
   </div>

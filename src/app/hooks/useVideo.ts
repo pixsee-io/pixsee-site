@@ -6,7 +6,7 @@ import { ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
-// ─── Helpers (exported for use in other components) ────────────────────────
+//  Helpers (exported for use in other components)
 
 export function formatCount(n?: number): string {
   if (!n) return "0";
@@ -23,7 +23,7 @@ export function getCreator(video: ApiVideo) {
   };
 }
 
-// ─── Mappers ───────────────────────────────────────────────────────────────
+//  Mappers
 
 function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
   const creator = video.creator ?? video.user;
@@ -31,10 +31,13 @@ function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
     id: String(video.id),
     title: video.title,
     thumbnailUrl:
-      video.thumbnail_url ?? video.cover_url ?? "/images/movie1.png",
+      video.cover_image_url ??
+      video.thumbnail_url ??
+      video.cover_url ??
+      "/images/movie1.png",
     creatorName: creator?.name ?? creator?.username ?? "Unknown",
-    creatorAvatar: creator?.avatar_url ?? creator?.profile_image_url,
-    views: formatCount(video.view_count), // fixed: view_count not views_count
+    creatorAvatar: creator?.avatar_url,
+    views: formatCount(video.view_count),
     likes: formatCount(video.likes_count),
     description: video.description,
   };
@@ -49,13 +52,13 @@ function mapVideoToFeatured(video: ApiVideo): FeaturedShowData {
     thumbnailUrl:
       video.thumbnail_url ?? video.cover_url ?? "/images/featured-movie1.png",
     creatorName: creator?.name ?? creator?.username ?? "Unknown",
-    creatorAvatar: creator?.avatar_url ?? creator?.profile_image_url,
-    views: formatCount(video.view_count), 
+    creatorAvatar: creator?.avatar_url,
+    views: formatCount(video.view_count),
     likes: formatCount(video.likes_count),
   };
 }
 
-// ─── useVideos (list) ──────────────────────────────────────────────────────
+//  useVideos (list)
 
 type UseVideosOptions = {
   page?: number;
@@ -112,7 +115,7 @@ export function useVideos({
         if (filterTitle) params.set("filter[title]", filterTitle);
 
         const res = await fetch(
-          `${BASE_URL}/api/v1/videos?${params.toString()}`
+          `${BASE_URL}/api/v1/shows?${params.toString()}`
         );
         if (!res.ok)
           throw new Error(`API error: ${res.status} ${res.statusText}`);
@@ -148,13 +151,12 @@ export function useVideos({
   };
 }
 
-// ─── useVideo (single) ─────────────────────────────────────────────────────
+//  useVideo (single) ─
 
 type GetAccessToken = () => Promise<string | null>;
 
 type UseVideoReturn = {
   video: ApiVideo | null;
-  playbackToken: string | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -165,7 +167,6 @@ export function useVideo(
   getAccessToken?: GetAccessToken
 ): UseVideoReturn {
   const [video, setVideo] = useState<ApiVideo | null>(null);
-  const [playbackToken, setPlaybackToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -176,56 +177,126 @@ export function useVideo(
     if (!id) return;
     let cancelled = false;
 
-    async function fetchVideo() {
+    async function fetchShow() {
       setIsLoading(true);
       setError(null);
       try {
-        // 1. Fetch video metadata
-        const res = await fetch(`${BASE_URL}/api/v1/videos/${id}`);
+        // Use authenticated my-shows endpoint to get full episode data
+        const token = getAccessToken ? await getAccessToken() : null;
+        const res = await fetch(`${BASE_URL}/api/v1/my-shows/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const json = await res.json();
-        const videoData: ApiVideo = json?.data ?? json;
-        if (!cancelled) setVideo(videoData);
+        if (!cancelled) setVideo(json?.data ?? json);
+      } catch (err) {
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : "Failed to fetch show");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
 
-        // 2. Fetch signed playback token
-        if (getAccessToken) {
-          const authToken = await getAccessToken();
-          if (authToken && !cancelled) {
-            const pbRes = await fetch(
-              `${BASE_URL}/api/v1/videos/${id}/playback`,
-              {
-                headers: { Authorization: `Bearer ${authToken}` },
-              }
-            );
-            if (pbRes.ok) {
-              const pbJson = await pbRes.json();
-              // Extract ?token= from the signed URL
-              const signedUrl: string = pbJson?.playback_url ?? "";
-              try {
-                const muxToken = new URL(signedUrl).searchParams.get("token");
-                if (!cancelled) setPlaybackToken(muxToken);
-              } catch {
-                // signedUrl may not be a valid URL — store as-is for direct use
-                if (!cancelled) setPlaybackToken(signedUrl);
-              }
-            }
-          }
-        }
+    fetchShow();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, tick]);
+
+  return { video, isLoading, error, refetch };
+}
+
+//  useEpisodePlayback
+// Fetches playback URL for a specific episode by its video.id
+// Also fires track-view on load
+
+type UseEpisodePlaybackReturn = {
+  playbackUrl: string | null;
+  isLoading: boolean;
+  error: string | null;
+};
+
+export function useEpisodePlayback(
+  videoId: number | null,
+  getAccessToken: GetAccessToken,
+  refreshKey?: number
+): UseEpisodePlaybackReturn {
+  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!videoId) return;
+    let cancelled = false;
+
+    async function fetchPlayback() {
+      setIsLoading(true);
+      setError(null);
+      setPlaybackUrl(null);
+
+      try {
+        const token = await getAccessToken();
+        const headers: Record<string, string> = token
+          ? { Authorization: `Bearer ${token}` }
+          : {};
+
+        // 1. Get signed playback URL for this episode's video
+        const res = await fetch(
+          `${BASE_URL}/api/v1/videos/${videoId}/playback`,
+          { headers }
+        );
+        if (!res.ok) throw new Error(`Playback fetch failed: ${res.status}`);
+        const json = await res.json();
+        const url: string = json?.playback_url ?? "";
+        if (!cancelled) setPlaybackUrl(url);
+
+        // 2. Track the view (fire and forget)
+        fetch(`${BASE_URL}/api/v1/videos/${videoId}/track-view`, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+        }).catch(() => {});
       } catch (err) {
         if (!cancelled)
           setError(
-            err instanceof Error ? err.message : "Failed to fetch video"
+            err instanceof Error ? err.message : "Failed to load playback"
           );
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     }
 
-    fetchVideo();
+    fetchPlayback();
     return () => {
       cancelled = true;
     };
-  }, [id, tick]);
+  }, [videoId, refreshKey]);
 
-  return { video, playbackToken, isLoading, error, refetch };
+  return { playbackUrl, isLoading, error };
+}
+
+//  trackProgress
+// Call this periodically while an episode is playing
+
+export async function trackProgress(
+  videoId: number,
+  watchedSeconds: number,
+  currentPosition: number,
+  getAccessToken: GetAccessToken
+): Promise<void> {
+  try {
+    const token = await getAccessToken();
+    await fetch(`${BASE_URL}/api/v1/videos/${videoId}/update-progress`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        watched_seconds: watchedSeconds,
+        current_position: currentPosition,
+      }),
+    });
+  } catch {
+    // Non-critical — swallow silently
+  }
 }

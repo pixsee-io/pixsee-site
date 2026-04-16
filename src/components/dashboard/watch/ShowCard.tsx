@@ -21,39 +21,40 @@ const ShowCard = ({
   className,
 }: ShowCardProps) => {
   return (
-    <div className={cn("group", "bg-white rounded-2xl shadow-md", className)}>
-      <Link href={`/dashboard/watch/${id}`}>
-        <div className="relative aspect-3/4 rounded-t-2xl overflow-hidden mb-3">
-          <Image
-            src={thumbnailUrl}
-            alt={title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+    <Link
+      href={`/dashboard/watch/${id}`}
+      className={cn("group", "bg-white rounded-2xl shadow-md", className)}
+    >
+      <div className="relative aspect-3/4 rounded-t-2xl overflow-hidden mb-3">
+        <Image
+          src={thumbnailUrl}
+          alt={title}
+          fill
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+        />
 
-          <div
-            className={cn(
-              "absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-black/20 flex flex-col items-center justify-center transition-opacity duration-300",
-              isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            )}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <button className="w-12 h-12 rounded-full bg-brand-pixsee-secondary flex items-center justify-center hover:bg-brand-pixsee-hover transition-colors">
-                <Play className="w-6 h-6 text-white fill-white ml-1" />
-              </button>
-            </div>
-
-            {/* Description */}
-            {description && (
-              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-3 pt-12">
-                <p className="text-white text-xs text-center line-clamp-3">
-                  {description}
-                </p>
-              </div>
-            )}
+        <div
+          className={cn(
+            "absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-black/20 flex flex-col items-center justify-center transition-opacity duration-300",
+            isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <button className="w-12 h-12 rounded-full bg-brand-pixsee-secondary flex items-center justify-center hover:bg-brand-pixsee-hover transition-colors">
+              <Play className="w-6 h-6 text-white fill-white ml-1" />
+            </button>
           </div>
+
+          {/* Description */}
+          {description && (
+            <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-3 pt-12">
+              <p className="text-white text-xs text-center line-clamp-3">
+                {description}
+              </p>
+            </div>
+          )}
         </div>
-      </Link>
+      </div>
 
       {/* Card Footer */}
       <div className="flex items-start justify-between gap-2 p-5">
@@ -105,7 +106,7 @@ const ShowCard = ({
           </Button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
