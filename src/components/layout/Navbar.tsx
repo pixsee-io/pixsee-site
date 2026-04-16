@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 import { ModeToggle } from "../ui/ModeToggle";
 import { ArrowRightCircle, Menu, X, LogOut, Wallet, User } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/app/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +22,7 @@ type Props = {};
 
 const Navbar = (props: Props) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout } = useAuth();
 
   const pathname = usePathname();
   const hideModeToggle = pathname === "/landing";

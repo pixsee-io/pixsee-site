@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { usePrivy } from "@privy-io/react-auth";
 import {
   PlusCircle,
   Play,
@@ -70,7 +69,6 @@ const Sidebar = ({
   onNavClick,
 }: SidebarProps) => {
   const pathname = usePathname();
-  const { user } = usePrivy();
 
   const userBalance = "10,000";
 
