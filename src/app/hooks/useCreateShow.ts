@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import type { Address } from "viem";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 const POLL_INTERVAL_MS = 3_000;
@@ -9,6 +10,7 @@ const POLL_TIMEOUT_MS = 5 * 60 * 1_000;
 type GetAccessToken = () => Promise<string | null>;
 
 export type MuxStatus = "waiting" | "preparing" | "ready" | "errored";
+export type ShowType = "movie" | "tv_show" | "reel" | "short";
 
 export type EpisodeUploadState = {
   localId: string;
@@ -19,7 +21,15 @@ export type EpisodeUploadState = {
   uploadUrl: string | null;
   muxStatus: MuxStatus | null;
   uploadProgress: number;
+  durationSeconds: number | null; // populated after Mux processing completes
   error: string | null;
+};
+
+export type EpisodeMeta = {
+  localId: string;
+  title: string;
+  description: string;
+  isPaid: boolean;
 };
 
 export type ShowMeta = {
@@ -28,22 +38,63 @@ export type ShowMeta = {
   tags: string[];
   language: string;
   thumbnailFile: File | null;
+  showType: ShowType;
+  episodesMeta?: EpisodeMeta[];
+};
+
+export type OnChainShowInfo = {
+  onChainShowId: string;
+  showContract: Address;
+  bondingCurve: Address;
+  tixToken: Address;
+  feeDistributor: Address;
+};
+
+export type CreateOnChainShowFn = (params: {
+  title: string;
+  tickName: string;
+  tickSymbol: string;
+  creatorAddress: Address;
+  curveTier?: 0 | 1 | 2;
+}) => Promise<{
+  showId: bigint;
+  showInfo: {
+    showContract: Address;
+    bondingCurve: Address;
+    tix: Address;
+    feeDistributor: Address;
+  };
+} | null>;
+
+// Injected from usePixseeContract — adds an episode to the on-chain ShowContract
+export type AddEpisodeOnChainFn = (params: {
+  showContractAddress: Address;
+  durationSeconds: number;
+  isFree: boolean;
+}) => Promise<{ onChainEpisodeId: bigint } | null>;
+
+type UseCreateShowOptions = {
+  getAccessToken: GetAccessToken;
+  walletAddress: Address | undefined;
+  createOnChainShow: CreateOnChainShowFn;
+  addEpisodeOnChain: AddEpisodeOnChainFn;
 };
 
 type UseCreateShowReturn = {
   episodes: EpisodeUploadState[];
   isPublishing: boolean;
   publishError: string | null;
+  showId: number | null;
+  onChainInfo: OnChainShowInfo | null;
   attachFile: (localId: string, file: File) => void;
   initEpisodes: (
-    localEpisodes: { id: string; title: string; description: string }[]
+    eps: { id: string; title: string; description: string }[]
   ) => void;
+  addUploadSlot: (localId: string, title: string) => void;
   uploadAll: (meta: ShowMeta) => Promise<boolean>;
   pollUntilReady: (localId: string, knownVideoId?: number) => Promise<boolean>;
-  publishAll: () => Promise<boolean>;
+  publishAll: (meta: ShowMeta) => Promise<boolean>;
 };
-
-// ─── XHR upload with progress ──────────────────────────────────────────────
 
 function uploadToMux(
   uploadUrl: string,
@@ -54,43 +105,64 @@ function uploadToMux(
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", uploadUrl);
     xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
-
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable)
         onProgress(Math.round((e.loaded / e.total) * 100));
     };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Mux upload failed: ${xhr.status}`));
-    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Mux upload failed: ${xhr.status}`));
     xhr.onerror = () => reject(new Error("Network error during upload"));
     xhr.send(file);
   });
 }
 
-export function useCreateShow(
-  getAccessToken: GetAccessToken
-): UseCreateShowReturn {
+function deriveTickName(title: string): string {
+  return (
+    title
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join("")
+      .slice(0, 12) + "Tix"
+  );
+}
+
+function deriveTickSymbol(title: string): string {
+  const initials = title
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join("")
+    .slice(0, 5);
+  return initials || title.slice(0, 4).toUpperCase();
+}
+
+export function useCreateShow({
+  getAccessToken,
+  walletAddress,
+  createOnChainShow,
+  addEpisodeOnChain,
+}: UseCreateShowOptions): UseCreateShowReturn {
   const [episodes, setEpisodes] = useState<EpisodeUploadState[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [showId, setShowId] = useState<number | null>(null);
+  const [onChainInfo, setOnChainInfo] = useState<OnChainShowInfo | null>(null);
 
   const pollTimers = useRef<Record<string, ReturnType<typeof setInterval>>>({});
   const getTokenRef = useRef(getAccessToken);
   getTokenRef.current = getAccessToken;
 
   const updateEpisode = useCallback(
-    (localId: string, patch: Partial<EpisodeUploadState>) => {
+    (localId: string, patch: Partial<EpisodeUploadState>) =>
       setEpisodes((prev) =>
         prev.map((ep) => (ep.localId === localId ? { ...ep, ...patch } : ep))
-      );
-    },
+      ),
     []
   );
 
-  // Seed slots when user finishes details step
   const initEpisodes = useCallback(
-    (localEpisodes: { id: string; title: string; description: string }[]) => {
+    (localEpisodes: { id: string; title: string; description: string }[]) =>
       setEpisodes(
         localEpisodes.map((ep) => ({
           localId: ep.id,
@@ -101,10 +173,10 @@ export function useCreateShow(
           uploadUrl: null,
           muxStatus: null,
           uploadProgress: 0,
+          durationSeconds: null,
           error: null,
         }))
-      );
-    },
+      ),
     []
   );
 
@@ -114,7 +186,23 @@ export function useCreateShow(
     [updateEpisode]
   );
 
-  // ── Upload flow: POST JSON → get upload_url → PUT to Mux ───────────────
+  const addUploadSlot = useCallback((localId: string, title: string) => {
+    setEpisodes((prev) => [
+      ...prev,
+      {
+        localId,
+        title,
+        description: "",
+        file: null,
+        apiVideoId: null,
+        uploadUrl: null,
+        muxStatus: null,
+        uploadProgress: 0,
+        durationSeconds: null,
+        error: null,
+      },
+    ]);
+  }, []);
 
   const uploadAll = useCallback(
     async (meta: ShowMeta): Promise<boolean> => {
@@ -128,62 +216,190 @@ export function useCreateShow(
       const toUpload = currentEpisodes.filter((ep) => ep.file);
       if (toUpload.length === 0) return false;
 
-      const results = await Promise.allSettled(
-        toUpload.map(async (ep) => {
-          // Fresh token per episode
-          const token = await getTokenRef.current();
+      const token = await getTokenRef.current();
+      const authHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
 
-          // Step 1 — create video record, get upload_url
-          const createRes = await fetch(`${BASE_URL}/api/v1/my-videos`, {
+      const BATCH_SIZE = 10;
+      const firstBatch = toUpload.slice(0, BATCH_SIZE);
+      const remainingBatches: EpisodeUploadState[][] = [];
+      for (let i = BATCH_SIZE; i < toUpload.length; i += BATCH_SIZE) {
+        remainingBatches.push(toUpload.slice(i, i + BATCH_SIZE));
+      }
+
+      // NOTE: is_free is NOT sent here — pricing step hasn't happened yet.
+      // is_free is correctly set in publishAll (Step 0) after the pricing step.
+      const buildEpisodesPayload = (batch: EpisodeUploadState[]) =>
+        batch.map((ep) => ({
+          title: ep.title || meta.title,
+          description: ep.description || "",
+          is_free: true, // placeholder — overridden in publishAll Step 0
+        }));
+
+      // ── Step 1: Create show + first batch ──────────────────────────────────
+      const showRes = await fetch(`${BASE_URL}/api/v1/my-shows`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          title: meta.title,
+          description: meta.description,
+          type: meta.showType,
+          ...(meta.tags.length > 0 ? { tags: meta.tags } : {}),
+          episodes: buildEpisodesPayload(firstBatch),
+        }),
+      });
+
+      if (!showRes.ok) {
+        const err = await showRes.json().catch(() => ({}));
+        toUpload.forEach((ep) =>
+          updateEpisode(ep.localId, {
+            error: err?.message ?? `Show create failed (${showRes.status})`,
+          })
+        );
+        return false;
+      }
+
+      const showJson = await showRes.json();
+      const createdShowId: number =
+        showJson?.show?.id ?? showJson?.data?.id ?? showJson?.id;
+      setShowId(createdShowId);
+
+      const firstCreated: { video: { id: number }; upload_url: string }[] =
+        showJson?.episodes ??
+        showJson?.show?.episodes ??
+        showJson?.data?.episodes ??
+        [];
+
+      if (firstCreated.length !== firstBatch.length) {
+        firstBatch.forEach((ep) =>
+          updateEpisode(ep.localId, {
+            error: "Episode response count mismatch",
+          })
+        );
+        return false;
+      }
+
+      const allCreated: {
+        ep: EpisodeUploadState;
+        video: { id: number };
+        upload_url: string;
+      }[] = [];
+      firstBatch.forEach((ep, idx) =>
+        allCreated.push({
+          ep,
+          video: firstCreated[idx].video,
+          upload_url: firstCreated[idx].upload_url,
+        })
+      );
+
+      // ── Step 2: Remaining batches (>10 episodes) ──────────────────────────
+      for (const batch of remainingBatches) {
+        const epRes = await fetch(
+          `${BASE_URL}/api/v1/my-shows/${createdShowId}/episodes`,
+          {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              title: ep.title || meta.title,
-              description: ep.description || meta.description || "",
-              is_free: true,
-              ...(meta.tags.length > 0 ? { tags: meta.tags } : {}),
-            }),
-          });
-
-          if (!createRes.ok) {
-            const err = await createRes.json().catch(() => ({}));
-            throw new Error(
-              err?.message ?? `Create failed (${createRes.status})`
-            );
+            headers: authHeaders,
+            body: JSON.stringify({ episodes: buildEpisodesPayload(batch) }),
           }
+        );
 
-          const { video, upload_url } = await createRes.json();
+        if (!epRes.ok) {
+          const err = await epRes.json().catch(() => ({}));
+          batch.forEach((ep) =>
+            updateEpisode(ep.localId, {
+              error: err?.message ?? `Episode create failed (${epRes.status})`,
+            })
+          );
+          return false;
+        }
 
+        const epJson = await epRes.json();
+        const created: { video: { id: number }; upload_url: string }[] =
+          epJson?.episodes ?? epJson?.videos ?? epJson?.data ?? [];
+
+        if (created.length !== batch.length) {
+          batch.forEach((ep) =>
+            updateEpisode(ep.localId, {
+              error: "Episode response count mismatch",
+            })
+          );
+          return false;
+        }
+
+        batch.forEach((ep, idx) =>
+          allCreated.push({
+            ep,
+            video: created[idx].video,
+            upload_url: created[idx].upload_url,
+          })
+        );
+      }
+
+      // ── Step 3: Update episode titles + descriptions ──────────────────────
+      // is_free is intentionally NOT sent here — pricing not set yet.
+      // It will be sent correctly in publishAll Step 0.
+      await Promise.all(
+        allCreated.map(({ ep, video }) => {
+          const epMeta = meta.episodesMeta?.find(
+            (m) => m.localId === ep.localId
+          );
+          const finalTitle = epMeta?.title || ep.title || meta.title;
+          const finalDesc = epMeta?.description || ep.description || "";
+
+          return fetch(
+            `${BASE_URL}/api/v1/my-shows/${createdShowId}/episodes/${video.id}`,
+            {
+              method: "PUT",
+              headers: authHeaders,
+              body: JSON.stringify({
+                title: finalTitle,
+                description: finalDesc,
+              }),
+            }
+          ).catch((err) =>
+            console.warn(`Failed to update episode ${video.id} metadata:`, err)
+          );
+        })
+      );
+
+      // ── Step 3b: Upload thumbnail ─────────────────────────────────────────
+      if (meta.thumbnailFile) {
+        const thumbForm = new FormData();
+        thumbForm.append("cover", meta.thumbnailFile);
+        fetch(`${BASE_URL}/api/v1/my-shows/${createdShowId}/cover`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: thumbForm,
+        }).catch((err) => console.warn("Failed to upload thumbnail:", err));
+      }
+
+      // ── Step 4: Upload files to Mux in parallel ───────────────────────────
+      const results = await Promise.allSettled(
+        allCreated.map(({ ep, video, upload_url }) => {
           updateEpisode(ep.localId, {
             apiVideoId: video.id,
             uploadUrl: upload_url,
             muxStatus: "waiting",
             uploadProgress: 0,
           });
-
-          // Step 2 — PUT binary directly to Mux (no auth header needed)
-          await uploadToMux(upload_url, ep.file!, (pct) => {
-            updateEpisode(ep.localId, { uploadProgress: pct });
+          return uploadToMux(upload_url, ep.file!, (pct) =>
+            updateEpisode(ep.localId, { uploadProgress: pct })
+          ).then(() => {
+            updateEpisode(ep.localId, {
+              uploadProgress: 100,
+              muxStatus: "preparing",
+            });
+            pollUntilReady(ep.localId, video.id);
+            return video.id;
           });
-
-          updateEpisode(ep.localId, {
-            uploadProgress: 100,
-            muxStatus: "preparing",
-          });
-
-          // Start polling immediately with the known videoId — don't wait for state
-          pollUntilReady(ep.localId, video.id);
-
-          return video.id;
         })
       );
 
       results.forEach((result, i) => {
         if (result.status === "rejected") {
-          updateEpisode(toUpload[i].localId, {
+          updateEpisode(allCreated[i].ep.localId, {
             error: result.reason?.message ?? "Upload failed",
           });
         }
@@ -194,31 +410,19 @@ export function useCreateShow(
     [updateEpisode]
   );
 
-  // ── Poll until mux_status === ready
-
   const pollUntilReady = useCallback(
     (localId: string, knownVideoId?: number): Promise<boolean> => {
-      // Clear any existing poll for this episode
       if (pollTimers.current[localId]) {
         clearInterval(pollTimers.current[localId]);
         delete pollTimers.current[localId];
       }
-
       return new Promise((resolve) => {
         const startTime = Date.now();
-        // Use passed-in id (available immediately after upload) or fall back to state
-        const apiVideoId = knownVideoId ?? null;
-        if (!apiVideoId) {
+        if (!knownVideoId) {
           resolve(false);
           return;
         }
-
         const tick = async () => {
-          if (!apiVideoId) {
-            resolve(false);
-            return;
-          }
-
           if (Date.now() - startTime > POLL_TIMEOUT_MS) {
             clearInterval(pollTimers.current[localId]);
             delete pollTimers.current[localId];
@@ -226,31 +430,33 @@ export function useCreateShow(
             resolve(false);
             return;
           }
-
           try {
             const token = await getTokenRef.current();
             const res = await fetch(
-              `${BASE_URL}/api/v1/my-videos/${apiVideoId}`,
-              { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+              `${BASE_URL}/api/v1/my-videos/${knownVideoId}`,
+              {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              }
             );
-            if (!res.ok) return; // transient — keep polling
-
+            if (!res.ok) return;
             const data = await res.json();
             const muxStatus: MuxStatus =
               data?.data?.mux_status ?? data?.mux_status;
-            updateEpisode(localId, { muxStatus });
-
+            const duration: number | null =
+              data?.data?.duration ?? data?.duration ?? null;
+            updateEpisode(localId, {
+              muxStatus,
+              ...(duration !== null ? { durationSeconds: duration } : {}),
+            });
             if (muxStatus === "ready" || muxStatus === "errored") {
               clearInterval(pollTimers.current[localId]);
               delete pollTimers.current[localId];
               resolve(muxStatus === "ready");
             }
           } catch {
-            // transient network error — keep polling
+            /* transient */
           }
         };
-
-        // Run immediately, then on interval
         tick();
         pollTimers.current[localId] = setInterval(tick, POLL_INTERVAL_MS);
       });
@@ -258,48 +464,221 @@ export function useCreateShow(
     [updateEpisode]
   );
 
-  // ── Publish
+  const publishAll = useCallback(
+    async (meta: ShowMeta): Promise<boolean> => {
+      setIsPublishing(true);
+      setPublishError(null);
 
-  const publishAll = useCallback(async (): Promise<boolean> => {
-    setIsPublishing(true);
-    setPublishError(null);
+      try {
+        if (!showId) {
+          setPublishError("No show to publish.");
+          return false;
+        }
+        if (!walletAddress) {
+          setPublishError("No wallet connected.");
+          return false;
+        }
 
-    try {
-      const results = await Promise.allSettled(
-        episodes
-          .filter((ep) => ep.apiVideoId && ep.muxStatus === "ready")
-          .map(async (ep) => {
-            const token = await getTokenRef.current();
-            const res = await fetch(
-              `${BASE_URL}/api/v1/my-videos/${ep.apiVideoId}/publish`,
-              {
-                method: "POST",
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-              }
+        const token = await getTokenRef.current();
+        const authHeaders: Record<string, string> = token
+          ? { Authorization: `Bearer ${token}` }
+          : {};
+
+        // ── Step 0: Update episode pricing with correct is_free values ────────
+        // This is the ONLY place is_free is set correctly — after the user has
+        // completed the pricing step and before we publish.
+        // episodesMeta comes from handlePublish in CreatePage which maps the
+        // current episodes state (with user's paid/free toggles).
+        console.log("Step 0 — episodesMeta received:", meta.episodesMeta);
+
+        if (meta.episodesMeta && meta.episodesMeta.length > 0) {
+          // Snapshot current episode state to get apiVideoId for each episode
+          let currentEps: EpisodeUploadState[] = [];
+          setEpisodes((prev) => {
+            currentEps = prev;
+            return prev;
+          });
+          await new Promise((r) => setTimeout(r, 0));
+
+          console.log(
+            "Step 0 — episode videoIds:",
+            currentEps.map((e) => ({
+              localId: e.localId,
+              videoId: e.apiVideoId,
+            }))
+          );
+
+          await Promise.all(
+            currentEps
+              .filter((ep) => ep.apiVideoId !== null)
+              .map((ep) => {
+                const epMeta = meta.episodesMeta!.find(
+                  (m) => m.localId === ep.localId
+                );
+                const isFree = epMeta ? !epMeta.isPaid : true;
+
+                console.log(
+                  `Step 0 — episode ${ep.apiVideoId} (${ep.localId}): isPaid=${epMeta?.isPaid}, sending is_free=${isFree}`
+                );
+
+                return fetch(
+                  `${BASE_URL}/api/v1/my-shows/${showId}/episodes/${ep.apiVideoId}`,
+                  {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                      ...authHeaders,
+                    },
+                    body: JSON.stringify({ is_free: isFree }),
+                  }
+                ).catch((err) =>
+                  console.warn(
+                    `Failed to update episode ${ep.apiVideoId} pricing:`,
+                    err
+                  )
+                );
+              })
+          );
+        }
+
+        // ── Step 1: Publish on backend ────────────────────────────────────────
+        const publishRes = await fetch(
+          `${BASE_URL}/api/v1/my-shows/${showId}/publish`,
+          {
+            method: "POST",
+            headers: authHeaders,
+          }
+        );
+
+        if (!publishRes.ok) {
+          const err = await publishRes.json().catch(() => ({}));
+          setPublishError(
+            err?.message ?? `Publish failed (${publishRes.status})`
+          );
+          return false;
+        }
+
+        // ── Step 2: Create show on-chain ──────────────────────────────────────
+        const chainResult = await createOnChainShow({
+          title: meta.title,
+          tickName: deriveTickName(meta.title),
+          tickSymbol: deriveTickSymbol(meta.title),
+          creatorAddress: walletAddress,
+          curveTier: 1,
+        });
+
+        if (!chainResult) {
+          setPublishError(
+            "Show published but on-chain registration failed. You can retry from Studio."
+          );
+          return true;
+        }
+
+        // ── Step 2b: Register episodes on-chain ─────────────────────────────
+        // addEpisode() must be called for each episode on the ShowContract
+        // before buyAndUnlock() will work. Without this, the contract reverts
+        // with "episode does not exist".
+        let currentEpsForChain: EpisodeUploadState[] = [];
+        setEpisodes((prev) => {
+          currentEpsForChain = prev;
+          return prev;
+        });
+        await new Promise((r) => setTimeout(r, 0));
+
+        for (const ep of currentEpsForChain.filter(
+          (e) => e.apiVideoId !== null
+        )) {
+          const epMeta = meta.episodesMeta?.find(
+            (m) => m.localId === ep.localId
+          );
+          const isFree = epMeta ? !epMeta.isPaid : true;
+          // Duration from Mux in seconds — fallback to 60s if not yet available
+          const durationSeconds = ep.durationSeconds ?? 60;
+
+          console.log(
+            `Adding episode on-chain: videoId=${ep.apiVideoId}, duration=${durationSeconds}s, isFree=${isFree}`
+          );
+
+          const result = await addEpisodeOnChain({
+            showContractAddress: chainResult.showInfo.showContract,
+            durationSeconds,
+            isFree,
+          });
+
+          if (result) {
+            console.log(
+              `Episode ${ep.apiVideoId} registered on-chain as episodeId=${result.onChainEpisodeId}`
             );
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              throw new Error(err?.message ?? `Publish failed (${res.status})`);
+            // Save on-chain episode ID to backend so frontend can use it for access checks
+            if (ep.apiVideoId) {
+              fetch(
+                `${BASE_URL}/api/v1/my-shows/${showId}/episodes/${ep.apiVideoId}`,
+                {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    ...authHeaders,
+                  },
+                  body: JSON.stringify({
+                    on_chain_episode_id: result.onChainEpisodeId.toString(),
+                  }),
+                }
+              ).catch((err) =>
+                console.warn("Failed to save on-chain episode ID:", err)
+              );
             }
-          })
-      );
+          } else {
+            console.warn(
+              `Failed to register episode ${ep.apiVideoId} on-chain`
+            );
+          }
+        }
 
-      const failed = results.filter((r) => r.status === "rejected");
-      if (failed.length > 0) {
-        setPublishError(`${failed.length} episode(s) failed to publish.`);
-        return false;
+        // ── Step 3: Save contract addresses to backend ────────────────────────
+        const { showId: onChainShowId, showInfo } = chainResult;
+
+        const patchRes = await fetch(
+          `${BASE_URL}/api/v1/my-shows/${showId}/chain-info`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", ...authHeaders },
+            body: JSON.stringify({
+              on_chain_show_id: onChainShowId.toString(),
+              show_contract: showInfo.showContract,
+              bonding_curve: showInfo.bondingCurve,
+              tix_token: showInfo.tix,
+              fee_distributor: showInfo.feeDistributor,
+            }),
+          }
+        );
+
+        if (!patchRes.ok)
+          console.warn("Failed to save chain info:", await patchRes.text());
+
+        setOnChainInfo({
+          onChainShowId: onChainShowId.toString(),
+          showContract: showInfo.showContract,
+          bondingCurve: showInfo.bondingCurve,
+          tixToken: showInfo.tix,
+          feeDistributor: showInfo.feeDistributor,
+        });
+
+        return true;
+      } finally {
+        setIsPublishing(false);
       }
-      return true;
-    } finally {
-      setIsPublishing(false);
-    }
-  }, [episodes]);
+    },
+    [showId, walletAddress, createOnChainShow, addEpisodeOnChain]
+  );
 
   return {
     episodes,
     isPublishing,
     publishError,
+    showId,
+    onChainInfo,
     attachFile,
+    addUploadSlot,
     initEpisodes,
     uploadAll,
     pollUntilReady,
