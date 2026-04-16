@@ -19,7 +19,8 @@ import {
   LayoutList,
 } from "lucide-react";
 import Image from "next/image";
-import { useAuth } from "@/app/hooks/useAuth";
+import { usePrivy } from "@privy-io/react-auth";
+
 import { EpisodeUploadState, useCreateShow } from "@/app/hooks/useCreateShow";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 
@@ -562,7 +563,7 @@ const CreatePage = () => {
                     title: "Episode 1",
                     description: "",
                     isPaid: false,
-                    price: "",
+                    // price: "",
                   },
                 ]);
               }}

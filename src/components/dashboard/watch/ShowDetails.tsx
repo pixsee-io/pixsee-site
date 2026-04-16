@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import MuxPlayer from "@mux/mux-player-react";
-import { useAuth } from "@/app/hooks/useAuth";
+import { usePrivy } from "@privy-io/react-auth";
+
 import {
   ArrowLeft,
   Star,
@@ -78,7 +79,7 @@ const BuyAndWatchButton = ({
     const onChainEpisodeId =
       episode.on_chain_episode_id != null
         ? Number(episode.on_chain_episode_id)
-        : (episode.episode_number ?? episode.id);
+        : episode.episode_number ?? episode.id;
     const tx = await buyAndUnlock({
       showContractAddress,
       bondingCurveAddress,
@@ -393,8 +394,10 @@ const ShowDetails = ({ id }: { id: string }) => {
 
   // Read contract addresses directly from API response (stored there via chain-info PATCH)
   useEffect(() => {
-    if (apiShow?.show_contract) setShowContractAddress(apiShow.show_contract as Address);
-    if (apiShow?.bonding_curve) setBondingCurveAddress(apiShow.bonding_curve as Address);
+    if (apiShow?.show_contract)
+      setShowContractAddress(apiShow.show_contract as Address);
+    if (apiShow?.bonding_curve)
+      setBondingCurveAddress(apiShow.bonding_curve as Address);
   }, [apiShow?.show_contract, apiShow?.bonding_curve]);
 
   // Check access for all episodes once we have the show contract and wallet
@@ -405,7 +408,7 @@ const ShowDetails = ({ id }: { id: string }) => {
         const episodeOnChainId =
           ep.on_chain_episode_id != null
             ? Number(ep.on_chain_episode_id)
-            : (ep.episode_number ?? ep.id);
+            : ep.episode_number ?? ep.id;
         const access = await checkAccess(showContractAddress, episodeOnChainId);
         return [ep.id, access] as const;
       })
@@ -499,7 +502,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   hasAccess={activeEpisodeHasAccess ?? false}
                   showContractAddress={showContractAddress}
                   bondingCurveAddress={bondingCurveAddress}
-                  walletAddress={walletAddress}
+                  // walletAddress={walletAddress}
                   getAccessToken={getAccessToken}
                   onAccessGranted={() => {
                     checkAllAccess();
@@ -597,11 +600,9 @@ const ShowDetails = ({ id }: { id: string }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-6">
               <div className="lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6">
                 <h2 className="text-lg sm:text-xl font-paytone text-neutral-primary-text mb-3">
-                  <h2>
-                    {activeEpisode && isSeries
-                      ? `About: ${activeEpisode.title}`
-                      : `About this ${isSeries ? "show" : "video"}`}
-                  </h2>
+                  {activeEpisode && isSeries
+                    ? `About: ${activeEpisode.title}`
+                    : `About this ${isSeries ? "show" : "video"}`}
                 </h2>
                 <p className="text-sm sm:text-base text-neutral-secondary-text leading-relaxed">
                   {showFullDescription || !truncated

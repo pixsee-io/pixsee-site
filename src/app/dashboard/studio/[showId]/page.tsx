@@ -233,9 +233,9 @@ function EpisodeRow({
 
 export default function StudioShowPage() {
   const { getAccessToken } = usePrivy();
-  const params = useParams();
+  const params = useParams<{ showId: string }>();
   const router = useRouter();
-  const showId = Number(params.showId);
+  const showId = Number(params?.showId);
 
   const [show, setShow] = useState<Show | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -304,7 +304,9 @@ export default function StudioShowPage() {
     setIsSaving(true);
     try {
       const token = await getAccessToken();
-      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+      const authHeaders: Record<string, string> = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
       const metaRes = await fetch(`${BASE_URL}/api/v1/my-shows/${showId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", ...authHeaders },
