@@ -37,7 +37,7 @@ const ReferralModal = ({
         {/* Hero banner */}
         <div className="refer_bg p-4 mb-5">
           <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-2 bg-white text-black px-3 sm:px-4 py-2 rounded-lg">
+            <div className="flex items-center gap-2 bg-neutral-primary text-neutral-primary-text px-3 sm:px-4 py-2 rounded-lg">
               <Coins className="w-4 h-4 shrink-0" />
               <span className="font-semibold text-sm sm:text-base">
                 Earn 1000 TIX

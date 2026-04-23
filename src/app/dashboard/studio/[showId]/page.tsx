@@ -69,32 +69,30 @@ function DeleteConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+      <div className="bg-neutral-primary rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-neutral-tertiary-border">
         <div className="flex items-start gap-4 mb-4">
-          <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+          <div className="w-10 h-10 rounded-full bg-semantic-error-primary/10 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-5 h-5 text-semantic-error-primary" />
           </div>
-          <div>
-            <h3 className="font-semibold text-neutral-900 dark:text-white mb-1">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-neutral-primary-text mb-1">
               {title}
             </h3>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              {message}
-            </p>
+            <p className="text-sm text-neutral-tertiary-text">{message}</p>
           </div>
         </div>
         <div className="flex gap-3 justify-end">
           <button
             onClick={onCancel}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-xl text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            className="px-4 py-2 rounded-xl text-sm font-medium text-neutral-secondary-text hover:bg-neutral-secondary transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={isDeleting}
-            className="px-4 py-2 rounded-xl text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2"
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-semantic-error-primary text-white hover:opacity-90 transition-opacity flex items-center gap-2"
           >
             {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Delete
@@ -131,8 +129,8 @@ function EpisodeRow({
 
   return (
     <>
-      <div className="flex items-center gap-4 p-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors group">
-        <div className="relative w-20 h-12 rounded-lg overflow-hidden bg-neutral-200 dark:bg-neutral-700 flex-shrink-0">
+      <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-neutral-secondary hover:bg-neutral-tertiary transition-colors group">
+        <div className="relative w-16 h-10 sm:w-20 sm:h-12 rounded-lg overflow-hidden bg-neutral-tertiary flex-shrink-0">
           {episode.thumbnail_url ? (
             <Image
               src={episode.thumbnail_url}
@@ -143,7 +141,7 @@ function EpisodeRow({
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Film className="w-5 h-5 text-neutral-400" />
+              <Film className="w-5 h-5 text-neutral-tertiary-text" />
             </div>
           )}
           {episode.duration && (
@@ -154,40 +152,41 @@ function EpisodeRow({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-xs text-neutral-400">
+          <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 mb-0.5">
+            <span className="text-[11px] sm:text-xs text-neutral-tertiary-text">
               S{episode.season_number}E{episode.episode_number}
             </span>
             <span
-              className={`text-xs px-1.5 py-0.5 rounded-full ${
+              className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full ${
                 episode.is_free
-                  ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                  : "bg-brand-pixsee-primary/10 text-brand-pixsee-primary"
+                  ? "bg-semantic-success-subtle text-semantic-success-text"
+                  : "bg-brand-pixsee-secondary/10 text-brand-pixsee-secondary"
               }`}
             >
               {episode.is_free ? "Free" : "Paid"}
             </span>
             {episode.mux_status !== "ready" && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 capitalize">
+              <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full bg-semantic-warning-primary/10 text-semantic-warning-text capitalize">
                 {episode.mux_status}
               </span>
             )}
           </div>
-          <p className="font-medium text-sm text-neutral-900 dark:text-white truncate">
+          <p className="font-medium text-xs sm:text-sm text-neutral-primary-text truncate">
             {episode.title}
           </p>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <p className="text-[11px] sm:text-xs text-neutral-tertiary-text mt-0.5">
             {episode.view_count.toLocaleString()} views
           </p>
         </div>
 
-        <div className="relative">
+        <div className="relative shrink-0">
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="p-2 rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors opacity-0 group-hover:opacity-100"
+            className="p-2 rounded-lg hover:bg-neutral-tertiary transition-colors sm:opacity-0 sm:group-hover:opacity-100"
+            aria-label="Episode options"
           >
             <svg
-              className="w-4 h-4 text-neutral-500"
+              className="w-4 h-4 text-neutral-tertiary-text"
               fill="currentColor"
               viewBox="0 0 16 16"
             >
@@ -197,20 +196,20 @@ function EpisodeRow({
             </svg>
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-neutral-800 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700 z-10 w-44 overflow-hidden">
+            <div className="absolute right-0 top-full mt-1 bg-neutral-primary rounded-xl shadow-xl border border-neutral-tertiary-border z-10 w-44 overflow-hidden">
               <button
                 onClick={() => {
                   setMenuOpen(false);
                   setShowConfirm(true);
                 }}
                 disabled={hasOnChainPurchases}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-semantic-error-primary hover:bg-semantic-error-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Trash2 className="w-4 h-4" />
                 Delete episode
               </button>
               {hasOnChainPurchases && (
-                <p className="px-4 py-2 text-xs text-neutral-400 border-t border-neutral-100 dark:border-neutral-700">
+                <p className="px-4 py-2 text-xs text-neutral-tertiary-text border-t border-neutral-tertiary-border">
                   Has purchases — cannot delete
                 </p>
               )}
@@ -383,8 +382,8 @@ export default function StudioShowPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-pixsee-primary" />
+      <div className="min-h-screen bg-foundation-alternate flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-pixsee-secondary" />
       </div>
     );
   }
@@ -398,62 +397,62 @@ export default function StudioShowPage() {
     !!coverFile;
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+    <div className="min-h-screen bg-foundation-alternate">
       {toast && (
         <div
-          className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
+          className={`fixed top-4 right-4 sm:top-6 sm:right-6 left-4 sm:left-auto z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
             toast.type === "success"
-              ? "bg-green-600 text-white"
-              : "bg-red-600 text-white"
+              ? "bg-semantic-success-primary text-white"
+              : "bg-semantic-error-primary text-white"
           }`}
         >
           {toast.type === "success" ? (
-            <CheckCircle className="w-4 h-4" />
+            <CheckCircle className="w-4 h-4 shrink-0" />
           ) : (
-            <AlertTriangle className="w-4 h-4" />
+            <AlertTriangle className="w-4 h-4 shrink-0" />
           )}
           {toast.message}
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
         <button
           onClick={() => router.push("/dashboard/studio")}
-          className="flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors mb-6"
+          className="flex items-center gap-2 text-sm text-neutral-tertiary-text hover:text-neutral-primary-text transition-colors mb-4 sm:mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Studio
         </button>
 
-        <div className="flex items-start justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-primary-text truncate">
               {show.title}
             </h1>
-            <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex items-center flex-wrap gap-2 mt-1.5">
               <span
-                className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                className={`text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full ${
                   show.status === "published"
-                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                    : "bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
+                    ? "bg-semantic-success-subtle text-semantic-success-text"
+                    : "bg-neutral-tertiary text-neutral-secondary-text"
                 }`}
               >
                 {show.status === "published" ? "Live" : "Draft"}
               </span>
               {show.on_chain_show_id && (
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-pixsee-primary/10 text-brand-pixsee-primary">
+                <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-brand-pixsee-secondary/10 text-brand-pixsee-secondary">
                   On-chain #{show.on_chain_show_id}
                 </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleTogglePublish}
               disabled={isPublishing}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
                 show.status === "published"
-                  ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600"
-                  : "bg-green-600 text-white hover:bg-green-700"
+                  ? "bg-neutral-tertiary text-neutral-secondary-text hover:bg-neutral-secondary"
+                  : "bg-semantic-success-primary text-white hover:opacity-90"
               }`}
             >
               {isPublishing ? (
@@ -469,7 +468,7 @@ export default function StudioShowPage() {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium bg-brand-pixsee-primary text-white hover:opacity-90 transition-opacity"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white transition-opacity"
               >
                 {isSaving ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -482,10 +481,10 @@ export default function StudioShowPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-5">
             {/* Cover */}
-            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+            <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border overflow-hidden">
               <div
                 className="relative aspect-video cursor-pointer group"
                 onClick={() => fileInputRef.current?.click()}
@@ -499,8 +498,8 @@ export default function StudioShowPage() {
                     sizes="400px"
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
-                    <Film className="w-10 h-10 text-neutral-400" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-neutral-secondary">
+                    <Film className="w-10 h-10 text-neutral-tertiary-text" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -509,10 +508,10 @@ export default function StudioShowPage() {
                   </div>
                 </div>
               </div>
-              <div className="p-3 border-t border-neutral-100 dark:border-neutral-800">
+              <div className="p-3 border-t border-neutral-tertiary-border">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full text-center text-xs text-neutral-500 hover:text-brand-pixsee-primary transition-colors"
+                  className="w-full text-center text-xs text-neutral-tertiary-text hover:text-brand-pixsee-secondary transition-colors"
                 >
                   Click to upload new cover image
                 </button>
@@ -527,56 +526,56 @@ export default function StudioShowPage() {
             </div>
 
             {/* Danger zone */}
-            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-red-200 dark:border-red-900/50 p-4">
-              <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-3">
+            <div className="bg-neutral-primary rounded-2xl border border-semantic-error-primary/30 p-4">
+              <h3 className="text-sm font-semibold text-semantic-error-primary mb-3">
                 Danger Zone
               </h3>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={hasOnChainPurchases}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-semantic-error-primary/40 text-semantic-error-primary hover:bg-semantic-error-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Trash2 className="w-4 h-4" /> Delete show
               </button>
               {hasOnChainPurchases && (
-                <p className="text-xs text-neutral-400 mt-2 text-center">
+                <p className="text-xs text-neutral-tertiary-text mt-2 text-center">
                   This show has purchases — deletion is blocked.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-5">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-5">
             {/* Edit form */}
-            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-5">
-              <h2 className="font-semibold text-neutral-900 dark:text-white mb-4">
+            <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 sm:p-5">
+              <h2 className="font-semibold text-neutral-primary-text mb-3 sm:mb-4">
                 Show details
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">
+                  <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
                     Title
                   </label>
                   <input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-sm text-neutral-900 dark:text-white focus:outline-none focus:border-brand-pixsee-primary transition-colors"
+                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">
+                  <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
                     Description
                   </label>
                   <textarea
                     value={editDescription}
                     onChange={(e) => setEditDescription(e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-sm text-neutral-900 dark:text-white focus:outline-none focus:border-brand-pixsee-primary transition-colors resize-none"
+                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors resize-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">
+                  <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
                     Tags <span className="font-normal">(comma separated)</span>
                   </label>
                   <input
@@ -584,22 +583,22 @@ export default function StudioShowPage() {
                     value={editTags}
                     onChange={(e) => setEditTags(e.target.value)}
                     placeholder="drama, thriller, series"
-                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-sm text-neutral-900 dark:text-white focus:outline-none focus:border-brand-pixsee-primary transition-colors"
+                    className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
                   />
                 </div>
               </div>
             </div>
 
             {/* Episodes */}
-            <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-5">
-              <h2 className="font-semibold text-neutral-900 dark:text-white mb-4">
+            <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 sm:p-5">
+              <h2 className="font-semibold text-neutral-primary-text mb-3 sm:mb-4">
                 Episodes{" "}
-                <span className="text-neutral-400 font-normal">
+                <span className="text-neutral-tertiary-text font-normal">
                   ({show.episodes.length})
                 </span>
               </h2>
               {show.episodes.length === 0 ? (
-                <div className="text-center py-8 text-neutral-400 text-sm">
+                <div className="text-center py-8 text-neutral-tertiary-text text-sm">
                   No episodes yet
                 </div>
               ) : (

@@ -4,9 +4,10 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Eye, Heart, MoreVertical, Play, Pause } from "lucide-react";
+import { Eye, Heart, MoreVertical, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShowCardProps } from "@/app/utils";
+import { useSocialState } from "@/app/context/SocialStateContext";
 
 const ShowCard = ({
   id,
@@ -18,14 +19,23 @@ const ShowCard = ({
   likes,
   description,
   isPlaying = false,
+  isLiked: isLikedProp,
+  videoFormat = "portrait",
   className,
 }: ShowCardProps) => {
+  const { getLiked } = useSocialState();
+  // Check cache first (covers navigation persistence), fall back to API prop
+  const cachedLiked = getLiked(parseInt(id));
+  const isLiked = cachedLiked !== undefined ? cachedLiked : (isLikedProp ?? false);
   return (
     <Link
       href={`/dashboard/watch/${id}`}
-      className={cn("group", "bg-white rounded-2xl shadow-md", className)}
+      className={cn(
+        "group bg-neutral-primary border border-neutral-tertiary-border rounded-2xl shadow-md overflow-hidden",
+        className
+      )}
     >
-      <div className="relative aspect-3/4 rounded-t-2xl overflow-hidden mb-3">
+      <div className={cn("relative rounded-t-2xl overflow-hidden", videoFormat === "landscape" ? "aspect-video" : "aspect-3/4")}>
         <Image
           src={thumbnailUrl}
           alt={title}
@@ -57,12 +67,12 @@ const ShowCard = ({
       </div>
 
       {/* Card Footer */}
-      <div className="flex items-start justify-between gap-2 p-5">
+      <div className="flex items-start justify-between gap-2 p-3 sm:p-4 md:p-5">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-neutral-primary-text truncate">
+          <h3 className="font-semibold text-sm sm:text-base text-neutral-primary-text truncate">
             {title}
           </h3>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
             <div className="w-5 h-5 rounded-full bg-neutral-tertiary overflow-hidden shrink-0">
               {creatorAvatar ? (
                 <Image
@@ -78,29 +88,32 @@ const ShowCard = ({
                 </div>
               )}
             </div>
-            <span className="text-sm text-neutral-tertiary-text truncate">
+            <span className="text-xs sm:text-sm text-neutral-tertiary-text truncate">
               {creatorName}
             </span>
           </div>
-          <div className="flex items-center gap-4 mt-2 text-sm text-neutral-tertiary-text">
+          <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs sm:text-sm text-neutral-tertiary-text">
             <span className="flex items-center gap-1">
-              <Eye className="w-4 h-4" />
+              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               {views}
             </span>
-            <span className="flex items-center gap-1 text-semantic-error-primary">
-              <Heart className="w-4 h-4 fill-current" />
+            <span className={cn("flex items-center gap-1", isLiked && "text-semantic-error-primary")}>
+              <Heart className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", isLiked && "fill-current")} />
               {likes}
             </span>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <button className="p-1.5 rounded-lg hover:bg-neutral-secondary transition-colors">
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <button
+            className="hidden sm:block p-1.5 rounded-lg hover:bg-neutral-secondary transition-colors"
+            aria-label="More options"
+          >
             <MoreVertical className="w-4 h-4 text-neutral-tertiary-text" />
           </button>
 
           <Button
             size="sm"
-            className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover rounded-full text-white text-xs px-8"
+            className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover rounded-full text-white text-xs px-6 md:px-8 h-8"
           >
             Watch
           </Button>

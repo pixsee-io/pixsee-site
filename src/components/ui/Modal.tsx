@@ -20,14 +20,15 @@ const Modal = ({ isOpen, onClose, children, className }: ModalProps) => {
 
       <div
         className={cn(
-          "relative bg-white rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto w-full max-w-xl mx-4",
+          "relative bg-neutral-primary text-neutral-primary-text rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto w-full max-w-xl mx-4",
           className
         )}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-lg hover:bg-neutral-secondary transition-colors z-10"
+          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-neutral-secondary transition-colors z-10"
+          aria-label="Close"
         >
           <X className="w-5 h-5 text-neutral-tertiary-text" />
         </button>

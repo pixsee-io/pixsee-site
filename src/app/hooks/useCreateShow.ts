@@ -40,6 +40,7 @@ export type ShowMeta = {
   thumbnailFile: File | null;
   showType: ShowType;
   episodesMeta?: EpisodeMeta[];
+  tickSymbol?: string;
 };
 
 export type OnChainShowInfo = {
@@ -92,6 +93,8 @@ type UseCreateShowReturn = {
   ) => void;
   addUploadSlot: (localId: string, title: string) => void;
   uploadAll: (meta: ShowMeta) => Promise<boolean>;
+  uploadSingle: (localId: string, file: File, epMeta: { title: string; description: string }) => Promise<void>;
+  syncEpisodesMeta: (episodesMeta: EpisodeMeta[]) => Promise<void>;
   pollUntilReady: (localId: string, knownVideoId?: number) => Promise<boolean>;
   publishAll: (meta: ShowMeta) => Promise<boolean>;
 };
@@ -152,6 +155,7 @@ export function useCreateShow({
   const pollTimers = useRef<Record<string, ReturnType<typeof setInterval>>>({});
   const getTokenRef = useRef(getAccessToken);
   getTokenRef.current = getAccessToken;
+  const showIdRef = useRef<number | null>(null);
 
   const updateEpisode = useCallback(
     (localId: string, patch: Partial<EpisodeUploadState>) =>
@@ -247,6 +251,7 @@ export function useCreateShow({
           description: meta.description,
           type: meta.showType,
           ...(meta.tags.length > 0 ? { tags: meta.tags } : {}),
+          ...(meta.tickSymbol?.trim() ? { tick_symbol: meta.tickSymbol.trim() } : {}),
           episodes: buildEpisodesPayload(firstBatch),
         }),
       });
@@ -265,6 +270,7 @@ export function useCreateShow({
       const createdShowId: number =
         showJson?.show?.id ?? showJson?.data?.id ?? showJson?.id;
       setShowId(createdShowId);
+      showIdRef.current = createdShowId;
 
       const firstCreated: { video: { id: number }; upload_url: string }[] =
         showJson?.episodes ??
@@ -464,6 +470,114 @@ export function useCreateShow({
     [updateEpisode]
   );
 
+  // Upload a single episode file immediately to an already-created show.
+  // Called when the user adds a 2nd, 3rd… file after the first uploadAll() ran.
+  const uploadSingle = useCallback(
+    async (
+      localId: string,
+      file: File,
+      epMeta: { title: string; description: string }
+    ): Promise<void> => {
+      const currentShowId = showIdRef.current;
+      if (!currentShowId) return; // show not created yet — uploadAll handles first file
+
+      const token = await getTokenRef.current();
+      const authHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      // Try flat single-episode format first; the batch endpoint uses { episodes: [...] }
+      // but the single-episode endpoint may expect { title, description, is_free }
+      const epRes = await fetch(
+        `${BASE_URL}/api/v1/my-shows/${currentShowId}/episodes`,
+        {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({
+            title: epMeta.title,
+            description: epMeta.description || "",
+            is_free: true, // overridden in publishAll
+          }),
+        }
+      );
+
+      if (!epRes.ok) {
+        updateEpisode(localId, { error: `Episode create failed (${epRes.status})` });
+        return;
+      }
+
+      const epJson = await epRes.json();
+
+      // Handle both single-object and array response shapes
+      const singleEp: { video?: { id: number }; upload_url?: string; id?: number } | null =
+        epJson?.data ?? epJson?.episode ?? epJson ?? null;
+      const created: { video: { id: number }; upload_url: string }[] =
+        epJson?.episodes ?? epJson?.videos ?? (singleEp && singleEp.upload_url ? [singleEp as any] : []);
+
+      if (!created[0]) {
+        updateEpisode(localId, { error: "No upload URL returned" });
+        return;
+      }
+
+      const { video, upload_url } = created[0];
+      updateEpisode(localId, {
+        apiVideoId: video.id,
+        uploadUrl: upload_url,
+        muxStatus: "waiting",
+        uploadProgress: 0,
+      });
+
+      try {
+        await uploadToMux(upload_url, file, (pct) =>
+          updateEpisode(localId, { uploadProgress: pct })
+        );
+        updateEpisode(localId, { uploadProgress: 100, muxStatus: "preparing" });
+        pollUntilReady(localId, video.id);
+      } catch (err: any) {
+        updateEpisode(localId, { error: err?.message ?? "Upload failed" });
+      }
+    },
+    [updateEpisode, pollUntilReady]
+  );
+
+  // Push episode titles + descriptions to the backend after the user has typed them.
+  // Called from handleUploadNext (when clicking Continue on the upload step).
+  const syncEpisodesMeta = useCallback(
+    async (episodesMeta: EpisodeMeta[]): Promise<void> => {
+      const currentShowId = showIdRef.current;
+      if (!currentShowId) return;
+      const token = await getTokenRef.current();
+      const authHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+      let currentEps: EpisodeUploadState[] = [];
+      setEpisodes((prev) => { currentEps = prev; return prev; });
+      await new Promise((r) => setTimeout(r, 0));
+      await Promise.all(
+        currentEps
+          .filter((ep) => ep.apiVideoId !== null)
+          .map((ep) => {
+            const meta = episodesMeta.find((m) => m.localId === ep.localId);
+            if (!meta) return Promise.resolve();
+            return fetch(
+              `${BASE_URL}/api/v1/my-shows/${currentShowId}/episodes/${ep.apiVideoId}`,
+              {
+                method: "PUT",
+                headers: authHeaders,
+                body: JSON.stringify({
+                  title: meta.title,
+                  description: meta.description || "",
+                }),
+              }
+            ).catch(() => {});
+          })
+      );
+    },
+    []
+  );
+
   const publishAll = useCallback(
     async (meta: ShowMeta): Promise<boolean> => {
       setIsPublishing(true);
@@ -562,7 +676,7 @@ export function useCreateShow({
         const chainResult = await createOnChainShow({
           title: meta.title,
           tickName: deriveTickName(meta.title),
-          tickSymbol: deriveTickSymbol(meta.title),
+          tickSymbol: meta.tickSymbol?.trim() || deriveTickSymbol(meta.title),
           creatorAddress: walletAddress,
           curveTier: 1,
         });
@@ -681,6 +795,8 @@ export function useCreateShow({
     addUploadSlot,
     initEpisodes,
     uploadAll,
+    uploadSingle,
+    syncEpisodesMeta,
     pollUntilReady,
     publishAll,
   };

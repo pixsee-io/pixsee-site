@@ -32,7 +32,23 @@ export function useAuth(): AuthState {
     login: async () => {
       login();
     },
-    logout,
+    // Privy's /v1/sessions/logout can return 400 when the session was already
+    // partially invalidated (e.g. user disconnected their wallet externally).
+    // In that case the promise rejects and client state can end up stuck —
+    // the dropdown still shows "User" and there's no way back in. To stay
+    // robust we always force a full navigation to /landing (now) after attempting
+    // logout, which unmounts every React/Privy client instance.
+    logout: async () => {
+      try {
+        await logout();
+      } catch (error) {
+        console.warn("Privy logout failed; forcing client cleanup", error);
+      } finally {
+        if (typeof window !== "undefined") {
+          window.location.href = "/landing";
+        }
+      }
+    },
     getAccessToken,
   };
 }

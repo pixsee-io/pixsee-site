@@ -62,8 +62,8 @@ const WatchPage = () => {
 
   return (
     <div className="min-h-screen bg-foundation-alternate">
-      <div className="max-w-400 mx-auto px-4 md:px-6 lg:px-8 py-6">
-        <div className="mb-6">
+      <div className="max-w-400 mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-6">
           <h1 className="text-xl md:text-3xl font-paytone text-neutral-primary-text">
             Hey {getUserFirstName()} 👋
           </h1>
@@ -76,7 +76,7 @@ const WatchPage = () => {
           tabs={filterTabs}
           activeTab={activeFilter}
           onTabChange={handleFilterChange}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         />
 
         {/* Error state */}
@@ -87,11 +87,11 @@ const WatchPage = () => {
         )}
 
         {/* Main grid */}
-        <section className="mb-12">
+        <section className="mb-8 sm:mb-12">
           {isLoading ? (
             <ShowCardSkeleton count={8} />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {shows.map((show) => (
                 <ShowCard key={show.id} {...show} />
               ))}
@@ -123,11 +123,11 @@ const WatchPage = () => {
 
         {/* For you — second slice */}
         {shows.length > 4 && (
-          <section className="mb-12">
-            <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-6">
+          <section className="mb-8 sm:mb-12">
+            <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
               For you
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {shows.slice(0, 4).map((show) => (
                 <ShowCard key={`for-you-${show.id}`} {...show} />
               ))}
@@ -137,11 +137,11 @@ const WatchPage = () => {
 
         {/* Trending — third slice */}
         {shows.length > 8 && (
-          <section className="mb-12">
-            <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-6">
+          <section className="mb-8 sm:mb-12">
+            <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
               Trending
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {shows.slice(4, 8).map((show) => (
                 <ShowCard key={`trending-${show.id}`} {...show} />
               ))}
@@ -159,14 +159,17 @@ const WatchPage = () => {
 
 function ShowCardSkeleton({ count }: { count: number }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl shadow-md animate-pulse">
-          <div className="aspect-3/4 rounded-t-2xl bg-neutral-200" />
-          <div className="p-5 space-y-3">
-            <div className="h-4 bg-neutral-200 rounded w-3/4" />
-            <div className="h-3 bg-neutral-200 rounded w-1/2" />
-            <div className="h-3 bg-neutral-200 rounded w-1/3" />
+        <div
+          key={i}
+          className="bg-neutral-primary border border-neutral-tertiary-border rounded-2xl shadow-md animate-pulse"
+        >
+          <div className="aspect-3/4 rounded-t-2xl bg-neutral-tertiary" />
+          <div className="p-3 sm:p-5 space-y-2 sm:space-y-3">
+            <div className="h-4 bg-neutral-tertiary rounded w-3/4" />
+            <div className="h-3 bg-neutral-tertiary rounded w-1/2" />
+            <div className="h-3 bg-neutral-tertiary rounded w-1/3" />
           </div>
         </div>
       ))}

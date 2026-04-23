@@ -22,7 +22,9 @@ const WithdrawModal = ({
   currentBalance,
 }: WithdrawModalProps) => {
   const [amount, setAmount] = useState("");
-  const [selectedQuickAmount, setSelectedQuickAmount] = useState<number | null>(null);
+  const [selectedQuickAmount, setSelectedQuickAmount] = useState<number | null>(
+    null
+  );
 
   const numericAmount = selectedQuickAmount || parseFloat(amount) || 0;
   const tixAmount = numericAmount * 350; // Example conversion rate
@@ -69,12 +71,6 @@ const WithdrawModal = ({
           </div>
         </div>
 
-        {/* Exchange Rate */}
-        <div className="flex items-center justify-center gap-2 text-sm text-neutral-secondary-text mb-6">
-          <span className="text-yellow-500">⚡</span>
-          <span>Exchange Rate: $1 USD = $1 USDC</span>
-        </div>
-
         {/* Quick Add */}
         <div className="mb-4">
           <p className="text-sm font-semibold text-neutral-primary-text mb-3">
@@ -115,7 +111,9 @@ const WithdrawModal = ({
         {/* You Pay / You Receive Display */}
         <div className="bg-brand-pixsee-tertiary border-2 border-brand-pixsee-secondary/30 rounded-xl p-4 mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-neutral-primary-text font-medium">You pay</span>
+            <span className="text-neutral-primary-text font-medium">
+              You pay
+            </span>
             <span className="text-xl font-bold text-neutral-primary-text">
               ${numericAmount.toFixed(2)}
             </span>
@@ -124,7 +122,9 @@ const WithdrawModal = ({
             <ArrowRightLeft className="w-5 h-5 text-neutral-tertiary-text" />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-neutral-primary-text font-medium">You receive</span>
+            <span className="text-neutral-primary-text font-medium">
+              You receive
+            </span>
             <div className="flex items-center gap-2">
               <Coins className="w-5 h-5 text-brand-pixsee-secondary" />
               <span className="text-xl font-bold text-brand-pixsee-secondary">
@@ -163,9 +163,8 @@ const WithdrawModal = ({
               </p>
               <ul className="text-sm text-neutral-secondary-text space-y-1">
                 <li>• Minimum deposit: $5.00</li>
-                <li>• Instant conversion to $PIX</li>
                 <li>• No transaction fees</li>
-                <li>• Use PIX to unlock premium content</li>
+                <li>• Use to unlock premium content</li>
               </ul>
             </div>
           </div>

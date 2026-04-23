@@ -73,7 +73,7 @@ export default function PWAInstallButton() {
   if (!showInstallPrompt && !showIosPrompt) return null;
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 rounded-xl border border-neutral-tertiary-border bg-white p-4 shadow-xl">
+    <div className="fixed bottom-4 left-1/2 z-[70] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 rounded-xl border border-neutral-tertiary-border bg-neutral-primary p-4 shadow-xl">
       <p className="text-sm font-semibold text-neutral-primary-text">
         Install Pixsee
       </p>

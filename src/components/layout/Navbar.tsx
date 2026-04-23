@@ -6,8 +6,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { ModeToggle } from "../ui/ModeToggle";
-import { ArrowRightCircle, Menu, X, LogOut, Wallet, User } from "lucide-react";
+import { ArrowRightCircle, Menu, X, LogOut, Wallet, User, Copy, Check } from "lucide-react";
 import { useAuth } from "@/app/hooks/useAuth";
+import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +23,9 @@ type Props = {};
 
 const Navbar = (props: Props) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { ready, authenticated, user, login, logout } = useAuth();
+  const { walletAddress } = usePixseeContract();
 
   const pathname = usePathname();
   const hideModeToggle = pathname === "/landing";
@@ -35,6 +38,14 @@ const Navbar = (props: Props) => {
   ];
 
   const isLoading = !ready;
+
+  const copyWalletAddress = () => {
+    if (!walletAddress) return;
+    navigator.clipboard.writeText(walletAddress).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   // Get user's display name or wallet address
   const getUserDisplay = () => {
@@ -55,7 +66,7 @@ const Navbar = (props: Props) => {
   };
 
   return (
-    <nav className="w-full py-4 bg-white sticky top-0 z-50 backdrop-blur-sm transition-all duration-300 starry-bg border-b border-neutral-tertiary-border/50">
+    <nav className="w-full py-4 bg-neutral-primary text-neutral-primary-text sticky top-0 z-50 backdrop-blur-sm transition-all duration-300 starry-bg border-b border-neutral-tertiary-border/50">
       <Container className="flex items-center justify-between">
         <Link href="/" className="flex items-center shrink-0">
           <Image
@@ -94,9 +105,33 @@ const Navbar = (props: Props) => {
                   {getUserDisplay()}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="truncate">{getUserDisplay()}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+
+                {walletAddress && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={copyWalletAddress}
+                      onSelect={(e) => e.preventDefault()}
+                      className="cursor-pointer"
+                    >
+                      {copied ? (
+                        <Check className="mr-2 h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="mr-2 h-4 w-4" />
+                      )}
+                      <span className="flex-1 font-mono text-xs text-neutral-tertiary-text truncate">
+                        {walletAddress.slice(0, 8)}…{walletAddress.slice(-6)}
+                      </span>
+                      <span className="ml-2 text-xs text-neutral-tertiary-text shrink-0">
+                        {copied ? "Copied!" : "Copy"}
+                      </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard" className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
@@ -177,6 +212,22 @@ const Navbar = (props: Props) => {
                   <div className="text-sm text-neutral-secondary-text py-2">
                     {getUserDisplay()}
                   </div>
+                  {walletAddress && (
+                    <button
+                      onClick={copyWalletAddress}
+                      className="flex items-center gap-2 text-sm text-neutral-tertiary-text py-2 w-full text-left"
+                    >
+                      {copied ? (
+                        <Check size={14} className="text-green-500 shrink-0" />
+                      ) : (
+                        <Copy size={14} className="shrink-0" />
+                      )}
+                      <span className="font-mono truncate">
+                        {walletAddress.slice(0, 8)}…{walletAddress.slice(-6)}
+                      </span>
+                      <span className="text-xs shrink-0">{copied ? "Copied!" : "Copy"}</span>
+                    </button>
+                  )}
                   <Link
                     href="/dashboard"
                     onClick={() => setIsOpen(false)}

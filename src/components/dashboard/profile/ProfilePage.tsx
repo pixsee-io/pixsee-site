@@ -15,11 +15,15 @@ import {
   EyeOff,
   Verified,
   Edit,
+  Loader2,
 } from "lucide-react";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
 import EditProfileModal from "./modals/EditProfileModal";
 import { publishedShows } from "@/app/utils";
 import Image from "next/image";
+import Link from "next/link";
+import { usePrivy } from "@privy-io/react-auth";
+import { useMe, useWatchHistory } from "@/app/hooks/useSocial";
 
 // Types
 type ProfileTabId = "overview" | "published" | "history" | "saved" | "earnings";
@@ -52,17 +56,6 @@ type RewardSource = {
   color: string;
 };
 
-// Mock Data
-const userProfile = {
-  name: "John Doe",
-  username: "@john_doe",
-  avatarUrl: "/images/avatars/john-doe.jpg",
-  isVerified: true,
-  isCreator: true,
-  followers: "12,450",
-  following: "12,450",
-  joinedDate: "November, 2025",
-};
 
 const analyticsStats: AnalyticsStat[] = [
   {
@@ -127,47 +120,6 @@ const analyticsStats: AnalyticsStat[] = [
   },
 ];
 
-const watchHistory: WatchHistoryItem[] = [
-  {
-    id: "1",
-    episodeNumber: 1,
-    title: "First Contact",
-    description:
-      "Dr. Maya Foster receives an encrypted transmission that changes everything she thought she knew about our place in the universe.",
-    thumbnailUrl: "/images/shows/episode-1.jpg",
-    duration: "15m",
-    views: "1.2k Views",
-    uploadedAt: "1 week ago",
-    earnAmount: "20 $PIX",
-    progress: 80,
-  },
-  {
-    id: "2",
-    episodeNumber: 1,
-    title: "First Contact",
-    description:
-      "Dr. Maya Foster receives an encrypted transmission that changes everything she thought she knew about our place in the universe.",
-    thumbnailUrl: "/images/shows/episode-2.jpg",
-    duration: "15m",
-    views: "1.2k Views",
-    uploadedAt: "1 week ago",
-    earnAmount: "20 $PIX",
-    progress: 50,
-  },
-  {
-    id: "3",
-    episodeNumber: 1,
-    title: "First Contact",
-    description:
-      "Dr. Maya Foster receives an encrypted transmission that changes everything she thought she knew about our place in the universe.",
-    thumbnailUrl: "/images/shows/episode-3.jpg",
-    duration: "15m",
-    views: "1.2k Views",
-    uploadedAt: "1 week ago",
-    earnAmount: "20 $PIX",
-    progress: 30,
-  },
-];
 
 const savedShows = [
   {
@@ -204,7 +156,7 @@ const rewardSources: RewardSource[] = [
 
 // Sub-components
 const AnalyticsCard = ({ stat }: { stat: AnalyticsStat }) => (
-  <div className="bg-white rounded-xl px-4 py-6 border border-neutral-tertiary-border">
+  <div className="bg-neutral-primary rounded-xl px-4 py-6 border border-neutral-tertiary-border">
     <div
       className={cn(
         "w-10 h-10 rounded-full flex items-center justify-center mb-3",
@@ -229,11 +181,19 @@ const AnalyticsCard = ({ stat }: { stat: AnalyticsStat }) => (
 );
 
 const WatchHistoryCard = ({ item }: { item: WatchHistoryItem }) => (
-  <div className="bg-white rounded-xl p-4 border border-neutral-tertiary-border">
+  <div className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border">
     {/* Mobile: stacked layout. sm+: side-by-side */}
     <div className="flex flex-col sm:flex-row gap-4">
       {/* Thumbnail — full width on mobile, fixed width on sm+ */}
       <div className="relative w-full sm:w-40 h-44 sm:h-24 rounded-lg overflow-hidden shrink-0 bg-neutral-tertiary">
+        {item.thumbnailUrl && (
+          <Image
+            src={item.thumbnailUrl}
+            alt={item.title}
+            fill
+            className="object-cover"
+          />
+        )}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
             <Play className="w-5 h-5 text-brand-pixsee-secondary fill-brand-pixsee-secondary" />
@@ -289,6 +249,20 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("overview");
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
+  const { getAccessToken } = usePrivy();
+  const { profile, updateProfile } = useMe(getAccessToken);
+  const { history: watchHistoryData, isLoading: historyLoading } = useWatchHistory(getAccessToken);
+
+  const displayName = profile?.name ?? profile?.username ?? "User";
+  const displayUsername = profile?.username ? `@${profile.username}` : profile?.email ?? "";
+  const joinedDate = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "—";
+  const followersCount = profile?.followers_count?.toLocaleString() ?? "0";
+  const followingCount = profile?.following_count?.toLocaleString() ?? "0";
+  const tokenBalance = profile?.token_balance
+    ? parseFloat(profile.token_balance).toLocaleString("en-US", { maximumFractionDigits: 2 })
+    : null;
 
   const tabs: { id: ProfileTabId; label: string }[] = [
     { id: "overview", label: "Overview" },
@@ -326,11 +300,42 @@ const ProfilePage = () => {
             <h2 className="text-xl font-paytone text-neutral-primary-text mb-6">
               Watch History
             </h2>
-            <div className="space-y-4">
-              {watchHistory.map((item) => (
-                <WatchHistoryCard key={item.id} item={item} />
-              ))}
-            </div>
+            {historyLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-neutral-tertiary-text" />
+              </div>
+            ) : watchHistoryData.length > 0 ? (
+              <div className="space-y-4">
+                {watchHistoryData.map((item: any) => {
+                  const video = item.video ?? item;
+                  return (
+                  <Link key={video.id} href={`/dashboard/watch/${video.show_id ?? video.id}`} className="block hover:opacity-90 transition-opacity">
+                  <WatchHistoryCard
+                    item={{
+                      id: String(video.id),
+                      episodeNumber: video.episode_number ?? 1,
+                      title: video.title ?? "Untitled",
+                      description: video.description ?? "",
+                      thumbnailUrl: video.thumbnail_url ?? video.cover_image_url ?? "/images/movie1.png",
+                      duration: video.duration ? `${Math.floor(video.duration / 60)}m` : "—",
+                      views: video.view_count ? `${video.view_count} Views` : "0 Views",
+                      uploadedAt: item.last_viewed_at
+                        ? new Date(item.last_viewed_at).toLocaleDateString()
+                        : video.created_at
+                        ? new Date(video.created_at).toLocaleDateString()
+                        : "",
+                      earnAmount: "—",
+                      progress: item.progress_percentage ?? 0,
+                    }}
+                  />
+                  </Link>
+                )})}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-tertiary-text text-center py-12 italic">
+                No watch history yet.
+              </p>
+            )}
           </div>
         );
 
@@ -385,7 +390,7 @@ const ProfilePage = () => {
               </div>
 
               {/* Reward Sources */}
-              <div className="bg-white rounded-2xl p-6 border border-neutral-tertiary-border">
+              <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
                 <p className="text-lg font-paytone text-neutral-primary-text mb-4">
                   Reward sources
                 </p>
@@ -435,7 +440,7 @@ const ProfilePage = () => {
     <div className="min-h-screen bg-foundation-alternate pb-12">
       <div className="max-w-350 mx-auto px-4 md:px-6 lg:px-8 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-paytone text-neutral-primary-text">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-paytone text-neutral-primary-text">
             My profile
           </h1>
           <p className="text-neutral-secondary-text mt-1">
@@ -444,77 +449,69 @@ const ProfilePage = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-2xl p-4 sm:p-6 mb-6 border border-neutral-tertiary-border">
+        <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 mb-6 border border-neutral-tertiary-border">
           <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex flex-col items-center md:flex-row md:items-center gap-4 w-full md:w-auto">
               <div className="relative shrink-0">
-                <div className="rounded-full bg-neutral-tertiary overflow-hidden">
-                  <Image
-                    src={"/images/guillermo.png"}
-                    alt="user"
-                    width={80}
-                    height={80}
-                  />
+                <div className="w-20 h-20 rounded-full bg-neutral-tertiary overflow-hidden flex items-center justify-center">
+                  {profile?.avatar_url ? (
+                    <Image src={profile.avatar_url} alt={displayName} width={80} height={80} className="object-cover" />
+                  ) : (
+                    <span className="text-3xl font-bold text-neutral-secondary-text">
+                      {displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
                 </div>
-                {userProfile.isCreator && (
-                  <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-[#ECE5FF] text-black text-xs px-3 py-1 rounded-full whitespace-nowrap">
-                    Creator
-                  </span>
-                )}
               </div>
 
               {/* Name + stats */}
-              <div className="mt-6 md:mt-0 text-center md:text-left">
+              <div className="mt-2 md:mt-0 text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start gap-2">
                   <p className="text-xl font-semibold text-neutral-primary-text">
-                    {userProfile.name}
+                    {displayName}
                   </p>
-                  {userProfile.isVerified && (
-                    <Verified className="w-5 h-5 text-brand-primary shrink-0" />
-                  )}
                 </div>
-                <p className="text-sm text-neutral-tertiary-text">
-                  {userProfile.username}
-                </p>
+                {displayUsername && (
+                  <p className="text-sm text-neutral-tertiary-text">{displayUsername}</p>
+                )}
                 <div className="flex items-center justify-center md:justify-start gap-4 mt-2">
                   <div className="flex flex-col items-center md:items-start gap-1">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4 text-neutral-tertiary-text" />
-                      <span className="text-sm text-neutral-tertiary-text">
-                        Followers
-                      </span>
+                      <span className="text-sm text-neutral-tertiary-text">Followers</span>
                     </div>
-                    <span className="text-sm font-semibold text-neutral-primary-text">
-                      {userProfile.followers}
-                    </span>
+                    <span className="text-sm font-semibold text-neutral-primary-text">{followersCount}</span>
                   </div>
 
-                  <div className="h-8 w-0.5 bg-gray-400" />
+                  <div className="h-8 w-0.5 bg-neutral-tertiary" />
 
                   <div className="flex flex-col items-center md:items-start gap-1">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4 text-neutral-tertiary-text" />
-                      <span className="text-sm text-neutral-tertiary-text">
-                        Following
-                      </span>
+                      <span className="text-sm text-neutral-tertiary-text">Following</span>
                     </div>
-                    <span className="text-sm font-semibold text-neutral-primary-text">
-                      {userProfile.following}
-                    </span>
+                    <span className="text-sm font-semibold text-neutral-primary-text">{followingCount}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right: joined date + edit button */}
+            {/* Right: joined date + token balance + edit button */}
             <div className="flex flex-col items-center gap-3 w-full md:w-auto">
               <p className="text-sm text-neutral-tertiary-text">
-                Joined {userProfile.joinedDate}
+                Joined {joinedDate}
               </p>
+              {tokenBalance !== null && (
+                <div className="flex items-center gap-1.5 px-4 py-2 bg-brand-pixsee-tertiary rounded-full">
+                  <span className="text-sm font-semibold text-brand-pixsee-secondary">
+                    {tokenBalance} $PIX
+                  </span>
+                </div>
+              )}
               <Button
                 variant="outline"
                 onClick={() => setShowEditProfile(true)}
-                className="border border-black/50 rounded-full gap-2 w-full sm:w-auto md:min-w-40"
+                className="border border-neutral-tertiary-border rounded-full gap-2 w-full sm:w-auto md:min-w-40"
               >
                 Edit Profile
                 <Edit className="w-4 h-4" />
@@ -547,6 +544,8 @@ const ProfilePage = () => {
       <EditProfileModal
         isOpen={showEditProfile}
         onClose={() => setShowEditProfile(false)}
+        profile={profile}
+        updateProfile={updateProfile}
       />
     </div>
   );

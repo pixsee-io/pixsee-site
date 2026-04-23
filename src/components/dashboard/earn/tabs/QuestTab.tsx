@@ -121,7 +121,7 @@ const QuestTab = () => {
         {overviewStats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl px-4 py-5 sm:py-6 border border-neutral-tertiary-border"
+            className="bg-neutral-primary rounded-xl px-4 py-5 sm:py-6 border border-neutral-tertiary-border"
           >
             <p className="text-sm text-neutral-tertiary-text mb-1">
               {stat.label}
@@ -150,7 +150,7 @@ const QuestTab = () => {
           {activeQuests.map((quest) => (
             <div
               key={quest.id}
-              className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-tertiary-border"
+              className="bg-neutral-primary rounded-xl p-4 sm:p-5 border border-neutral-tertiary-border"
             >
               {/* Top row: icon+info on left, button on right (stacks on mobile) */}
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
@@ -234,7 +234,7 @@ const QuestTab = () => {
           {completedQuests.map((quest) => (
             <div
               key={quest.id}
-              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border"
+              className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border"
             >
               {/* Stack on mobile, row on sm+ */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -280,7 +280,7 @@ const QuestTab = () => {
           {upcomingQuests.map((quest) => (
             <div
               key={quest.id}
-              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border"
+              className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border"
             >
               {/* Stack on mobile, row on sm+ */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

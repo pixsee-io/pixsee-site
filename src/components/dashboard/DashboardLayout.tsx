@@ -45,25 +45,29 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="relative">
-          <div className="w-full absolute top-4 px-3 flex items-center justify-between">
-            <Link href="/" className=" xl:hidden items-center gap-2">
+        <div className="relative h-full">
+          <div className="w-full absolute top-4 px-3 flex items-center justify-between z-10">
+            <Link
+              href="/"
+              className="items-center gap-2 inline-flex"
+              onClick={handleMobileNavClick}
+            >
               <Image
                 src="/images/pixseee.svg"
                 alt="Pixsee"
                 width={100}
                 height={32}
-                className="transition-all duration-300 object-contain"
+                className="object-contain"
               />
             </Link>
 
-            {/* <button
+            <button
               onClick={() => setIsMobileSidebarOpen(false)}
-              className="rounded-lg bg-neutral-secondary hover:bg-neutral-tertiary transition-colors z-10"
+              className="p-2 rounded-lg bg-neutral-secondary hover:bg-neutral-tertiary text-neutral-primary-text transition-colors"
               aria-label="Close sidebar"
             >
               <X className="w-5 h-5" />
-            </button> */}
+            </button>
           </div>
 
           <Sidebar onNavClick={handleMobileNavClick} />

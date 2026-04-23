@@ -139,7 +139,7 @@ type LeaderboardTabProps = {
 const LeaderboardTab = ({ onUserClick }: LeaderboardTabProps) => {
   return (
     <div className="space-y-8">
-      <div className="bg-white rounded-xl p-4 border border-neutral-tertiary-border text-center">
+      <div className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border text-center">
         <p className="text-sm sm:text-base text-neutral-secondary-text">
           You Are on NO{" "}
           <span className="font-bold text-neutral-primary-text">
@@ -209,7 +209,7 @@ const LeaderboardTab = ({ onUserClick }: LeaderboardTabProps) => {
         <h2 className="text-xl font-paytone text-neutral-primary-text mb-4">
           Full Ranking
         </h2>
-        <div className="bg-white rounded-xl border border-neutral-tertiary-border overflow-hidden">
+        <div className="bg-neutral-primary rounded-xl border border-neutral-tertiary-border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-120">
               <thead>

@@ -8,7 +8,7 @@ const protectedRoutes = ["/dashboard"];
 const authRoutes = ["/landing"];
 
 // Public routes that don't require any auth check
-const publicRoutes = ["/", "/about", "/privacy-policy", "/terms"];
+const publicRoutes = ["/", "/landing", "/privacy-policy", "/terms"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

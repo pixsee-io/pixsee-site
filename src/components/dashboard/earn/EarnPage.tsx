@@ -133,7 +133,7 @@ const earningStreams: EarningStream[] = [
   {
     id: "watch",
     icon: <Play className="w-5 h-5 text-brand-pixsee-secondary" />,
-    iconBg: "bg-white",
+    iconBg: "bg-neutral-primary",
     title: "Watch & Engage",
     subtitle: "Earn while you watch",
     stats: [
@@ -149,7 +149,7 @@ const earningStreams: EarningStream[] = [
   {
     id: "voting",
     icon: <ThumbsUpIcon className="w-5 h-5 text-[#FF3795]" />,
-    iconBg: "bg-white",
+    iconBg: "bg-neutral-primary",
     title: "Voting",
     subtitle: "Vote on shows you believe in",
     stats: [
@@ -167,7 +167,7 @@ const earningStreams: EarningStream[] = [
     icon: (
       <Users className="w-5 h-5 text-semantic-success-primary fill-semantic-success-primary" />
     ),
-    iconBg: "bg-white",
+    iconBg: "bg-neutral-primary",
     title: "Referrals",
     subtitle: "Invite friends and earn together",
     stats: [
@@ -183,7 +183,7 @@ const earningStreams: EarningStream[] = [
   {
     id: "quests",
     icon: <CircleQuestionMark className="w-5 h-5 text-brand-primary" />,
-    iconBg: "bg-white",
+    iconBg: "bg-neutral-primary",
     title: "Quests",
     subtitle: "Complete challenges for rewards",
     stats: [
@@ -238,7 +238,7 @@ const recentEarnings: RecentEarning[] = [
 
 // Sub-components
 const OverviewCard = ({ stat }: { stat: OverviewStat }) => (
-  <div className="bg-white rounded-xl px-3 py-4 sm:px-4 sm:py-6 border border-neutral-tertiary-border">
+  <div className="bg-neutral-primary rounded-xl px-3 py-4 sm:px-4 sm:py-6 border border-neutral-tertiary-border">
     <p className="text-xs sm:text-sm text-neutral-tertiary-text mb-1 leading-tight">
       {stat.label}
     </p>
@@ -255,7 +255,7 @@ const RewardProgressCard = ({
   reward: RewardCard;
   onClaim: (reward: RewardCard) => void;
 }) => (
-  <div className="bg-white rounded-xl px-4 py-6 border border-neutral-tertiary-border">
+  <div className="bg-neutral-primary rounded-xl px-4 py-6 border border-neutral-tertiary-border">
     <div
       className={cn(
         "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
@@ -368,9 +368,9 @@ const EarningStreamCard = ({
 );
 
 const RecentEarningRow = ({ earning }: { earning: RecentEarning }) => (
-  <div className="flex items-center justify-between gap-3 p-3 py-5 sm:p-4 bg-white rounded-xl border border-neutral-tertiary-border">
+  <div className="flex items-center justify-between gap-3 p-3 py-5 sm:p-4 bg-neutral-primary rounded-xl border border-neutral-tertiary-border">
     <div className="flex items-center gap-3 min-w-0">
-      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-pink-50 flex items-center justify-center shrink-0">
+      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-semantic-error-primary/10 flex items-center justify-center shrink-0">
         <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF3795]" />
       </div>
       <div className="min-w-0">
@@ -592,7 +592,7 @@ const EarnPage = () => {
               </Button>
             </div>
 
-            <p className="text-white/60 text-sm">$1 USD = 10 $PIX</p>
+            {/* <p className="text-white/60 text-sm">$1 USD = 10 $PIX</p> */}
           </div>
         </div>
 
@@ -607,7 +607,7 @@ const EarnPage = () => {
                   "px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 border",
                   activeTab === tab.id
                     ? "bg-brand-primary text-white border-brand-primary"
-                    : "bg-white text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
+                    : "bg-neutral-primary text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
                 )}
               >
                 {tab.icon}

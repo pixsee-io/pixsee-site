@@ -14,6 +14,7 @@ import {
   User,
   ChevronsLeft,
   Clapperboard,
+  Users,
 } from "lucide-react";
 
 type NavItem = {
@@ -23,6 +24,11 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  {
+    label: "About Us",
+    href: "/about",
+    icon: <Users className="w-5 h-5" />,
+  },
   {
     label: "Create",
     href: "/dashboard/create",
@@ -39,15 +45,15 @@ const navItems: NavItem[] = [
     icon: <Coins className="w-5 h-5" />,
   },
   {
-    label: "Studio",
+    label: "My Studio",
     href: "/dashboard/studio",
     icon: <Clapperboard />,
   },
-  // {
-  //   label: "Trade",
-  //   href: "/dashboard/trade",
-  //   icon: <TrendingUp className="w-5 h-5" />,
-  // },
+  {
+    label: "Trade",
+    href: "/dashboard/trade",
+    icon: <TrendingUp className="w-5 h-5" />,
+  },
   {
     label: "My Profile",
     href: "/dashboard/profile",
@@ -75,7 +81,7 @@ const Sidebar = ({
   return (
     <aside
       className={cn(
-        "h-screen bg-white border-r border-neutral-tertiary-border flex flex-col px-3 py-4  transition-all duration-300",
+        "h-screen bg-neutral-primary text-neutral-primary-text border-r border-neutral-tertiary-border flex flex-col px-3 py-4 transition-all duration-300",
         isCollapsed ? "w-20" : "w-64",
         className
       )}
@@ -146,7 +152,7 @@ const Sidebar = ({
       </nav>
 
       {/* Balance Card */}
-      {!isCollapsed && (
+      {/* {!isCollapsed && (
         <div className="p-4">
           <div className="bg-brand-tertiary rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -171,10 +177,10 @@ const Sidebar = ({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Collapsed Balance Indicator */}
-      {isCollapsed && (
+      {/* {isCollapsed && (
         <div className="p-3">
           <div
             className="bg-brand-tertiary rounded-xl p-2 flex items-center justify-center"
@@ -183,7 +189,7 @@ const Sidebar = ({
             <Wallet className="w-5 h-5 text-brand-pixsee-secondary" />
           </div>
         </div>
-      )}
+      )} */}
     </aside>
   );
 };

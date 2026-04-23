@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { SocialStateProvider } from "@/app/context/SocialStateContext";
 
 const PrivyProviderWrapper = dynamic(
   () => import("@/app/providers/PrivyProviderWrapper"),
@@ -12,5 +13,9 @@ export default function ClientProviders({
 }: {
   children: React.ReactNode;
 }) {
-  return <PrivyProviderWrapper>{children}</PrivyProviderWrapper>;
+  return (
+    <SocialStateProvider>
+      <PrivyProviderWrapper>{children}</PrivyProviderWrapper>
+    </SocialStateProvider>
+  );
 }
