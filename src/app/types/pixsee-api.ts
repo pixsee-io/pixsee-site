@@ -16,6 +16,8 @@ export type ApiEpisode = {
   token_price?: string;
   requires_payment?: boolean;
   view_count?: number;
+  like_count?: number;
+  is_liked?: boolean;
   unique_viewers?: number;
   status?: string;
   published_at?: string | null;
@@ -49,6 +51,7 @@ export type ApiShow = {
   show_contract?: string | null;
   bonding_curve?: string | null;
   tix_token?: string | null;
+  tick_symbol?: string | null;
   fee_distributor?: string | null;
   status?: string;
   published_at?: string | null;
@@ -95,6 +98,7 @@ export type ApiShowResponse = {
 
 // Legacy video types kept for /my-videos polling compatibility
 export type ApiVideo = ApiEpisode & {
+  type?: "movie" | "tv_show" | "reel" | "short";
   cover_url?: string | null;
   cover_image_url?: string | null;
   likes_count?: number;

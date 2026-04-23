@@ -10,6 +10,8 @@ export type ShowCardProps = {
   episodeCount?: number;
   description?: string;
   isPlaying?: boolean;
+  isLiked?: boolean;
+  videoFormat?: "landscape" | "portrait";
   className?: string;
 };
 

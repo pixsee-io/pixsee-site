@@ -6,6 +6,7 @@ import NavbarWrapper from "@/components/layout/NavbarWrapper";
 import FooterWrapper from "@/components/layout/FooterWrapper";
 import ClientProviders from "@/components/providers/ClientProviders";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import LandingThemeLock from "@/components/theme/LandingThemeLock";
 
 const paytone = Paytone_One({
   subsets: ["latin"],
@@ -48,11 +49,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="system"
           enableSystem
           enableColorScheme
+          disableTransitionOnChange
         >
           <ClientProviders>
+            <LandingThemeLock />
             <NavbarWrapper />
             {children}
             <FooterWrapper />

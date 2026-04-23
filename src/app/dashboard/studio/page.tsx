@@ -42,10 +42,10 @@ function ShowCard({ show }: { show: StudioShow }) {
   return (
     <Link
       href={`/dashboard/studio/${show.id}`}
-      className="group relative bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 hover:border-brand-pixsee-primary/50 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+      className="group relative bg-neutral-primary rounded-2xl overflow-hidden border border-neutral-tertiary-border hover:border-brand-pixsee-secondary/50 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+      <div className="relative aspect-video bg-neutral-secondary overflow-hidden">
         {show.cover_image_url ? (
           <Image
             src={show.cover_image_url}
@@ -56,17 +56,17 @@ function ShowCard({ show }: { show: StudioShow }) {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Film className="w-10 h-10 text-neutral-400" />
+            <Film className="w-10 h-10 text-neutral-tertiary-text" />
           </div>
         )}
 
         {/* Status badge */}
         <div className="absolute top-3 left-3">
           <span
-            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+            className={`text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full ${
               show.status === "published"
-                ? "bg-green-500/90 text-white"
-                : "bg-neutral-500/90 text-white"
+                ? "bg-semantic-success-primary/90 text-white"
+                : "bg-neutral-tertiary-text/90 text-white"
             }`}
           >
             {show.status === "published" ? "Live" : "Draft"}
@@ -76,45 +76,49 @@ function ShowCard({ show }: { show: StudioShow }) {
         {/* On-chain badge */}
         {isOnChain && (
           <div className="absolute top-3 right-3">
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-pixsee-primary/90 text-white">
+            <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-brand-pixsee-secondary/90 text-white">
               On-chain
             </span>
           </div>
         )}
 
         {/* Episode count overlay */}
-        <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1">
+        <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[11px] sm:text-xs px-2 py-1 rounded-lg flex items-center gap-1">
           <Play className="w-3 h-3" />
           {episodeCount} {episodeCount === 1 ? "episode" : "episodes"}
         </div>
       </div>
 
       {/* Info */}
-      <div className="p-4">
-        <h3 className="font-semibold text-neutral-900 dark:text-white truncate mb-1 group-hover:text-brand-pixsee-primary transition-colors">
+      <div className="p-3 sm:p-4">
+        <h3 className="font-semibold text-sm sm:text-base text-neutral-primary-text truncate mb-1 group-hover:text-brand-pixsee-secondary transition-colors">
           {show.title}
         </h3>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-2 mb-3 min-h-[2.5rem]">
+        <p className="text-xs sm:text-sm text-neutral-tertiary-text line-clamp-2 mb-3 min-h-[2.5rem]">
           {show.description || "No description"}
         </p>
 
-        <div className="flex items-center justify-between text-xs text-neutral-400">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
+        <div className="flex items-center justify-between text-[11px] sm:text-xs text-neutral-tertiary-text gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="flex items-center gap-1 shrink-0">
               <Eye className="w-3.5 h-3.5" />
-              {totalViews.toLocaleString()} views
+              {totalViews.toLocaleString()}
             </span>
-            <span className="capitalize">{show.type.replace("_", " ")}</span>
+            <span className="capitalize truncate">
+              {show.type.replace("_", " ")}
+            </span>
           </div>
-          <span>{formatDate(show.created_at)}</span>
+          <span className="shrink-0 hidden sm:inline">
+            {formatDate(show.created_at)}
+          </span>
         </div>
       </div>
 
       {/* Edit hint */}
       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
         {!isOnChain && (
-          <div className="bg-white dark:bg-neutral-800 rounded-full p-1.5 shadow-md">
-            <Pencil className="w-3.5 h-3.5 text-neutral-600 dark:text-neutral-300" />
+          <div className="bg-neutral-primary rounded-full p-1.5 shadow-md">
+            <Pencil className="w-3.5 h-3.5 text-neutral-secondary-text" />
           </div>
         )}
       </div>
@@ -152,66 +156,67 @@ export default function StudioPage() {
   }, [fetchShows]);
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div className="min-h-screen bg-foundation-alternate">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">
+        <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-primary-text">
               Studio
             </h1>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+            <p className="text-xs sm:text-sm text-neutral-tertiary-text mt-1">
               Manage your shows and episodes
             </p>
           </div>
           <Link
             href="/dashboard/create"
-            className="flex items-center gap-2 bg-brand-pixsee-primary text-white px-4 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 sm:gap-2 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-opacity shrink-0"
           >
             <Plus className="w-4 h-4" />
-            New Show
+            <span className="hidden xs:inline sm:inline">New Show</span>
+            <span className="xs:hidden sm:hidden">New</span>
           </Link>
         </div>
 
         {/* Content */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white dark:bg-neutral-900 rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 animate-pulse"
+                className="bg-neutral-primary rounded-2xl overflow-hidden border border-neutral-tertiary-border animate-pulse"
               >
-                <div className="aspect-video bg-neutral-200 dark:bg-neutral-800" />
-                <div className="p-4 space-y-2">
-                  <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4" />
-                  <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-full" />
-                  <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded w-2/3" />
+                <div className="aspect-video bg-neutral-tertiary" />
+                <div className="p-3 sm:p-4 space-y-2">
+                  <div className="h-4 bg-neutral-tertiary rounded w-3/4" />
+                  <div className="h-3 bg-neutral-tertiary rounded w-full" />
+                  <div className="h-3 bg-neutral-tertiary rounded w-2/3" />
                 </div>
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="text-center py-20">
-            <p className="text-red-500 mb-4">{error}</p>
+          <div className="text-center py-16 sm:py-20">
+            <p className="text-semantic-error-primary mb-4 text-sm">{error}</p>
             <button
               onClick={fetchShows}
-              className="text-sm text-brand-pixsee-primary hover:underline"
+              className="text-sm text-brand-pixsee-secondary hover:underline"
             >
               Try again
             </button>
           </div>
         ) : shows.length === 0 ? (
-          <div className="text-center py-24 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
-            <Film className="w-12 h-12 text-neutral-300 dark:text-neutral-700 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
+          <div className="text-center py-16 sm:py-24 px-4 border-2 border-dashed border-neutral-tertiary-border rounded-2xl">
+            <Film className="w-12 h-12 text-neutral-tertiary-text mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-semibold text-neutral-primary-text mb-2">
               No shows yet
             </h3>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-6">
+            <p className="text-xs sm:text-sm text-neutral-tertiary-text mb-6">
               Create your first show to start earning on Pixsee
             </p>
             <Link
               href="/dashboard/create"
-              className="inline-flex items-center gap-2 bg-brand-pixsee-primary text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-opacity"
             >
               <Plus className="w-4 h-4" />
               Create a Show
@@ -219,10 +224,10 @@ export default function StudioPage() {
           </div>
         ) : (
           <>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5">
+            <p className="text-xs sm:text-sm text-neutral-tertiary-text mb-4 sm:mb-5">
               {shows.length} {shows.length === 1 ? "show" : "shows"}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
               {shows.map((show) => (
                 <ShowCard key={show.id} show={show} />
               ))}

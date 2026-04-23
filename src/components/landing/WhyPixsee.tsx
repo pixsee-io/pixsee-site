@@ -64,7 +64,7 @@ const WhyPixsee = (props: Props) => {
             className="flex items-center gap-2 text-xs md:text-base rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-secondary-border"
             asChild
           >
-            <Link href="/about-us">
+            <Link href="/about">
               Why Pixsee
               <ArrowRight size={16} />
             </Link>

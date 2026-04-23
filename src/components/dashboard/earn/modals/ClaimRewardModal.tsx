@@ -25,13 +25,13 @@ const ClaimRewardModal = ({
 }: ClaimRewardModalProps) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Gift Icon */}
         <div className="flex justify-center mb-4">
           <div className="text-6xl">🎁</div>
         </div>
 
-        <h2 className="text-2xl font-paytone text-neutral-primary-text text-center mb-2">
+        <h2 className="text-xl sm:text-2xl font-paytone text-neutral-primary-text text-center mb-2">
           Claim Reward
         </h2>
         <p className="text-neutral-tertiary-text text-center mb-6">
@@ -51,35 +51,14 @@ const ClaimRewardModal = ({
               </p>
             </div>
             <div className="text-right">
-              <span className="inline-block px-3 py-1 bg-white text-brand-pixsee-secondary text-xs rounded-full mb-2">
+              <span className="inline-block px-3 py-1 bg-neutral-primary text-brand-pixsee-secondary text-xs rounded-full mb-2">
                 Unclaimed
               </span>
               <p className="text-2xl font-bold text-neutral-primary-text">
                 +{reward.tixAmount.toLocaleString()}{" "}
-                <span className="text-sm font-normal">TIX</span>
+                <span className="text-sm font-normal">PIX</span>
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* Conversion Display */}
-        <div className="bg-brand-pixsee-tertiary border-2 border-brand-pixsee-secondary/30 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-neutral-secondary-text" />
-              <div>
-                <p className="font-bold text-neutral-primary-text">
-                  {reward.tixAmount.toLocaleString()} Tix
-                </p>
-                <p className="text-xs text-neutral-tertiary-text">
-                  Reward will be credited instantly
-                </p>
-              </div>
-            </div>
-            <ArrowRightLeft className="w-5 h-5 text-neutral-tertiary-text" />
-            <p className="text-2xl font-bold text-neutral-primary-text">
-              $ {reward.usdAmount.toFixed(2)}
-            </p>
           </div>
         </div>
 

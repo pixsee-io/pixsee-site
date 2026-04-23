@@ -40,6 +40,8 @@ type ShowDetails = {
   thumbnail: File | null;
   thumbnailPreview: string | null;
   title: string;
+  tickSymbol: string;
+  videoFormat: "landscape" | "portrait";
   description: string;
   tags: string[];
   language: string;
@@ -109,7 +111,7 @@ const StepIndicator = ({
                     ? "bg-brand-primary text-white"
                     : isCurrent
                     ? "bg-brand-primary text-white ring-4 ring-brand-primary/20"
-                    : "bg-white border border-black/20 text-neutral-tertiary-text"
+                    : "bg-neutral-primary border border-neutral-tertiary-border text-neutral-tertiary-text"
                 )}
               >
                 {isCompleted ? <Check className="w-3.5 h-3.5" /> : step.number}
@@ -118,7 +120,9 @@ const StepIndicator = ({
                 <div
                   className={cn(
                     "flex-1 h-px mx-1",
-                    index < currentIndex ? "bg-brand-primary" : "bg-black/15"
+                    index < currentIndex
+                      ? "bg-brand-primary"
+                      : "bg-neutral-tertiary"
                   )}
                 />
               )}
@@ -140,7 +144,7 @@ const StepIndicator = ({
                     "flex items-center gap-2 px-4 lg:px-6 py-2 rounded-full text-xs lg:text-sm font-medium transition-all whitespace-nowrap",
                     isCompleted || isCurrent
                       ? "bg-brand-primary text-white"
-                      : "bg-white border border-black/30 text-neutral-secondary-text"
+                      : "bg-neutral-primary border border-neutral-tertiary-border text-neutral-secondary-text"
                   )}
                 >
                   {isCompleted ? (
@@ -148,8 +152,10 @@ const StepIndicator = ({
                   ) : (
                     <span
                       className={cn(
-                        "w-5 h-5 rounded-full flex items-center justify-center text-xs text-black",
-                        isCurrent ? "bg-white" : "bg-black/50 text-white"
+                        "w-5 h-5 rounded-full flex items-center justify-center text-xs",
+                        isCurrent
+                          ? "bg-white text-brand-primary"
+                          : "bg-neutral-tertiary text-neutral-secondary-text"
                       )}
                     >
                       {step.number}
@@ -162,7 +168,9 @@ const StepIndicator = ({
                 <div
                   className={cn(
                     "flex-1 h-px mx-1 lg:mx-2",
-                    isPast || isCompleted ? "bg-brand-primary" : "bg-black"
+                    isPast || isCompleted
+                      ? "bg-brand-primary"
+                      : "bg-neutral-tertiary"
                   )}
                 />
               )}
@@ -262,7 +270,7 @@ const UploadQueue = ({
                 {ep.uploadProgress}%
               </span>
             </div>
-            <div className="h-2 bg-white rounded-full overflow-hidden">
+            <div className="h-2 bg-neutral-primary/80 rounded-full overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all",
@@ -290,7 +298,11 @@ const UploadQueue = ({
 
 const CreatePage = () => {
   const { getAccessToken } = usePrivy();
-  const { createShow: createOnChainShow, addEpisode: addEpisodeOnChain, walletAddress } = usePixseeContract();
+  const {
+    createShow: createOnChainShow,
+    addEpisode: addEpisodeOnChain,
+    walletAddress,
+  } = usePixseeContract();
 
   const router = useRouter();
   const {
@@ -303,6 +315,8 @@ const CreatePage = () => {
     attachFile,
     addUploadSlot,
     uploadAll,
+    uploadSingle,
+    syncEpisodesMeta,
     pollUntilReady,
     publishAll,
   } = useCreateShow({
@@ -321,6 +335,8 @@ const CreatePage = () => {
     thumbnail: null,
     thumbnailPreview: null,
     title: "",
+    tickSymbol: "",
+    videoFormat: "landscape",
     description: "",
     tags: [],
     language: "English",
@@ -330,6 +346,8 @@ const CreatePage = () => {
     embedding: false,
     notifyFollowers: true,
   });
+
+  const [uploadTriggered, setUploadTriggered] = useState(false);
 
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -357,29 +375,39 @@ const CreatePage = () => {
     goToStep("upload");
   };
 
-  const handleUploadNext = async () => {
+  const startUpload = () => {
+    if (uploadTriggered) return;
+    setUploadTriggered(true);
     const showType = contentType === "series" ? "tv_show" : "movie";
-
-    const ok = await uploadAll({
+    uploadAll({
       title: showDetails.title,
       description: showDetails.description,
       tags: showDetails.tags,
       language: showDetails.language,
       thumbnailFile: showDetails.thumbnail,
       showType,
+      tickSymbol: showDetails.tickSymbol,
       episodesMeta: episodes.map((ep) => ({
         localId: ep.id,
         title: ep.title,
         description: ep.description,
         isPaid: ep.isPaid,
-        // ❌ no price — bonding curve determines price
       })),
     });
+  };
 
-    if (ok) {
-      markComplete("upload");
-      goToStep("pricing");
-    }
+  const handleUploadNext = () => {
+    // Push final episode titles/descriptions before advancing
+    syncEpisodesMeta(
+      episodes.map((ep) => ({
+        localId: ep.id,
+        title: ep.title,
+        description: ep.description,
+        isPaid: ep.isPaid,
+      }))
+    );
+    markComplete("upload");
+    goToStep("pricing");
   };
 
   const handlePricingNext = () => {
@@ -410,8 +438,7 @@ const CreatePage = () => {
       language: showDetails.language,
       thumbnailFile: showDetails.thumbnail,
       showType: contentType === "series" ? "tv_show" : "movie",
-      // Pass final pricing here — this is after the pricing step
-      // so isPaid values are now correct
+      tickSymbol: showDetails.tickSymbol,
       episodesMeta: episodes.map((ep) => ({
         localId: ep.id,
         title: ep.title,
@@ -484,11 +511,22 @@ const CreatePage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     attachFile(episodeId, file);
-    // Generate a preview URL from the video file for thumbnail display
     const previewUrl = URL.createObjectURL(file);
     setEpisodes((prev) =>
       prev.map((ep) => (ep.id === episodeId ? { ...ep, previewUrl } : ep))
     );
+
+    if (!uploadTriggered) {
+      // First file — create the show and upload everything via uploadAll
+      setTimeout(() => startUpload(), 0);
+    } else {
+      // Show already created — upload this episode directly
+      const ep = episodes.find((ep) => ep.id === episodeId);
+      uploadSingle(episodeId, file, {
+        title: ep?.title ?? `Episode ${episodeId}`,
+        description: ep?.description ?? "",
+      });
+    }
   };
 
   //  Shared row
@@ -505,7 +543,7 @@ const CreatePage = () => {
           onChange={(e) =>
             setShowDetails((d) => ({ ...d, language: e.target.value }))
           }
-          className="flex-1 sm:flex-none px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm disabled:bg-neutral-secondary"
+          className="flex-1 sm:flex-none px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm bg-neutral-primary text-neutral-primary-text disabled:bg-neutral-secondary"
         >
           <option>English</option>
           <option>Spanish</option>
@@ -514,7 +552,7 @@ const CreatePage = () => {
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm text-neutral-primary-text w-16 sm:w-auto">
-          Licence
+          License
         </span>
         <select
           value={showDetails.licence}
@@ -522,7 +560,7 @@ const CreatePage = () => {
           onChange={(e) =>
             setShowDetails((d) => ({ ...d, licence: e.target.value }))
           }
-          className="flex-1 sm:flex-none px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm disabled:bg-neutral-secondary"
+          className="flex-1 sm:flex-none px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm bg-neutral-primary text-neutral-primary-text disabled:bg-neutral-secondary"
         >
           <option>Pixsee (Default)</option>
           <option>Creative Commons</option>
@@ -536,7 +574,7 @@ const CreatePage = () => {
   // ─
 
   const renderDetails = () => (
-    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
+    <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
       <h2 className="text-xl font-paytone text-neutral-primary-text mb-2">
         Watch Details
       </h2>
@@ -596,6 +634,37 @@ const CreatePage = () => {
         </div>
       </div>
 
+      {/* Video Format */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-neutral-primary-text mb-3">
+          Video Format
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {(
+            [
+              { value: "landscape", label: "Landscape", sub: "16:9 — Standard HD", icon: "▬" },
+              { value: "portrait", label: "Portrait", sub: "9:16 — Vertical / Short", icon: "▮" },
+            ] as const
+          ).map(({ value, label, sub, icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setShowDetails((d) => ({ ...d, videoFormat: value }))}
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors text-sm font-medium",
+                showDetails.videoFormat === value
+                  ? "border-brand-pixsee-secondary bg-brand-pixsee-secondary/5 text-brand-pixsee-secondary"
+                  : "border-neutral-tertiary-border text-neutral-tertiary-text hover:border-brand-pixsee-secondary/50"
+              )}
+            >
+              <span className="text-2xl leading-none">{icon}</span>
+              <span>{label}</span>
+              <span className="text-xs font-normal text-neutral-tertiary-text">{sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Thumbnail */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-neutral-primary-text mb-2">
@@ -644,7 +713,30 @@ const CreatePage = () => {
             setShowDetails((d) => ({ ...d, title: e.target.value }))
           }
           placeholder="Name your Show"
-          className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary"
+          className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-primary text-neutral-primary-text focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary"
+        />
+      </div>
+
+      {/* Tix Ticker */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-neutral-primary-text mb-2">
+          $Tix Ticker{" "}
+          <span className="text-xs font-normal text-neutral-tertiary-text">
+            (e.g. FIRE, HERO — max 5 chars, auto-generated if blank)
+          </span>
+        </label>
+        <input
+          type="text"
+          value={showDetails.tickSymbol}
+          onChange={(e) =>
+            setShowDetails((d) => ({
+              ...d,
+              tickSymbol: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5),
+            }))
+          }
+          placeholder="e.g. FIRE"
+          maxLength={5}
+          className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-primary text-neutral-primary-text focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary font-mono tracking-widest"
         />
       </div>
 
@@ -660,7 +752,7 @@ const CreatePage = () => {
           }
           placeholder="Tell viewers what this show is about"
           rows={4}
-          className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary resize-none"
+          className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-primary text-neutral-primary-text focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary resize-none"
         />
       </div>
 
@@ -694,7 +786,7 @@ const CreatePage = () => {
               }
             }}
             placeholder="Add tag, press Enter"
-            className="flex-1 min-w-[120px] outline-none text-sm"
+            className="flex-1 min-w-[120px] outline-none text-sm bg-transparent text-neutral-primary-text placeholder:text-neutral-tertiary-text"
           />
         </div>
       </div>
@@ -745,7 +837,7 @@ const CreatePage = () => {
   );
 
   const renderUpload = () => (
-    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
+    <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
       <h2 className="text-xl font-paytone text-neutral-primary-text mb-2 text-center">
         Upload media
       </h2>
@@ -818,7 +910,7 @@ const CreatePage = () => {
                     onChange={(e) =>
                       updateEpisode(ep.id, { title: e.target.value })
                     }
-                    className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary"
+                    className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-primary text-neutral-primary-text focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary"
                   />
                 </div>
                 <div>
@@ -832,7 +924,7 @@ const CreatePage = () => {
                     }
                     placeholder="Short description"
                     rows={2}
-                    className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary resize-none"
+                    className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-primary text-neutral-primary-text focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary resize-none"
                   />
                 </div>
               </>
@@ -865,19 +957,18 @@ const CreatePage = () => {
       <StepNav
         onBack={handleBack}
         onNext={handleUploadNext}
-        nextLabel="Upload & Continue"
+        nextLabel="Continue"
         nextDisabled={
-          (!uploadStates.some((ep) => ep.file) && uploadStates.length === 0) ||
-          uploadStates.some(
-            (ep) => ep.file && ep.uploadProgress > 0 && ep.uploadProgress < 100
-          )
+          !uploadStates.some((ep) => ep.uploadProgress === 100 || ep.muxStatus === "ready") ||
+          uploadStates.some((ep) => ep.file && ep.uploadProgress > 0 && ep.uploadProgress < 100)
         }
+        isLoading={uploadStates.some((ep) => ep.file && ep.uploadProgress > 0 && ep.uploadProgress < 100)}
       />
     </div>
   );
 
   const renderPricing = () => (
-    <div className="bg-white rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
+    <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
       <h2 className="text-xl font-paytone text-neutral-primary-text mb-2">
         {contentType === "single" ? "Pricing" : "Episode Pricing"}
       </h2>
@@ -926,7 +1017,7 @@ const CreatePage = () => {
     );
 
     return (
-      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
+      <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
         <h2 className="text-xl font-paytone text-neutral-primary-text mb-2">
           Review
         </h2>
@@ -939,7 +1030,7 @@ const CreatePage = () => {
             <label className="block text-sm font-medium text-neutral-primary-text mb-2">
               Thumbnail
             </label>
-            <div className="w-full h-40 sm:h-48 rounded-xl overflow-hidden bg-neutral-tertiary relative">
+            <div className="w-full h-56 sm:h-72 rounded-xl overflow-hidden bg-neutral-tertiary relative">
               <Image
                 src={showDetails.thumbnailPreview}
                 alt="Thumbnail"
@@ -958,7 +1049,7 @@ const CreatePage = () => {
             type="text"
             value={showDetails.title}
             readOnly
-            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-secondary"
+            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-secondary text-neutral-primary-text"
           />
         </div>
 
@@ -970,7 +1061,7 @@ const CreatePage = () => {
             value={showDetails.description || "No description"}
             readOnly
             rows={3}
-            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-secondary resize-none"
+            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-secondary text-neutral-primary-text resize-none"
           />
         </div>
 
@@ -1055,7 +1146,7 @@ const CreatePage = () => {
   };
 
   const renderLaunch = () => (
-    <div className="bg-white rounded-2xl p-6 sm:p-8 border border-neutral-tertiary-border text-center">
+    <div className="bg-neutral-primary rounded-2xl p-6 sm:p-8 border border-neutral-tertiary-border text-center">
       <div className="w-16 h-16 sm:w-20 sm:h-20 bg-semantic-success-subtle rounded-full flex items-center justify-center mx-auto mb-6">
         <Check className="w-8 h-8 sm:w-10 sm:h-10 text-semantic-success-primary" />
       </div>
@@ -1119,9 +1210,9 @@ const CreatePage = () => {
 
   return (
     <div className="min-h-screen bg-foundation-alternate pb-12">
-      <div className="max-w-250 mx-auto px-4 md:px-6 lg:px-8 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-paytone text-neutral-primary-text">
+      <div className="max-w-250 mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-paytone text-neutral-primary-text">
             Create
           </h1>
           <p className="text-neutral-secondary-text mt-1 text-sm sm:text-base">
@@ -1155,21 +1246,13 @@ const PricingTips = () => (
     <div className="space-y-4 text-sm">
       {[
         {
-          title: "Start with competitive pricing",
-          body: "Research similar shows and price competitively. You can always adjust pricing later.",
-        },
-        {
           title: "Free vs Paid",
           body: "Free episodes can attract viewers and help grow your audience. Consider making the first episode free.",
         },
-        {
-          title: "Ad revenue",
-          body: "Episodes with ads generate additional revenue. Ad-free episodes may appeal to premium viewers.",
-        },
-        {
-          title: "Binge pricing",
-          body: "Consider offering discounts for viewers who purchase multiple episodes at once.",
-        },
+        // {
+        //   title: "Ad revenue",
+        //   body: "Episodes with ads generate additional revenue. Ad-free episodes may appeal to premium viewers.",
+        // },
       ].map(({ title, body }) => (
         <div key={title}>
           <p className="font-medium text-neutral-primary-text">{title}</p>
@@ -1229,8 +1312,8 @@ const EpisodePricingCard = ({
                 onUpdate?.(episode.id, { title: e.target.value })
               }
               className={cn(
-                "w-full px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm mb-3",
-                !editable && "bg-neutral-secondary"
+                "w-full px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm mb-3 text-neutral-primary-text",
+                editable ? "bg-neutral-primary" : "bg-neutral-secondary"
               )}
             />
             <label className="block text-xs text-neutral-tertiary-text mb-1">
@@ -1243,7 +1326,7 @@ const EpisodePricingCard = ({
                   onUpdate?.(episode.id, { description: e.target.value })
                 }
                 rows={2}
-                className="w-full min-h-[5rem] px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm resize-none mb-3"
+                className="w-full min-h-[5rem] px-3 py-2 border border-neutral-tertiary-border rounded-lg text-sm resize-none mb-3 bg-neutral-primary text-neutral-primary-text"
               />
             ) : (
               <p className="text-xs text-neutral-secondary-text line-clamp-2 mb-3">
@@ -1263,8 +1346,7 @@ const EpisodePricingCard = ({
         {episode.isPaid && (
           <p className="text-xs text-neutral-tertiary-text mt-2 bg-brand-pixsee-secondary/5 rounded-lg p-2">
             💡 Price is set automatically by the bonding curve — starts at
-            $0.001/min and adjusts based on demand. Early viewers get the best
-            price.
+            $0.001/min and adjusts based on demand. price.
           </p>
         )}
       </div>

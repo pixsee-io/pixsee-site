@@ -63,7 +63,7 @@ const AddFundsModal = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <h2 className="text-xl font-paytone text-neutral-primary-text mb-1">
           Add Funds
         </h2>
@@ -87,12 +87,6 @@ const AddFundsModal = ({
           </div>
         </div>
 
-        {/* Exchange Rate */}
-        <div className="flex items-center justify-center gap-2 text-sm text-neutral-secondary-text mb-6">
-          <span className="text-yellow-500">⚡</span>
-          <span>Exchange Rate: $1 USD = 10 $PIX</span>
-        </div>
-
         {/* Amount Input */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-neutral-primary-text mb-2">
@@ -103,7 +97,7 @@ const AddFundsModal = ({
             placeholder="Enter ticket amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary"
+            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary bg-neutral-primary text-neutral-primary-text"
           />
         </div>
 
@@ -156,7 +150,7 @@ const AddFundsModal = ({
                 >
                   {paymentMethod === method.id && (
                     <div className="w-full h-full rounded-full flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-white" />
+                      <div className="w-2 h-2 rounded-full bg-neutral-primary" />
                     </div>
                   )}
                 </div>
@@ -176,18 +170,17 @@ const AddFundsModal = ({
         </Button>
 
         {/* Important Information */}
-        <div className="mt-6 p-4 bg-pink-50 rounded-xl border border-pink-200">
+        <div className="mt-6 p-4 bg-semantic-error-primary/10 rounded-xl border border-semantic-error-primary/30">
           <div className="flex items-start gap-2">
-            <Info className="w-5 h-5 text-pink-500 shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-semantic-error-primary shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-neutral-primary-text mb-2">
                 Important Information
               </p>
               <ul className="text-sm text-neutral-secondary-text space-y-1">
                 <li>• Minimum deposit: $5.00</li>
-                <li>• Instant conversion to $PIX</li>
                 <li>• No transaction fees</li>
-                <li>• Use PIX to unlock premium content</li>
+                <li>• Use to unlock premium content</li>
               </ul>
             </div>
           </div>

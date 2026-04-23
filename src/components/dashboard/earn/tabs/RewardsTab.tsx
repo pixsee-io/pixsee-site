@@ -147,7 +147,7 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
         {overviewStats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl p-4 border border-neutral-tertiary-border"
+            className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border"
           >
             <p className="text-sm text-neutral-tertiary-text mb-1">
               {stat.label}
@@ -176,7 +176,7 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
           {nextRewards.map((reward) => (
             <div
               key={reward.id}
-              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border"
+              className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border"
             >
               <div
                 className={cn(
@@ -243,7 +243,7 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
           {claimedRewards.map((reward) => (
             <div
               key={reward.id}
-              className="bg-white rounded-xl p-3 sm:p-4 border border-neutral-tertiary-border flex items-center justify-between"
+              className="bg-neutral-primary rounded-xl p-3 sm:p-4 border border-neutral-tertiary-border flex items-center justify-between"
             >
               <div className="flex items-center gap-2 sm:gap-3">
                 <div
@@ -285,7 +285,7 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
           {lockedRewards.map((reward) => (
             <div
               key={reward.id}
-              className="bg-white rounded-xl p-4 border border-neutral-tertiary-border flex items-center justify-between"
+              className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <div
@@ -306,7 +306,7 @@ const RewardsTab = ({ onClaimReward }: RewardsTabProps) => {
                 </div>
               </div>
               <div className="text-right">
-                <span className="inline-block px-3 py-1 bg-pink-50 text-pink-400 text-xs rounded-full mb-1">
+                <span className="inline-block px-3 py-1 bg-semantic-error-primary/10 text-semantic-error-primary text-xs rounded-full mb-1">
                   Locked
                 </span>
                 <p className="text-xs md:text-base font-semibold text-neutral-tertiary-text">

@@ -2,6 +2,7 @@
 
 import { PrivyProvider } from "@privy-io/react-auth";
 import { useTheme } from "next-themes";
+import { baseSepolia } from "viem/chains";
 import AuthNavigationGuard from "@/components/auth/AuthNavigationGuard";
 
 export default function PrivyProviderWrapper({
@@ -15,6 +16,8 @@ export default function PrivyProviderWrapper({
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ""}
       config={{
+        defaultChain: baseSepolia,
+        supportedChains: [baseSepolia],
         appearance: {
           theme: theme === "dark" ? "dark" : "light",
           accentColor: "#8B5CF6",

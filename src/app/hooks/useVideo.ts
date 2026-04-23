@@ -27,6 +27,7 @@ export function getCreator(video: ApiVideo) {
 
 function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
   const creator = video.creator ?? video.user;
+  const isLandscape = video.type === "movie" || video.type === "tv_show";
   return {
     id: String(video.id),
     title: video.title,
@@ -40,6 +41,8 @@ function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
     views: formatCount(video.view_count),
     likes: formatCount(video.likes_count),
     description: video.description,
+    isLiked: video.is_liked,
+    videoFormat: isLandscape ? "landscape" : "portrait",
   };
 }
 
@@ -122,7 +125,11 @@ export function useVideos({
 
         const json: ApiVideosResponse = await res.json();
         if (!cancelled) {
-          setData(json.data ?? []);
+          // Only show videos whose parent show is registered on-chain
+          const filtered = (json.data ?? []).filter(
+            (item: any) => item.bonding_curve != null
+          );
+          setData(filtered);
           setMeta(json.meta ?? null);
         }
       } catch (err) {

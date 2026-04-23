@@ -59,9 +59,14 @@
 
 /* ============================================
        ROOT - LIGHT MODE (DEFAULT)
-       ============================================ */
+       ============================================
+   `.force-light` opts a subtree out of dark mode — apply it to any page
+   (e.g. /landing - now about) that must stay light regardless of user preference.
+   Because `.force-light` redeclares the light vars closer to the element,
+   it wins the cascade over any `.dark` ancestor. */
 
-:root {
+:root,
+.force-light {
   /* Global */
   --glitter: url("https://assets.codepen.io/13471/silver-glitter-background.png");
   --radius: 0.625rem;
@@ -362,6 +367,26 @@
   --semantic-info-text: #93c5fd;
   --semantic-info-primary-border: #2563eb;
   --semantic-info-inverse-border: #1f2f4f;
+
+  /* Brand - Secondary (Orange/Peach) — dark-tuned */
+  --brand2-primary: #e0b58f;
+  --brand2-secondary: #3a2a1f;
+  --brand2-tertiary: #2a1f15;
+  --brand2-primary-text: #f2cda8;
+  --brand2-primary-border: #b78a64;
+  --brand2-inverse-border: #4a3525;
+
+  /* Brand - button primary stays bold in both modes */
+  --brand-button-primary: #9b6fff;
+
+  /* Active tab indicator */
+  --active-tab: #42a5f5;
+
+  /* Special effects — neons stay vivid in dark mode */
+  --neon-lime: #1cf3b2;
+  --neon-orange: #f2ca51;
+  --neon-red: #ff4d4d;
+  --fire-bg: #0a0a12;
 }
 
 /* ============================================

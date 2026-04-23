@@ -15,7 +15,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { useWallets } from "@privy-io/react-auth";
+import { useWallets, usePrivy } from "@privy-io/react-auth";
 import {
   toEventHash,
   decodeEventLog,
@@ -66,12 +66,19 @@ const publicClient = createPublicClient({
 
 export function usePixseeContract() {
   const { wallets } = useWallets();
+  const { user } = usePrivy();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Gets the user's Privy embedded wallet (or connected external wallet)
+  // Prefer the Privy embedded wallet for the current user.
+  // Privy wallets have walletClientType === "privy".
+  // Fall back to the first available wallet (e.g. MetaMask-only users).
+  const activeWallet =
+    wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
+
+  // Gets the wallet client for signing transactions
   const getWalletClient = useCallback(async () => {
-    const wallet = wallets[0];
+    const wallet = activeWallet;
     if (!wallet) throw new Error("No wallet connected");
 
     await wallet.switchChain(baseSepolia.id);
@@ -82,9 +89,9 @@ export function usePixseeContract() {
       transport: custom(provider),
       account: wallet.address as Address,
     });
-  }, [wallets]);
+  }, [activeWallet]);
 
-  const walletAddress = wallets[0]?.address as Address | undefined;
+  const walletAddress = activeWallet?.address as Address | undefined;
 
   //  READ: Check if viewer has access to an episode ─
 
@@ -573,6 +580,93 @@ export function usePixseeContract() {
     [walletAddress, getWalletClient]
   );
 
+  //  READ: Get tix token address from a bonding curve ─
+
+  const getTixAddress = useCallback(
+    async (bondingCurveAddress: Address): Promise<Address> => {
+      const result = await publicClient.readContract({
+        address: bondingCurveAddress,
+        abi: BONDING_CURVE_ABI,
+        functionName: "tix",
+      });
+      return result as Address;
+    },
+    []
+  );
+
+  //  WRITE: Unlock episode using tix the user already holds ─
+  //
+  // Flow:
+  //   1. Approve tix token for showContract (if allowance is insufficient)
+  //   2. showContract.unlockEpisode(episodeId)
+  //
+  // No USDC involved — uses the viewer's existing tix balance.
+
+  const unlockWithTix = useCallback(
+    async ({
+      showContractAddress,
+      tixAddress,
+      episodeId,
+      durationSeconds,
+    }: {
+      showContractAddress: Address;
+      tixAddress: Address;
+      episodeId: number;
+      durationSeconds: number;
+    }): Promise<Hash | null> => {
+      if (!walletAddress) {
+        setError("No wallet connected");
+        return null;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const walletClient = await getWalletClient();
+
+        // Amount = durationSeconds × 1e18 tix-wei
+        const tixAmount = BigInt(durationSeconds) * BigInt("1000000000000000000");
+
+        const currentAllowance = await publicClient.readContract({
+          address: tixAddress,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [walletAddress, showContractAddress],
+        });
+
+        if ((currentAllowance as bigint) < tixAmount) {
+          const approveTx = await walletClient.writeContract({
+            address: tixAddress,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [showContractAddress, tixAmount],
+            gas: 100_000n,
+          });
+          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+        }
+
+        const tx = await walletClient.writeContract({
+          address: showContractAddress,
+          abi: SHOW_CONTRACT_ABI,
+          functionName: "unlockEpisode",
+          args: [BigInt(episodeId)],
+          gas: 300_000n,
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash: tx });
+        return tx;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unlock failed";
+        setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
   //  READ: Get USDC balance ─
 
   const getUsdcBalance = useCallback(async (): Promise<string> => {
@@ -586,6 +680,196 @@ export function usePixseeContract() {
     return formatUnits(balance as bigint, 6);
   }, [walletAddress]);
 
+  //  READ: Get USDC balance as raw bigint ─
+
+  const getUsdcBalanceRaw = useCallback(async (): Promise<bigint> => {
+    if (!walletAddress) return 0n;
+    const balance = await publicClient.readContract({
+      address: CONTRACT_ADDRESSES.usdc as Address,
+      abi: ERC20_ABI,
+      functionName: "balanceOf",
+      args: [walletAddress],
+    });
+    return balance as bigint;
+  }, [walletAddress]);
+
+  //  READ: Total show count from factory ─
+
+  const getShowCount = useCallback(async (): Promise<number> => {
+    const count = await publicClient.readContract({
+      address: CONTRACT_ADDRESSES.showFactory as Address,
+      abi: SHOW_FACTORY_ABI,
+      functionName: "showCount",
+    });
+    return Number(count);
+  }, []);
+
+  //  READ: Tix balance of a specific show's token ─
+
+  const getTixBalance = useCallback(
+    async (tixAddress: Address): Promise<bigint> => {
+      if (!walletAddress) return 0n;
+      const balance = await publicClient.readContract({
+        address: tixAddress,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [walletAddress],
+      });
+      return balance as bigint;
+    },
+    [walletAddress]
+  );
+
+  //  READ: Quote — how many tix out for a USDC amount ─
+
+  const calculateTixOut = useCallback(
+    async (
+      bondingCurveAddress: Address,
+      usdcAmount: bigint
+    ): Promise<{ tixOut: bigint; fee: bigint }> => {
+      const result = await publicClient.readContract({
+        address: bondingCurveAddress,
+        abi: BONDING_CURVE_ABI,
+        functionName: "calculateTixOut",
+        args: [usdcAmount],
+      });
+      const [tixOut, fee] = result as [bigint, bigint];
+      return { tixOut, fee };
+    },
+    []
+  );
+
+  //  READ: Quote — how much USDC out for selling tix ─
+
+  const calculateUsdcOut = useCallback(
+    async (
+      bondingCurveAddress: Address,
+      tixAmount: bigint
+    ): Promise<{ usdcOut: bigint; fee: bigint }> => {
+      const result = await publicClient.readContract({
+        address: bondingCurveAddress,
+        abi: BONDING_CURVE_ABI,
+        functionName: "calculateUsdcOut",
+        args: [tixAmount],
+      });
+      const [usdcOut, fee] = result as [bigint, bigint];
+      return { usdcOut, fee };
+    },
+    []
+  );
+
+  //  WRITE: Buy tix speculatively (no episode unlock) ─
+  //
+  // Flow:
+  //   1. Approve USDC for bondingCurve
+  //   2. bondingCurve.buyTix(usdcAmount, minTixOut)
+
+  const buyTix = useCallback(
+    async ({
+      bondingCurveAddress,
+      usdcAmount,
+      minTixOut = 0n,
+    }: {
+      bondingCurveAddress: Address;
+      usdcAmount: bigint;
+      minTixOut?: bigint;
+    }): Promise<Hash | null> => {
+      if (!walletAddress) {
+        setError("No wallet connected");
+        return null;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const walletClient = await getWalletClient();
+
+        const currentAllowance = await publicClient.readContract({
+          address: CONTRACT_ADDRESSES.usdc as Address,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [walletAddress, bondingCurveAddress],
+        });
+
+        if ((currentAllowance as bigint) < usdcAmount) {
+          const approveTx = await walletClient.writeContract({
+            address: CONTRACT_ADDRESSES.usdc as Address,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [bondingCurveAddress, usdcAmount],
+            gas: 100_000n,
+          });
+          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+        }
+
+        const tx = await walletClient.writeContract({
+          address: bondingCurveAddress,
+          abi: BONDING_CURVE_ABI,
+          functionName: "buyTix",
+          args: [usdcAmount, minTixOut],
+          gas: 500_000n,
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash: tx });
+        return tx;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Buy failed";
+        setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
+  //  WRITE: Sell tix back to bonding curve for USDC ─
+  //
+  // No approval needed — bondingCurve burns tix directly from msg.sender.
+
+  const sellTix = useCallback(
+    async ({
+      bondingCurveAddress,
+      tixAmount,
+      minUsdcOut = 0n,
+    }: {
+      bondingCurveAddress: Address;
+      tixAmount: bigint;
+      minUsdcOut?: bigint;
+    }): Promise<Hash | null> => {
+      if (!walletAddress) {
+        setError("No wallet connected");
+        return null;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const walletClient = await getWalletClient();
+
+        const tx = await walletClient.writeContract({
+          address: bondingCurveAddress,
+          abi: BONDING_CURVE_ABI,
+          functionName: "sellTix",
+          args: [tixAmount, minUsdcOut],
+          gas: 500_000n,
+        });
+
+        await publicClient.waitForTransactionReceipt({ hash: tx });
+        return tx;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Sell failed";
+        setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
   return {
     // State
     isLoading,
@@ -597,10 +881,19 @@ export function usePixseeContract() {
     getShowInfo,
     getCurveState,
     getUsdcBalance,
+    getUsdcBalanceRaw,
+    getShowCount,
+    getTixBalance,
+    getTixAddress,
+    calculateTixOut,
+    calculateUsdcOut,
     // Writes
     buyAndUnlock,
     buyAndUnlockBatch,
     createShow,
     addEpisode,
+    buyTix,
+    sellTix,
+    unlockWithTix,
   };
 }

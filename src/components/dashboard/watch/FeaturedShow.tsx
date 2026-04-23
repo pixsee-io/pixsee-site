@@ -144,7 +144,7 @@ const FeaturedShow = ({
 
                     <Button
                       asChild
-                      className="w-full sm:w-auto bg-black text-white hover:bg-neutral-inverse-primary rounded-lg px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base gap-2 font-medium"
+                      className="w-full sm:w-auto bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-lg px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base gap-2 font-medium"
                     >
                       <Link href={`/dashboard/watch/${show.id}`}>
                         Play Show
