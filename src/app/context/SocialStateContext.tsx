@@ -1,45 +1,45 @@
-"use client";
+import React from "react";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-import React, { createContext, useCallback, useContext, useRef } from "react";
+type SocialStore = {
+  liked: Record<number, boolean>;
+  likeCount: Record<number, number>;
+  following: Record<number, boolean>;
 
-// Global in-memory cache for social state that persists across navigation.
-// Maps are keyed by ID (videoId for likes, userId for follows).
-
-type SocialState = {
-  // likes
   getLiked: (videoId: number) => boolean | undefined;
-  setLiked: (videoId: number, liked: boolean) => void;
+  setLiked: (videoId: number, v: boolean) => void;
   getLikeCount: (videoId: number) => number | undefined;
-  setLikeCount: (videoId: number, count: number) => void;
-  // follows
+  setLikeCount: (videoId: number, v: number) => void;
   getFollowing: (userId: number) => boolean | undefined;
-  setFollowing: (userId: number, following: boolean) => void;
+  setFollowing: (userId: number, v: boolean) => void;
 };
 
-const SocialStateContext = createContext<SocialState | null>(null);
+const useSocialStore = create<SocialStore>()(
+  persist(
+    (set, get) => ({
+      liked: {},
+      likeCount: {},
+      following: {},
 
-export function SocialStateProvider({ children }: { children: React.ReactNode }) {
-  // Use refs so mutations don't cause re-renders — subscribers manage their own state
-  const likedMap = useRef<Map<number, boolean>>(new Map());
-  const likeCountMap = useRef<Map<number, number>>(new Map());
-  const followingMap = useRef<Map<number, boolean>>(new Map());
-
-  const getLiked = useCallback((id: number) => likedMap.current.get(id), []);
-  const setLiked = useCallback((id: number, v: boolean) => { likedMap.current.set(id, v); }, []);
-  const getLikeCount = useCallback((id: number) => likeCountMap.current.get(id), []);
-  const setLikeCount = useCallback((id: number, v: number) => { likeCountMap.current.set(id, v); }, []);
-  const getFollowing = useCallback((id: number) => followingMap.current.get(id), []);
-  const setFollowing = useCallback((id: number, v: boolean) => { followingMap.current.set(id, v); }, []);
-
-  return (
-    <SocialStateContext.Provider value={{ getLiked, setLiked, getLikeCount, setLikeCount, getFollowing, setFollowing }}>
-      {children}
-    </SocialStateContext.Provider>
-  );
-}
+      getLiked: (id) => get().liked[id],
+      setLiked: (id, v) => set((s) => ({ liked: { ...s.liked, [id]: v } })),
+      getLikeCount: (id) => get().likeCount[id],
+      setLikeCount: (id, v) => set((s) => ({ likeCount: { ...s.likeCount, [id]: v } })),
+      getFollowing: (id) => get().following[id],
+      setFollowing: (id, v) => set((s) => ({ following: { ...s.following, [id]: v } })),
+    }),
+    {
+      name: "pixsee-social",
+      partialize: (s) => ({ liked: s.liked, likeCount: s.likeCount, following: s.following }),
+    }
+  )
+);
 
 export function useSocialState() {
-  const ctx = useContext(SocialStateContext);
-  if (!ctx) throw new Error("useSocialState must be used within SocialStateProvider");
-  return ctx;
+  return useSocialStore();
+}
+
+export function SocialStateProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

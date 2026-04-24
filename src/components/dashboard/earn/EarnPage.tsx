@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -13,7 +13,6 @@ import {
   LogIn,
   Flame,
   Gift,
-  Vote,
   HelpCircle,
   ChevronRight,
   ArrowUpRight,
@@ -21,7 +20,7 @@ import {
   ThumbsUp,
   ThumbsUpIcon,
   CircleQuestionMark,
-  User,
+  Loader2,
 } from "lucide-react";
 import RewardsTab from "./tabs/RewardsTab";
 import QuestTab from "./tabs/QuestTab";
@@ -32,6 +31,10 @@ import ReferralModal from "./modals/ReferralModal";
 import ClaimRewardModal from "./modals/ClaimRewardModal";
 import UserProfileModal from "./modals/UserProfileModal";
 import WithdrawModal from "./modals/WithdrawModal";
+import { usePrivy } from "@privy-io/react-auth";
+import { useMe, useTransactions, useWatchHistory } from "@/app/hooks/useSocial";
+import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+import { formatCount } from "@/app/hooks/useVideo";
 
 // Types
 type TabId = "earn" | "rewards" | "leaderboard" | "quest" | "votes";
@@ -74,13 +77,8 @@ type RecentEarning = {
   date: string;
 };
 
-// Mock Data
-const overviewStats: OverviewStat[] = [
-  { label: "Total $PIX", value: "12,450" },
-  { label: "Aggregate Earnings", value: "$2,450" },
-  { label: "Currently Claimable", value: "$450.05" },
-  { label: "Voting APR", value: "24.5%" },
-];
+// Static fallback data (non-dynamic fields)
+const VOTING_APR = "24.5%";
 
 const rewardCards: RewardCard[] = [
   {
@@ -143,7 +141,7 @@ const earningStreams: EarningStream[] = [
     ],
     buttonText: "Keep watching",
     buttonColor: "bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover",
-    cardBg: "bg-[#E8F4FD]",
+    cardBg: "bg-brand-pixsee-secondary/10",
     borderColor: "border-brand-pixsee-secondary/30",
   },
   {
@@ -159,8 +157,8 @@ const earningStreams: EarningStream[] = [
     ],
     buttonText: "Manage Votes",
     buttonColor: "bg-[#FF3795] hover:bg-pink-600",
-    cardBg: "bg-pink-50",
-    borderColor: "border-pink-200",
+    cardBg: "bg-[#FF3795]/10",
+    borderColor: "border-[#FF3795]/30",
   },
   {
     id: "referrals",
@@ -198,43 +196,6 @@ const earningStreams: EarningStream[] = [
   },
 ];
 
-const recentEarnings: RecentEarning[] = [
-  {
-    id: "1",
-    type: "Watch Rewards",
-    description: "Watched Episode 1: The Beginning",
-    amount: "12,000",
-    date: "Jun 12",
-  },
-  {
-    id: "2",
-    type: "Watch Rewards",
-    description: "Watched Episode 1: The Beginning",
-    amount: "12,000",
-    date: "Jun 12",
-  },
-  {
-    id: "3",
-    type: "Watch Rewards",
-    description: "Watched Episode 1: The Beginning",
-    amount: "12,000",
-    date: "Jun 12",
-  },
-  {
-    id: "4",
-    type: "Watch Rewards",
-    description: "Watched Episode 1: The Beginning",
-    amount: "12,000",
-    date: "Jun 12",
-  },
-  {
-    id: "5",
-    type: "Watch Rewards",
-    description: "Watched Episode 1: The Beginning",
-    amount: "12,000",
-    date: "Jun 12",
-  },
-];
 
 // Sub-components
 const OverviewCard = ({ stat }: { stat: OverviewStat }) => (
@@ -396,9 +357,26 @@ const RecentEarningRow = ({ earning }: { earning: RecentEarning }) => (
 );
 
 const EarnPage = () => {
+  const { getAccessToken } = usePrivy();
+  const { profile, isLoading: profileLoading } = useMe(getAccessToken);
+  const { transactions, isLoading: txLoading } = useTransactions(getAccessToken);
+  const { history: watchHistory } = useWatchHistory(getAccessToken);
+  const { getUsdcBalance } = usePixseeContract();
+
   const [activeTab, setActiveTab] = useState<TabId>("earn");
   const [showBalance, setShowBalance] = useState(true);
-  const [currentBalance, setCurrentBalance] = useState(80);
+  const [currentBalance, setCurrentBalance] = useState(0);
+  const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
+
+  // Load USDC balance from chain
+  useEffect(() => {
+    getUsdcBalance().then(setUsdcBalance).catch(() => {});
+  }, [getUsdcBalance]);
+
+  // Keep the fund/withdraw flow working with local state; sync from USDC balance initially
+  useEffect(() => {
+    if (usdcBalance != null) setCurrentBalance(parseFloat(usdcBalance));
+  }, [usdcBalance]);
 
   // Modal states
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
@@ -482,9 +460,10 @@ const EarnPage = () => {
                 Overview
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                {overviewStats.map((stat, index) => (
-                  <OverviewCard key={index} stat={stat} />
-                ))}
+                <OverviewCard stat={{ label: "USDC Balance", value: usdcBalance != null ? `$${parseFloat(usdcBalance).toFixed(2)}` : "—" }} />
+                <OverviewCard stat={{ label: "Transactions", value: txLoading ? "…" : String(transactions.length) }} />
+                <OverviewCard stat={{ label: "Videos Watched", value: String(watchHistory.length) }} />
+                <OverviewCard stat={{ label: "Voting APR", value: VOTING_APR }} />
               </div>
             </section>
 
@@ -510,7 +489,33 @@ const EarnPage = () => {
                 Earning Streams
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {earningStreams.map((stream) => (
+                {[
+                  {
+                    ...earningStreams[0],
+                    stats: [
+                      { label: "$PIX Earned", value: profile?.token_balance ?? "—" },
+                      { label: "Cashback(10%)", value: usdcBalance != null ? `$${(parseFloat(usdcBalance) * 0.1).toFixed(2)}` : "—" },
+                      { label: "Videos Watched", value: String(watchHistory.length) },
+                    ],
+                  },
+                  {
+                    ...earningStreams[1],
+                    stats: [
+                      { label: "Tokens Allocated", value: profile?.token_balance ?? "—" },
+                      { label: "Current APR", value: VOTING_APR },
+                      { label: "Earnings", value: "—" },
+                    ],
+                  },
+                  {
+                    ...earningStreams[2],
+                    stats: [
+                      { label: "XP Per Referral", value: "500" },
+                      { label: "Bonus from Refs", value: "15%" },
+                      { label: "Total Referrals", value: String(profile?.following_count ?? "—") },
+                    ],
+                  },
+                  earningStreams[3],
+                ].map((stream) => (
                   <EarningStreamCard
                     key={stream.id}
                     stream={stream}
@@ -524,17 +529,36 @@ const EarnPage = () => {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text">
-                  Recents Earnings
+                  Recent Earnings
                 </h2>
                 <button className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap ml-2">
                   View all Activity
                 </button>
               </div>
-              <div className="space-y-3">
-                {recentEarnings.map((earning) => (
-                  <RecentEarningRow key={earning.id} earning={earning} />
-                ))}
-              </div>
+              {txLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-neutral-tertiary-text" />
+                </div>
+              ) : transactions.length === 0 ? (
+                <p className="text-sm text-neutral-tertiary-text text-center py-8 italic">
+                  No transactions yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {transactions.slice(0, 10).map((tx) => (
+                    <RecentEarningRow
+                      key={tx.id}
+                      earning={{
+                        id: String(tx.id),
+                        type: tx.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+                        description: tx.description ?? "",
+                        amount: tx.amount,
+                        date: new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           </>
         );
@@ -560,7 +584,11 @@ const EarnPage = () => {
             <p className="text-white/80 text-sm mb-2">Balance</p>
             <div className="flex items-center justify-center gap-2 mb-6">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">
-                {showBalance ? `$${currentBalance.toFixed(2)}` : "••••••"}
+                {showBalance
+                  ? usdcBalance != null
+                    ? `$${parseFloat(usdcBalance).toFixed(2)}`
+                    : `$${currentBalance.toFixed(2)}`
+                  : "••••••"}
               </h2>
               <button
                 onClick={() => setShowBalance(!showBalance)}

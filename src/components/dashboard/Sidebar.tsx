@@ -15,6 +15,7 @@ import {
   ChevronsLeft,
   Clapperboard,
   Users,
+  BookOpen,
 } from "lucide-react";
 
 type NavItem = {
@@ -24,11 +25,6 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  {
-    label: "About Us",
-    href: "/about",
-    icon: <Users className="w-5 h-5" />,
-  },
   {
     label: "Create",
     href: "/dashboard/create",
@@ -45,7 +41,7 @@ const navItems: NavItem[] = [
     icon: <Coins className="w-5 h-5" />,
   },
   {
-    label: "My Studio",
+    label: "My Box Office",
     href: "/dashboard/studio",
     icon: <Clapperboard />,
   },
@@ -58,6 +54,17 @@ const navItems: NavItem[] = [
     label: "My Profile",
     href: "/dashboard/profile",
     icon: <User className="w-5 h-5" />,
+  },
+
+  {
+    label: "About Us",
+    href: "/dashboard/about",
+    icon: <Users className="w-5 h-5" />,
+  },
+  {
+    label: "Blog",
+    href: "/dashboard/blog",
+    icon: <BookOpen className="w-5 h-5" />,
   },
 ];
 
