@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSocialState } from "@/app/context/SocialStateContext";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
@@ -31,54 +31,27 @@ export function useLike(
   initialLiked = false,
   initialCount = 0
 ) {
-  const cache = useSocialState();
-
-  // Seed from cache if available, otherwise use initial prop
-  const [liked, setLikedState] = useState(() => {
-    if (videoId != null) {
-      const cached = cache.getLiked(videoId);
-      if (cached !== undefined) return cached;
-    }
-    return initialLiked;
-  });
-  const [likesCount, setLikesCountState] = useState(() => {
-    if (videoId != null) {
-      const cached = cache.getLikeCount(videoId);
-      if (cached !== undefined) return cached;
-    }
-    return initialCount;
-  });
+  // Read directly from Zustand store — reactive, no local state copy needed.
+  // When setLiked/setLikeCount are called anywhere, this component re-renders automatically.
+  const store = useSocialState();
   const [loading, setLoading] = useState(false);
 
-  const setLiked = useCallback((v: boolean) => {
-    setLikedState(v);
-    if (videoId != null) cache.setLiked(videoId, v);
-  }, [videoId, cache]);
+  // Derive from store; fall back to props if not in localStorage yet (first-ever visit)
+  const liked = videoId != null ? (store.liked[videoId] ?? initialLiked) : initialLiked;
+  const likesCount = videoId != null ? (store.likeCount[videoId] ?? initialCount) : initialCount;
 
-  const setLikesCount = useCallback((updater: number | ((prev: number) => number)) => {
-    setLikesCountState((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      if (videoId != null) cache.setLikeCount(videoId, next);
-      return next;
-    });
-  }, [videoId, cache]);
-
-  // Sync when switching episodes — prefer cache, fall back to props
-  React.useEffect(() => {
-    if (videoId == null) return;
-    const cachedLiked = cache.getLiked(videoId);
-    const cachedCount = cache.getLikeCount(videoId);
-    setLikedState(cachedLiked !== undefined ? cachedLiked : initialLiked);
-    setLikesCountState(cachedCount !== undefined ? cachedCount : initialCount);
-  }, [videoId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setLikesCount = useCallback((v: number) => {
+    if (videoId != null) store.setLikeCount(videoId, v);
+  }, [videoId, store]);
 
   const toggle = useCallback(async () => {
     if (!videoId || loading) return;
     setLoading(true);
     const wasLiked = liked;
-    // Optimistic update
-    setLiked(!wasLiked);
-    setLikesCount((c) => (!wasLiked ? c + 1 : Math.max(0, c - 1)));
+    const wasCount = likesCount;
+    // Optimistic update directly in store
+    store.setLiked(videoId, !wasLiked);
+    store.setLikeCount(videoId, !wasLiked ? wasCount + 1 : Math.max(0, wasCount - 1));
     try {
       const token = await getAccessToken();
       const res = await fetch(`${BASE_URL}/api/v1/videos/${videoId}/like`, {
@@ -90,22 +63,20 @@ export function useLike(
       });
       if (res.ok) {
         const json = await res.json().catch(() => null);
-        const newLiked = json?.liked ?? !wasLiked;
+        store.setLiked(videoId, json?.liked ?? !wasLiked);
         const newCount = json?.like_count ?? json?.likes_count;
-        setLiked(newLiked);
-        if (newCount != null) setLikesCount(newCount);
+        if (newCount != null) store.setLikeCount(videoId, newCount);
       } else {
-        // Revert on failure
-        setLiked(wasLiked);
-        setLikesCount((c) => (wasLiked ? c + 1 : Math.max(0, c - 1)));
+        store.setLiked(videoId, wasLiked);
+        store.setLikeCount(videoId, wasCount);
       }
     } catch {
-      setLiked(wasLiked);
-      setLikesCount((c) => (wasLiked ? c + 1 : Math.max(0, c - 1)));
+      store.setLiked(videoId, wasLiked);
+      store.setLikeCount(videoId, wasCount);
     } finally {
       setLoading(false);
     }
-  }, [videoId, liked, loading, getAccessToken, setLiked, setLikesCount]);
+  }, [videoId, liked, likesCount, loading, getAccessToken, store]);
 
   return { liked, likesCount, setLikesCount, loading, toggle };
 }

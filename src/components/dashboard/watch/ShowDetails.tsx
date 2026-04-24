@@ -469,7 +469,7 @@ const ShowDetails = ({ id }: { id: string }) => {
     perPage: 8,
     sort: "-published_at",
   });
-  const { checkAccess, walletAddress } = usePixseeContract();
+  const { checkAccess, walletAddress, getShowInfo } = usePixseeContract();
 
   const apiShow = show as unknown as ApiShow;
   const episodes = apiShow?.episodes ?? [];
@@ -486,6 +486,7 @@ const ShowDetails = ({ id }: { id: string }) => {
   const [bondingCurveAddress, setBondingCurveAddress] = useState<
     Address | undefined
   >();
+  const [resolvedTickSymbol, setResolvedTickSymbol] = useState<string | undefined>();
 
   const activeEpisode =
     episodes.find((ep) => ep.id === activeEpisodeId) ?? episodes[0] ?? null;
@@ -497,6 +498,19 @@ const ShowDetails = ({ id }: { id: string }) => {
     if (apiShow?.bonding_curve)
       setBondingCurveAddress(apiShow.bonding_curve as Address);
   }, [apiShow?.show_contract, apiShow?.bonding_curve]);
+
+  // Resolve tick symbol: use API value if present, otherwise read from factory contract
+  useEffect(() => {
+    if (apiShow?.tick_symbol) {
+      setResolvedTickSymbol(apiShow.tick_symbol);
+      return;
+    }
+    const onChainId = apiShow?.on_chain_show_id;
+    if (!onChainId) return;
+    getShowInfo(Number(onChainId))
+      .then((info) => { if (info.tickSymbol) setResolvedTickSymbol(info.tickSymbol); })
+      .catch(() => {});
+  }, [apiShow?.tick_symbol, apiShow?.on_chain_show_id, getShowInfo]);
 
   // Check access for all episodes once we have the show contract and wallet
   const checkAllAccess = useCallback(async () => {
@@ -634,7 +648,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   hasAccess={activeEpisodeHasAccess ?? false}
                   showContractAddress={showContractAddress}
                   bondingCurveAddress={bondingCurveAddress}
-                  tickSymbol={apiShow?.tick_symbol ?? undefined}
+                  tickSymbol={resolvedTickSymbol}
                   getAccessToken={getAccessToken}
                   onAccessGranted={() => {
                     checkAllAccess();
@@ -663,7 +677,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                       episode={activeEpisode}
                       showContractAddress={showContractAddress}
                       bondingCurveAddress={bondingCurveAddress}
-                      tickSymbol={apiShow?.tick_symbol ?? undefined}
+                      tickSymbol={resolvedTickSymbol}
                       getAccessToken={getAccessToken}
                       onSuccess={() => {
                         checkAllAccess();
@@ -687,7 +701,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                           (activeEpisodeId ?? episodes[0]?.id) === ep.id
                         }
                         hasAccess={episodeAccess[ep.id] ?? false}
-                        tickSymbol={apiShow?.tick_symbol ?? undefined}
+                        tickSymbol={resolvedTickSymbol}
                         onClick={() => setActiveEpisodeId(ep.id)}
                       />
                     ))}
