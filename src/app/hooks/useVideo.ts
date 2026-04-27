@@ -6,6 +6,8 @@ import { ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
+type GetAccessToken = () => Promise<string | null>;
+
 //  Helpers (exported for use in other components)
 
 export function formatCount(n?: number): string {
@@ -27,7 +29,10 @@ export function getCreator(video: ApiVideo) {
 
 function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
   const creator = video.creator ?? video.user;
-  const isLandscape = video.type === "movie" || video.type === "tv_show";
+  // Prefer explicit video_format from backend; fall back to type-based heuristic for old records
+  const isLandscape = video.video_format != null
+    ? video.video_format === "landscape"
+    : video.type === "tv_show"; // tv_show series are typically landscape; single "movie" isn't always
   return {
     id: String(video.id),
     title: video.title,
@@ -88,7 +93,8 @@ export function useVideos({
   filterIsFree,
   filterCategoryId,
   filterTitle,
-}: UseVideosOptions = {}): UseVideosReturn {
+  getAccessToken,
+}: UseVideosOptions & { getAccessToken?: GetAccessToken } = {}): UseVideosReturn {
   const [data, setData] = useState<ApiVideo[]>([]);
   const [meta, setMeta] = useState<ApiVideosResponse["meta"] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,8 +123,11 @@ export function useVideos({
           params.set("filter[category_id]", String(filterCategoryId));
         if (filterTitle) params.set("filter[title]", filterTitle);
 
+        // Send auth token on public routes so is_liked resolves correctly
+        const token = getAccessToken ? await getAccessToken() : null;
         const res = await fetch(
-          `${BASE_URL}/api/v1/shows?${params.toString()}`
+          `${BASE_URL}/api/v1/shows?${params.toString()}`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
         );
         if (!res.ok)
           throw new Error(`API error: ${res.status} ${res.statusText}`);
@@ -146,7 +155,7 @@ export function useVideos({
     return () => {
       cancelled = true;
     };
-  }, [page, perPage, sort, filterIsFree, filterCategoryId, filterTitle, tick]);
+  }, [page, perPage, sort, filterIsFree, filterCategoryId, filterTitle, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     shows: data.map(mapVideoToShowCard),
@@ -159,8 +168,6 @@ export function useVideos({
 }
 
 //  useVideo (single) ─
-
-type GetAccessToken = () => Promise<string | null>;
 
 type UseVideoReturn = {
   video: ApiVideo | null;

@@ -386,6 +386,7 @@ const CreatePage = () => {
       language: showDetails.language,
       thumbnailFile: showDetails.thumbnail,
       showType,
+      videoFormat: showDetails.videoFormat,
       tickSymbol: showDetails.tickSymbol,
       episodesMeta: episodes.map((ep) => ({
         localId: ep.id,
@@ -438,6 +439,7 @@ const CreatePage = () => {
       language: showDetails.language,
       thumbnailFile: showDetails.thumbnail,
       showType: contentType === "series" ? "tv_show" : "movie",
+      videoFormat: showDetails.videoFormat,
       tickSymbol: showDetails.tickSymbol,
       episodesMeta: episodes.map((ep) => ({
         localId: ep.id,

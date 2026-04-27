@@ -46,6 +46,7 @@ export type ApiShow = {
   description?: string;
   tags?: string[];
   type: "movie" | "tv_show" | "reel" | "short";
+  video_format?: "landscape" | "portrait" | null;
   cover_image_url?: string | null;
   on_chain_show_id?: string | null;
   show_contract?: string | null;
@@ -99,6 +100,7 @@ export type ApiShowResponse = {
 // Legacy video types kept for /my-videos polling compatibility
 export type ApiVideo = ApiEpisode & {
   type?: "movie" | "tv_show" | "reel" | "short";
+  video_format?: "landscape" | "portrait" | null;
   cover_url?: string | null;
   cover_image_url?: string | null;
   likes_count?: number;

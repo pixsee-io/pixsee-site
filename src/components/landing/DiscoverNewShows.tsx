@@ -109,7 +109,7 @@ const DiscoverNewShows = (props: Props) => {
             className="rounded-full px-6 py-2 border-neutral-tertiary-border hover:border-neutral-secondary-border"
             asChild
           >
-            <Link href="/featured-show" className="flex items-center gap-2">
+            <Link href="/dashboard/watch" className="flex items-center gap-2">
               Featured show
             </Link>
           </Button>

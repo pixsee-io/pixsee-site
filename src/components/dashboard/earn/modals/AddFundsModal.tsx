@@ -3,18 +3,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  Wallet,
-  Coins,
-  CreditCard,
-  Building2,
-  Bitcoin,
-  ArrowRightLeft,
-  Info,
-} from "lucide-react";
+import { Wallet, Coins, Info, Loader2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
-
-type PaymentMethod = "card" | "bank" | "crypto";
+import { useFundWallet, useWallets } from "@privy-io/react-auth";
+import { baseSepolia } from "viem/chains";
+import { CONTRACT_ADDRESSES } from "@/app/lib/pixsee-contracts";
 
 type AddFundsModalProps = {
   isOpen: boolean;
@@ -23,61 +16,72 @@ type AddFundsModalProps = {
   currentBalance: number;
 };
 
+const quickAmounts = [10, 25, 50, 100];
+
 const AddFundsModal = ({
   isOpen,
   onClose,
   onSuccess,
   currentBalance,
 }: AddFundsModalProps) => {
+  const { wallets } = useWallets();
+  const { fundWallet } = useFundWallet();
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
+  const [selectedQuickAmount, setSelectedQuickAmount] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const paymentMethods = [
-    {
-      id: "card" as PaymentMethod,
-      icon: <CreditCard className="w-5 h-5 text-brand-pixsee-secondary" />,
-      title: "Credit/Debit Card",
-      subtitle: "Instant • 2.9% + $0.30 fee",
-    },
-    {
-      id: "bank" as PaymentMethod,
-      icon: <Building2 className="w-5 h-5 text-semantic-warning-primary" />,
-      title: "Bank Account (ACH)",
-      subtitle: "1-3 days • Lower fees",
-    },
-    {
-      id: "crypto" as PaymentMethod,
-      icon: <Bitcoin className="w-5 h-5 text-brand-primary" />,
-      title: "Crypto (USDC, USDT, BTC,ETH)",
-      subtitle: "Instant • Network fees apply",
-    },
-  ];
+  const numericAmount = selectedQuickAmount ?? (parseFloat(amount) || 0);
+  const canProceed = numericAmount >= 1;
 
-  const numericAmount = parseFloat(amount) || 0;
+  const activeWallet = wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
+  const walletAddress = activeWallet?.address;
 
-  const handleProceed = () => {
-    if (numericAmount >= 5) {
+  const handleFund = async () => {
+    if (!canProceed || !walletAddress) {
+      console.warn("[Fund] blocked — canProceed:", canProceed, "walletAddress:", walletAddress);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      console.log("[Fund] calling fundWallet for", walletAddress, "amount:", numericAmount);
+      await fundWallet({
+        address: walletAddress,
+        options: {
+          chain: baseSepolia,
+          amount: numericAmount.toString(),
+          asset: { erc20: CONTRACT_ADDRESSES.usdc as `0x${string}` },
+        },
+      });
       onSuccess(numericAmount);
+      handleClose();
+    } catch (err) {
+      console.error("[Fund] fundWallet threw:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleClose = () => {
+    setAmount("");
+    setSelectedQuickAmount(null);
+    onClose();
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={handleClose}>
       <div className="p-4 sm:p-6">
         <h2 className="text-xl font-paytone text-neutral-primary-text mb-1">
-          Add Funds
+          Fund Wallet
         </h2>
         <p className="text-sm text-neutral-tertiary-text mb-6">
-          Convert USD to $PIX
+          Add USDC to your Pixsee wallet via card, bank, or crypto
         </p>
 
         {/* Current Balance */}
         <div className="bg-brand-pixsee-tertiary border-2 border-brand-pixsee-secondary/30 rounded-xl p-4 flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Wallet className="w-5 h-5 text-neutral-secondary-text" />
-            <span className="text-neutral-primary-text font-medium">
-              Your Current Balance
-            </span>
+            <span className="text-neutral-primary-text font-medium">Current Balance</span>
           </div>
           <div className="flex items-center gap-2">
             <Coins className="w-5 h-5 text-brand-pixsee-secondary" />
@@ -87,104 +91,76 @@ const AddFundsModal = ({
           </div>
         </div>
 
-        {/* Amount Input */}
+        {/* Quick amounts */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-neutral-primary-text mb-2">
-            Enter Custom amount
-          </label>
-          <input
-            type="number"
-            placeholder="Enter ticket amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary bg-neutral-primary text-neutral-primary-text"
-          />
-        </div>
-
-        <div className="bg-brand-pixsee-tertiary border-2 border-brand-pixsee-secondary/30 rounded-xl p-4 flex items-center justify-between mb-6">
-          <span className="text-neutral-primary-text font-medium">You pay</span>
-
-          <ArrowRightLeft className="w-5 h-5 text-neutral-tertiary-text" />
-
-          <span className="text-2xl font-bold text-neutral-primary-text">
-            ${numericAmount.toFixed(2)}
-          </span>
-        </div>
-
-        <div className="mb-6">
           <p className="text-sm font-semibold text-neutral-primary-text mb-3">
-            Payment Method
+            Quick amount
           </p>
-          <div className="space-y-3">
-            {paymentMethods.map((method) => (
+          <div className="grid grid-cols-4 gap-2">
+            {quickAmounts.map((value) => (
               <button
-                key={method.id}
-                onClick={() => setPaymentMethod(method.id)}
+                key={value}
+                onClick={() => { setSelectedQuickAmount(value); setAmount(""); }}
                 className={cn(
-                  "w-full flex items-center justify-between p-4 rounded-xl border transition-all",
-                  paymentMethod === method.id
-                    ? "border-brand-pixsee-secondary bg-brand-pixsee-tertiary"
-                    : "border-neutral-tertiary-border hover:border-neutral-secondary-border"
+                  "py-4 rounded-xl border text-center font-semibold transition-all text-sm",
+                  selectedQuickAmount === value
+                    ? "border-brand-pixsee-secondary bg-brand-pixsee-tertiary text-brand-pixsee-secondary"
+                    : "border-neutral-tertiary-border text-brand-pixsee-secondary hover:border-brand-pixsee-secondary"
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-neutral-secondary flex items-center justify-center">
-                    {method.icon}
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-neutral-primary-text">
-                      {method.title}
-                    </p>
-                    <p className="text-xs text-neutral-tertiary-text">
-                      {method.subtitle}
-                    </p>
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    "w-5 h-5 rounded-full border-2",
-                    paymentMethod === method.id
-                      ? "border-brand-pixsee-secondary bg-brand-pixsee-secondary"
-                      : "border-neutral-tertiary-border"
-                  )}
-                >
-                  {paymentMethod === method.id && (
-                    <div className="w-full h-full rounded-full flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-neutral-primary" />
-                    </div>
-                  )}
-                </div>
+                ${value}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Proceed Button */}
-        <Button
-          onClick={handleProceed}
-          disabled={numericAmount < 5}
-          className="w-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full py-6 gap-2"
-        >
-          <Wallet className="w-5 h-5" />
-          Proceed to payment
-        </Button>
+        {/* Custom amount */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-neutral-primary-text mb-2">
+            Or enter custom amount (USDC)
+          </label>
+          <input
+            type="number"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => { setAmount(e.target.value); setSelectedQuickAmount(null); }}
+            className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary bg-neutral-primary text-neutral-primary-text"
+          />
+        </div>
 
-        {/* Important Information */}
-        <div className="mt-6 p-4 bg-semantic-error-primary/10 rounded-xl border border-semantic-error-primary/30">
+        {/* Summary */}
+        {numericAmount > 0 && (
+          <div className="bg-brand-pixsee-tertiary border border-brand-pixsee-secondary/30 rounded-xl p-4 mb-5 flex items-center justify-between text-sm">
+            <span className="text-neutral-secondary-text">You add</span>
+            <span className="font-bold text-neutral-primary-text text-base">
+              ${numericAmount.toFixed(2)} USDC
+            </span>
+          </div>
+        )}
+
+        {/* Info */}
+        <div className="mb-5 p-4 bg-semantic-error-primary/10 rounded-xl border border-semantic-error-primary/30">
           <div className="flex items-start gap-2">
-            <Info className="w-5 h-5 text-semantic-error-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-neutral-primary-text mb-2">
-                Important Information
-              </p>
-              <ul className="text-sm text-neutral-secondary-text space-y-1">
-                <li>• Minimum deposit: $5.00</li>
-                <li>• No transaction fees</li>
-                <li>• Use to unlock premium content</li>
-              </ul>
-            </div>
+            <Info className="w-4 h-4 text-semantic-error-primary shrink-0 mt-0.5" />
+            <ul className="text-xs text-neutral-secondary-text space-y-0.5">
+              <li>• Powered by Privy — pay via card, bank transfer, or crypto</li>
+              <li>• USDC is added directly to your embedded wallet</li>
+              <li>• Use USDC to unlock premium content on Pixsee</li>
+            </ul>
           </div>
         </div>
+
+        <Button
+          onClick={handleFund}
+          disabled={!canProceed || isLoading}
+          className="w-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full py-6 gap-2"
+        >
+          {isLoading ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Opening payment…</>
+          ) : (
+            <><Wallet className="w-4 h-4" /> Fund Wallet</>
+          )}
+        </Button>
       </div>
     </Modal>
   );

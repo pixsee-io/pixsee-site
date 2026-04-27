@@ -421,3 +421,178 @@ export function useTransactions(getAccessToken: GetAccessToken) {
 
   return { transactions, isLoading };
 }
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export type ApiNotification = {
+  id: string;
+  type: "video_liked" | "comment_posted" | "comment_replied" | "user_followed";
+  data: Record<string, any>;
+  read: boolean;
+  read_at: string | null;
+  created_at: string;
+};
+
+export function useNotifications(getAccessToken: GetAccessToken) {
+  const [notifications, setNotifications] = useState<ApiNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    const token = await getAccessToken();
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const [nRes, cRes] = await Promise.all([
+        fetch(`${BASE_URL}/api/v1/notifications`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${BASE_URL}/api/v1/notifications/unread-count`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (nRes.ok) {
+        const json = await nRes.json();
+        setNotifications(json.data ?? []);
+      }
+      if (cRes.ok) {
+        const json = await cRes.json();
+        setUnreadCount(json.count ?? json.unread_count ?? 0);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getAccessToken]);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const markAllRead = useCallback(async () => {
+    const token = await getAccessToken();
+    if (!token) return;
+    await fetch(`${BASE_URL}/api/v1/notifications/read-all`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setUnreadCount(0);
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, [getAccessToken]);
+
+  const markRead = useCallback(async (id: string) => {
+    const token = await getAccessToken();
+    if (!token) return;
+    await fetch(`${BASE_URL}/api/v1/notifications/${id}/read`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+    setUnreadCount((c) => Math.max(0, c - 1));
+  }, [getAccessToken]);
+
+  return { notifications, unreadCount, isLoading, markAllRead, markRead, refetch: fetchAll };
+}
+
+// ─── Watchlist ────────────────────────────────────────────────────────────────
+
+export type WatchlistItem = {
+  id: number;
+  type: "show" | "video";
+  show?: any;
+  video?: any;
+  saved_at: string;
+};
+
+export function useWatchlist(getAccessToken: GetAccessToken) {
+  const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchList = useCallback(async () => {
+    const token = await getAccessToken();
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/watchlist`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setItems(json.data ?? []);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getAccessToken]);
+
+  useEffect(() => { fetchList(); }, [fetchList]);
+
+  const addShow = useCallback(async (showId: number) => {
+    const token = await getAccessToken();
+    if (!token) return false;
+    const res = await fetch(`${BASE_URL}/api/v1/watchlist/shows/${showId}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) fetchList();
+    return res.ok;
+  }, [getAccessToken, fetchList]);
+
+  const removeShow = useCallback(async (showId: number) => {
+    const token = await getAccessToken();
+    if (!token) return false;
+    const res = await fetch(`${BASE_URL}/api/v1/watchlist/shows/${showId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) setItems((prev) => prev.filter((i) => i.show?.id !== showId));
+    return res.ok;
+  }, [getAccessToken]);
+
+  const isInWatchlist = useCallback((showId: number) =>
+    items.some((i) => i.type === "show" && i.show?.id === showId),
+    [items]
+  );
+
+  return { items, isLoading, addShow, removeShow, isInWatchlist, refetch: fetchList };
+}
+
+// ─── SEE Points (Earn) ────────────────────────────────────────────────────────
+
+export function useSeePoints(getAccessToken: GetAccessToken) {
+  const [balance, setBalance] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetch_() {
+      setIsLoading(true);
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await fetch(`${BASE_URL}/api/v1/earn`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled) setBalance(json.see_points_balance ?? 0);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    fetch_();
+    return () => { cancelled = true; };
+  }, [getAccessToken]);
+
+  const claim = useCallback(async () => {
+    const token = await getAccessToken();
+    if (!token) return null;
+    const res = await fetch(`${BASE_URL}/api/v1/earn/claim`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    setBalance(json.see_points_balance ?? 0);
+    return json;
+  }, [getAccessToken]);
+
+  return { balance, isLoading, claim };
+}
