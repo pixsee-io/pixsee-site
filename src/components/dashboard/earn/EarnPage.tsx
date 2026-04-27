@@ -391,6 +391,7 @@ const EarnPage = () => {
   const { wallets } = useWallets();
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [faucetDone, setFaucetDone] = useState(false);
+  const [faucetClaimed, setFaucetClaimed] = useState(false);
   const claimTestUsdc = async () => {
     const activeWallet = wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
     if (!activeWallet) return;
@@ -413,8 +414,13 @@ const EarnPage = () => {
         setFaucetDone(false);
         refetchBalance();
       }, 3000);
-    } catch (err) {
-      console.error("[Faucet] failed:", err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("Already claimed")) {
+        setFaucetClaimed(true);
+      } else {
+        console.error("[Faucet] failed:", err);
+      }
     } finally {
       setFaucetLoading(false);
     }
@@ -658,15 +664,17 @@ const EarnPage = () => {
               <div className="flex justify-center">
                 <button
                   onClick={claimTestUsdc}
-                  disabled={faucetLoading || faucetDone}
+                  disabled={faucetLoading || faucetDone || faucetClaimed}
                   className="flex items-center gap-1.5 text-base text-white hover:text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {faucetLoading ? (
                     <><Loader2 className="w-3 h-3 animate-spin" /> Minting test USDC…</>
                   ) : faucetDone ? (
-                    "✓ Test USDC sent to wallet!"
+                    "✓ 10,000 test USDC sent!"
+                  ) : faucetClaimed ? (
+                    "Already claimed — one per address"
                   ) : (
-                    "🧪 Get test USDC (testnet only)"
+                    "🧪 Get 10,000 test USDC (testnet only)"
                   )}
                 </button>
               </div>
