@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -19,12 +19,13 @@ import {
 } from "lucide-react";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
 import EditProfileModal from "./modals/EditProfileModal";
-import { publishedShows } from "@/app/utils";
+import WithdrawModal from "@/components/dashboard/earn/modals/WithdrawModal";
 import Image from "next/image";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { useMe, useWatchHistory, useWatchlist } from "@/app/hooks/useSocial";
-import { formatCount } from "@/app/hooks/useVideo";
+import { formatCount, useMyShows } from "@/app/hooks/useVideo";
+import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 
 // Types
 type ProfileTabId = "overview" | "published" | "watchlist" | "history" | "earnings";
@@ -228,10 +229,18 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState<ProfileTabId>("overview");
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
+  const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
+  const [showWithdraw, setShowWithdraw] = useState(false);
   const { getAccessToken } = usePrivy();
   const { profile, updateProfile } = useMe(getAccessToken);
   const { history: watchHistoryData, isLoading: historyLoading } = useWatchHistory(getAccessToken);
   const { items: watchlistItems, isLoading: watchlistLoading } = useWatchlist(getAccessToken);
+  const { shows: myShows, isLoading: myShowsLoading } = useMyShows(getAccessToken);
+  const { getUsdcBalance } = usePixseeContract();
+
+  useEffect(() => {
+    getUsdcBalance().then(setUsdcBalance).catch(() => {});
+  }, [getUsdcBalance]);
 
   const displayName = profile?.name ?? profile?.username ?? "User";
   const displayUsername = profile?.username ? `@${profile.username}` : profile?.email ?? "";
@@ -266,11 +275,19 @@ const ProfilePage = () => {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-              {publishedShows.map((show) => (
-                <ShowCard key={show.id} {...show} />
-              ))}
-            </div>
+            {myShowsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-neutral-tertiary-text" />
+              </div>
+            ) : myShows.length === 0 ? (
+              <p className="text-sm text-neutral-tertiary-text text-center py-12 italic">No published shows yet.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                {myShows.map((show) => (
+                  <ShowCard key={show.id} {...show} />
+                ))}
+              </div>
+            )}
           </div>
         );
 
@@ -372,7 +389,7 @@ const ProfilePage = () => {
                   <p className="text-white/80 text-sm mb-2">Balance</p>
                   <div className="flex items-center gap-2 mb-6">
                     <p className="text-3xl sm:text-4xl font-bold text-white">
-                      {showBalance ? "$80.00" : "••••••"}
+                      {showBalance ? (usdcBalance != null ? `$${parseFloat(usdcBalance).toFixed(2)}` : "—") : "••••••"}
                     </p>
                     <button
                       onClick={() => setShowBalance(!showBalance)}
@@ -387,6 +404,7 @@ const ProfilePage = () => {
                   </div>
                   <Button
                     variant="outline"
+                    onClick={() => setShowWithdraw(true)}
                     className="bg-transparent hover:bg-white/10 text-white border-white/50 rounded-full px-8 py-6 gap-2 w-full sm:w-auto"
                   >
                     Withdraw
@@ -426,19 +444,80 @@ const ProfilePage = () => {
         );
 
       case "overview":
-      default:
+      default: {
+        const overviewStats: AnalyticsStat[] = [
+          {
+            id: "views",
+            icon: <Eye className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "Total Views",
+            value: myShows.reduce((sum, s) => sum + (parseInt(s.views.replace(/[^\d]/g, "")) || 0), 0) > 0
+              ? formatCount(myShows.reduce((sum, s) => sum + (parseInt(s.views.replace(/[^\d]/g, "")) || 0), 0))
+              : "—",
+          },
+          {
+            id: "subscribers",
+            icon: <Users className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "Subscribers",
+            value: followersCount,
+          },
+          {
+            id: "shows",
+            icon: <Play className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "Published Shows",
+            value: myShows.length > 0 ? String(myShows.length) : (myShowsLoading ? "…" : "0"),
+          },
+          {
+            id: "watchlist",
+            icon: <TrendingUp className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "Watchlist",
+            value: watchlistItems.length > 0 ? String(watchlistItems.length) : "0",
+          },
+          {
+            id: "history",
+            icon: <Eye className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "Shows Watched",
+            value: watchHistoryData.length > 0 ? String(watchHistoryData.length) : "0",
+          },
+          {
+            id: "balance",
+            icon: <DollarSign className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "USDC Balance",
+            value: usdcBalance != null ? `$${parseFloat(usdcBalance).toFixed(2)}` : "—",
+          },
+          {
+            id: "following",
+            icon: <Users className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "Following",
+            value: followingCount,
+          },
+          {
+            id: "pix",
+            icon: <DollarSign className="w-5 h-5 text-brand-pixsee-secondary" />,
+            iconBg: "bg-brand-pixsee-tertiary",
+            label: "$PIX Balance",
+            value: tokenBalance ?? "0",
+          },
+        ];
         return (
           <div>
             <h2 className="text-xl font-paytone text-neutral-primary-text mb-6">
               Analytics Overview
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              {analyticsStats.map((stat) => (
+              {overviewStats.map((stat) => (
                 <AnalyticsCard key={stat.id} stat={stat} />
               ))}
             </div>
           </div>
         );
+      }
     }
   };
 
@@ -552,6 +631,16 @@ const ProfilePage = () => {
         onClose={() => setShowEditProfile(false)}
         profile={profile}
         updateProfile={updateProfile}
+      />
+
+      <WithdrawModal
+        isOpen={showWithdraw}
+        onClose={() => setShowWithdraw(false)}
+        currentBalance={usdcBalance != null ? parseFloat(usdcBalance) : 0}
+        onSuccess={() => {
+          getUsdcBalance().then(setUsdcBalance).catch(() => {});
+          setShowWithdraw(false);
+        }}
       />
     </div>
   );

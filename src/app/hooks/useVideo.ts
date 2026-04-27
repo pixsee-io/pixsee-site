@@ -220,6 +220,36 @@ export function useVideo(
   return { video, isLoading, error, refetch };
 }
 
+// useMyShows — authenticated list of the current user's own shows
+
+export function useMyShows(getAccessToken: GetAccessToken) {
+  const [shows, setShows] = useState<ShowCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetch_() {
+      setIsLoading(true);
+      try {
+        const token = await getAccessToken();
+        if (!token) return;
+        const res = await fetch(`${BASE_URL}/api/v1/my-shows?per_page=50`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled) setShows((json.data ?? []).map(mapVideoToShowCard));
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    fetch_();
+    return () => { cancelled = true; };
+  }, [getAccessToken]);
+
+  return { shows, isLoading };
+}
+
 //  useEpisodePlayback
 // Fetches playback URL for a specific episode by its video.id
 // Also fires track-view on load

@@ -35,6 +35,9 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useMe, useTransactions, useWatchHistory, useSeePoints } from "@/app/hooks/useSocial";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { formatCount } from "@/app/hooks/useVideo";
+import { useWallets } from "@privy-io/react-auth";
+import { CONTRACT_ADDRESSES, CHAIN_ID, MOCK_USDC_FAUCET_ABI } from "@/app/lib/pixsee-contracts";
+import { type Address } from "viem";
 
 // Types
 type TabId = "earn" | "rewards" | "leaderboard" | "quest" | "votes";
@@ -384,6 +387,39 @@ const EarnPage = () => {
     getUsdcBalance().then(setUsdcBalance).catch(() => {});
   };
 
+  // Testnet faucet — only shown when CHAIN_ID === 84532 (Base Sepolia)
+  const { wallets } = useWallets();
+  const [faucetLoading, setFaucetLoading] = useState(false);
+  const [faucetDone, setFaucetDone] = useState(false);
+  const claimTestUsdc = async () => {
+    const activeWallet = wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
+    if (!activeWallet) return;
+    setFaucetLoading(true);
+    try {
+      const provider = await activeWallet.getEthereumProvider();
+      const { createWalletClient, custom } = await import("viem");
+      const { baseSepolia } = await import("viem/chains");
+      const walletClient = createWalletClient({ chain: baseSepolia, transport: custom(provider) });
+      const [account] = await walletClient.getAddresses();
+      await walletClient.writeContract({
+        address: CONTRACT_ADDRESSES.usdc as Address,
+        abi: MOCK_USDC_FAUCET_ABI,
+        functionName: "faucet",
+        account,
+        gas: 100_000n,
+      });
+      setFaucetDone(true);
+      setTimeout(() => {
+        setFaucetDone(false);
+        refetchBalance();
+      }, 3000);
+    } catch (err) {
+      console.error("[Faucet] failed:", err);
+    } finally {
+      setFaucetLoading(false);
+    }
+  };
+
   // Modal states
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -616,6 +652,25 @@ const EarnPage = () => {
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Testnet faucet — only visible on Base Sepolia */}
+            {CHAIN_ID === 84532 && (
+              <div className="flex justify-center">
+                <button
+                  onClick={claimTestUsdc}
+                  disabled={faucetLoading || faucetDone}
+                  className="flex items-center gap-1.5 text-base text-white hover:text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {faucetLoading ? (
+                    <><Loader2 className="w-3 h-3 animate-spin" /> Minting test USDC…</>
+                  ) : faucetDone ? (
+                    "✓ Test USDC sent to wallet!"
+                  ) : (
+                    "🧪 Get test USDC (testnet only)"
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* <p className="text-white/60 text-sm">$1 USD = 10 $PIX</p> */}
           </div>

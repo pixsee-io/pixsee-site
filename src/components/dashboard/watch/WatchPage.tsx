@@ -7,6 +7,7 @@ import ShowCard from "@/components/dashboard/watch/ShowCard";
 import FilterTabs, { FilterTab } from "@/components/dashboard/watch/FilterTabs";
 import FeaturedShow from "@/components/dashboard/watch/FeaturedShow";
 import { useVideos } from "@/app/hooks/useVideo";
+import { useWatchlist } from "@/app/hooks/useSocial";
 
 const filterTabs: FilterTab[] = [
   { id: "all", label: "All" },
@@ -34,7 +35,8 @@ const SORT_MAP: Record<string, string> = {
 const WatchPage = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const { user } = useAuth();
+  const { user, getAccessToken } = useAuth();
+  const { isInWatchlist, addShow, removeShow } = useWatchlist(getAccessToken);
 
   const sort = SORT_MAP[activeFilter] ?? "-published_at";
 
@@ -93,7 +95,16 @@ const WatchPage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {shows.map((show) => (
-                <ShowCard key={show.id} {...show} />
+                <ShowCard
+                  key={show.id}
+                  {...show}
+                  getAccessToken={getAccessToken}
+                  inWatchlist={isInWatchlist(parseInt(show.id))}
+                  onWatchlistToggle={() => {
+                    const sid = parseInt(show.id);
+                    isInWatchlist(sid) ? removeShow(sid) : addShow(sid);
+                  }}
+                />
               ))}
             </div>
           )}
@@ -129,7 +140,16 @@ const WatchPage = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {shows.slice(0, 4).map((show) => (
-                <ShowCard key={`for-you-${show.id}`} {...show} />
+                <ShowCard
+                  key={`for-you-${show.id}`}
+                  {...show}
+                  getAccessToken={getAccessToken}
+                  inWatchlist={isInWatchlist(parseInt(show.id))}
+                  onWatchlistToggle={() => {
+                    const sid = parseInt(show.id);
+                    isInWatchlist(sid) ? removeShow(sid) : addShow(sid);
+                  }}
+                />
               ))}
             </div>
           </section>
@@ -143,7 +163,16 @@ const WatchPage = () => {
             </h2>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
               {shows.slice(4, 8).map((show) => (
-                <ShowCard key={`trending-${show.id}`} {...show} />
+                <ShowCard
+                  key={`trending-${show.id}`}
+                  {...show}
+                  getAccessToken={getAccessToken}
+                  inWatchlist={isInWatchlist(parseInt(show.id))}
+                  onWatchlistToggle={() => {
+                    const sid = parseInt(show.id);
+                    isInWatchlist(sid) ? removeShow(sid) : addShow(sid);
+                  }}
+                />
               ))}
             </div>
           </section>
