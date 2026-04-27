@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -443,7 +442,7 @@ const EpisodeRow = ({
   </button>
 );
 
-//  Skeleton ─
+//  Skeleton
 
 const ShowDetailsSkeleton = () => (
   <div className="animate-pulse space-y-6">
@@ -459,7 +458,7 @@ const ShowDetailsSkeleton = () => (
   </div>
 );
 
-//  Main Component ─
+//  Main Component
 
 const ShowDetails = ({ id }: { id: string }) => {
   const router = useRouter();
@@ -702,7 +701,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   <h3 className="font-paytone text-neutral-primary-text mb-3 px-1">
                     Episodes ({episodes.length})
                   </h3>
-                  <div className="space-y-1 max-h-[320px] lg:max-h-[480px] overflow-y-auto pr-1">
+                  <div className="space-y-1 max-h-80 lg:max-h-120 overflow-y-auto pr-1">
                     {episodes.map((ep) => (
                       <EpisodeRow
                         key={ep.id}
@@ -737,7 +736,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
                   onClick={toggleLike}

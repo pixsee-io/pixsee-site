@@ -680,7 +680,7 @@ export function useCreateShow({
           tickName: deriveTickName(meta.title),
           tickSymbol: meta.tickSymbol?.trim() || deriveTickSymbol(meta.title),
           creatorAddress: walletAddress,
-          curveTier: 1,
+          curveTier: 0, // Conservative — platform default
         });
 
         if (!chainResult) {

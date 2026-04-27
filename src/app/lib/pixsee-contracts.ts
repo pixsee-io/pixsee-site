@@ -56,3 +56,15 @@ export const ERC20_ABI = [
     outputs: [{ name: "", type: "bool" }],
   },
 ] as const;
+
+// Testnet-only: MockUSDC faucet — mints tokens to the caller.
+// Only deployed on Base Sepolia (CHAIN_ID 84532). Never exposed on mainnet.
+export const MOCK_USDC_FAUCET_ABI = [
+  {
+    name: "faucet",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+] as const;
