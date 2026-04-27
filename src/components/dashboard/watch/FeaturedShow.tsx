@@ -82,7 +82,7 @@ const FeaturedShow = ({
                   alt={show.title}
                   fill
                   className="object-cover brightness-[0.85] transition-transform duration-700 group-hover:scale-105"
-                  priority={true} 
+                  priority={true}
                 />
 
                 <div
@@ -110,7 +110,7 @@ const FeaturedShow = ({
                       {show.description}
                     </p>
 
-                    <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-5">
+                    <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-8">
                       <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-neutral-tertiary overflow-hidden shrink-0">
                         {show.creatorAvatar ? (
                           <Image
@@ -128,17 +128,6 @@ const FeaturedShow = ({
                       </div>
                       <span className="text-white text-sm sm:text-base font-medium truncate">
                         {show.creatorName}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-4 sm:gap-6 mb-4 sm:mb-6 text-xs sm:text-sm text-white/80">
-                      <span className="flex items-center gap-1.5">
-                        <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        {show.views}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-semantic-error-primary text-semantic-error-primary" />
-                        {show.likes}
                       </span>
                     </div>
 

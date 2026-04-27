@@ -36,7 +36,7 @@ import {
 } from "@/app/hooks/useVideo";
 import { ApiEpisode, ApiShow } from "@/app/types/pixsee-api";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
-import { useLike, useComments, useFollow } from "@/app/hooks/useSocial";
+import { useLike, useComments, useFollow, useWatchlist } from "@/app/hooks/useSocial";
 import { useSocialState } from "@/app/context/SocialStateContext";
 import type { Address } from "viem";
 import { formatUnits } from "viem";
@@ -177,7 +177,7 @@ const BuyAndWatchButton = ({
       <div className="flex items-center gap-2 mb-3">
         <Lock className="w-4 h-4 text-brand-pixsee-secondary" />
         <p className="text-sm font-medium text-brand-pixsee-secondary">
-          This episode requires tix to unlock
+          This episode requires {tickSymbol} tix to unlock
         </p>
       </div>
 
@@ -570,8 +570,18 @@ const ShowDetails = ({ id }: { id: string }) => {
       activeEpisode?.is_liked ?? false,
       activeEpisode?.like_count ?? 0
     );
+
+  // Mirror episode liked state to show ID so ShowCard on the browse page reflects it
+  useEffect(() => {
+    if (!activeEpisode || !id) return;
+    const showIdNum = parseInt(id);
+    if (!isNaN(showIdNum)) socialCache.setLiked(showIdNum, liked);
+  }, [liked, activeEpisode?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const { following, loading: followLoading, toggle: toggleFollow } =
     useFollow(creator?.id, getAccessToken);
+  const { addShow, removeShow, isInWatchlist } = useWatchlist(getAccessToken);
+  const inWatchlist = isInWatchlist(parseInt(id));
+  const toggleWatchlist = () => inWatchlist ? removeShow(parseInt(id)) : addShow(parseInt(id));
   const {
     comments,
     isLoading: commentsLoading,
@@ -744,10 +754,16 @@ const ShowDetails = ({ id }: { id: string }) => {
                 </Button>
                 <Button
                   variant="outline"
-                  className="rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm border-neutral-tertiary-border"
+                  onClick={toggleWatchlist}
+                  className={cn(
+                    "rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm",
+                    inWatchlist
+                      ? "border-brand-pixsee-secondary text-brand-pixsee-secondary bg-brand-pixsee-secondary/5"
+                      : "border-neutral-tertiary-border"
+                  )}
                 >
-                  <Star className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Watchlist</span>
+                  <Star className={cn("w-3.5 h-3.5", inWatchlist && "fill-current")} />
+                  <span className="hidden sm:inline">{inWatchlist ? "Saved" : "Watchlist"}</span>
                 </Button>
                 <Button
                   variant="outline"

@@ -23,10 +23,11 @@ import { publishedShows } from "@/app/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { useMe, useWatchHistory } from "@/app/hooks/useSocial";
+import { useMe, useWatchHistory, useWatchlist } from "@/app/hooks/useSocial";
+import { formatCount } from "@/app/hooks/useVideo";
 
 // Types
-type ProfileTabId = "overview" | "published" | "history" | "saved" | "earnings";
+type ProfileTabId = "overview" | "published" | "watchlist" | "history" | "earnings";
 
 type AnalyticsStat = {
   id: string;
@@ -121,28 +122,6 @@ const analyticsStats: AnalyticsStat[] = [
 ];
 
 
-const savedShows = [
-  {
-    id: "5",
-    title: "Last Text",
-    thumbnailUrl: "/images/movie2.png",
-    creatorName: "Alex Chen",
-    views: "1.2M",
-    likes: "1.2M",
-    description:
-      "Six years ago, Regina chose to break up with her boyfriend Julian to avoid. Six years ago, Regina chose to break with her boyfriend Julian to avoid a tragic fate. Now, as they reunite, they must confront their past and the consequences of their choices in this emotional rollercoaster of love and redemption.",
-  },
-  {
-    id: "6",
-    title: "Second Chance",
-    thumbnailUrl: "/images/movie3.png",
-    creatorName: "Alex Chen",
-    views: "1.2M",
-    likes: "1.2M",
-    description:
-      "Six years ago, Regina chose to break up with her boyfriend Julian to avoid. Six years ago, Regina chose to break with her boyfriend Julian to avoid a tragic fate. Now, as they reunite, they must confront their past and the consequences of their choices in this emotional rollercoaster of love and redemption.",
-  },
-];
 
 const rewardSources: RewardSource[] = [
   { label: "Watch Rewards", percentage: 60, color: "bg-brand-primary" },
@@ -252,6 +231,7 @@ const ProfilePage = () => {
   const { getAccessToken } = usePrivy();
   const { profile, updateProfile } = useMe(getAccessToken);
   const { history: watchHistoryData, isLoading: historyLoading } = useWatchHistory(getAccessToken);
+  const { items: watchlistItems, isLoading: watchlistLoading } = useWatchlist(getAccessToken);
 
   const displayName = profile?.name ?? profile?.username ?? "User";
   const displayUsername = profile?.username ? `@${profile.username}` : profile?.email ?? "";
@@ -267,8 +247,8 @@ const ProfilePage = () => {
   const tabs: { id: ProfileTabId; label: string }[] = [
     { id: "overview", label: "Overview" },
     { id: "published", label: "Published Shows" },
+    { id: "watchlist", label: "Watchlist" },
     { id: "history", label: "Watch History" },
-    { id: "saved", label: "Saved" },
     { id: "earnings", label: "Earnings" },
   ];
 
@@ -339,17 +319,43 @@ const ProfilePage = () => {
           </div>
         );
 
-      case "saved":
+      case "watchlist":
         return (
           <div>
             <h2 className="text-xl font-paytone text-neutral-primary-text mb-6">
-              Saved shows
+              Watchlist
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-              {savedShows.map((show) => (
-                <ShowCard key={show.id} {...show} />
-              ))}
-            </div>
+            {watchlistLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-neutral-tertiary-text" />
+              </div>
+            ) : watchlistItems.length === 0 ? (
+              <p className="text-sm text-neutral-tertiary-text text-center py-12 italic">
+                No saved shows yet.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                {watchlistItems.map((item) => {
+                  const s = item.show ?? item.video;
+                  if (!s) return null;
+                  return (
+                    <ShowCard
+                      key={item.id}
+                      id={String(s.id)}
+                      title={s.title ?? "Untitled"}
+                      thumbnailUrl={s.cover_image_url ?? s.thumbnail_url ?? s.cover_url ?? "/images/movie1.png"}
+                      creatorName={s.creator?.name ?? s.creator?.username ?? s.user?.name ?? "Unknown"}
+                      creatorAvatar={s.creator?.avatar_url ?? s.user?.avatar_url}
+                      views={formatCount(s.view_count ?? s.views_count)}
+                      likes={formatCount(s.likes_count ?? s.like_count)}
+                      description={s.description}
+                      isLiked={s.is_liked}
+                      videoFormat={s.video_format === "landscape" ? "landscape" : "portrait"}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
 

@@ -66,7 +66,7 @@ const PixseeEconomy = ({ turnPassionRef, ownContentRef }: Props) => {
             className="rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base border-neutral-tertiary-border hover:border-neutral-secondary-border"
             asChild
           >
-            <Link href="/featured-show" className="flex items-center gap-2">
+            <Link href="/dashboard/watch" className="flex items-center gap-2">
               Featured show
               <ArrowUpRight size={16} />
             </Link>

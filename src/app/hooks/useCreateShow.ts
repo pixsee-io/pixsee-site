@@ -39,6 +39,7 @@ export type ShowMeta = {
   language: string;
   thumbnailFile: File | null;
   showType: ShowType;
+  videoFormat?: "landscape" | "portrait";
   episodesMeta?: EpisodeMeta[];
   tickSymbol?: string;
 };
@@ -250,6 +251,7 @@ export function useCreateShow({
           title: meta.title,
           description: meta.description,
           type: meta.showType,
+          ...(meta.videoFormat ? { video_format: meta.videoFormat } : {}),
           ...(meta.tags.length > 0 ? { tags: meta.tags } : {}),
           ...(meta.tickSymbol?.trim() ? { tick_symbol: meta.tickSymbol.trim() } : {}),
           episodes: buildEpisodesPayload(firstBatch),

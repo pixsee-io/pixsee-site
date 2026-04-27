@@ -25,14 +25,14 @@ import {
 import RewardsTab from "./tabs/RewardsTab";
 import QuestTab from "./tabs/QuestTab";
 import LeaderboardTab from "./tabs/LeaderBoardTab";
+import VotingTab from "./tabs/VotingTab";
 import AddFundsModal from "./modals/AddFundsModal";
-import TransactionSuccessModal from "./modals/TransactionSuccessModal";
 import ReferralModal from "./modals/ReferralModal";
 import ClaimRewardModal from "./modals/ClaimRewardModal";
 import UserProfileModal from "./modals/UserProfileModal";
 import WithdrawModal from "./modals/WithdrawModal";
 import { usePrivy } from "@privy-io/react-auth";
-import { useMe, useTransactions, useWatchHistory } from "@/app/hooks/useSocial";
+import { useMe, useTransactions, useWatchHistory, useSeePoints } from "@/app/hooks/useSocial";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { formatCount } from "@/app/hooks/useVideo";
 
@@ -361,6 +361,7 @@ const EarnPage = () => {
   const { profile, isLoading: profileLoading } = useMe(getAccessToken);
   const { transactions, isLoading: txLoading } = useTransactions(getAccessToken);
   const { history: watchHistory } = useWatchHistory(getAccessToken);
+  const { balance: seePoints } = useSeePoints(getAccessToken);
   const { getUsdcBalance } = usePixseeContract();
 
   const [activeTab, setActiveTab] = useState<TabId>("earn");
@@ -378,14 +379,14 @@ const EarnPage = () => {
     if (usdcBalance != null) setCurrentBalance(parseFloat(usdcBalance));
   }, [usdcBalance]);
 
+  // Refetch balance from chain after fund/withdraw completes
+  const refetchBalance = () => {
+    getUsdcBalance().then(setUsdcBalance).catch(() => {});
+  };
+
   // Modal states
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showTransactionSuccess, setShowTransactionSuccess] = useState(false);
-  const [transactionType, setTransactionType] = useState<
-    "deposit" | "withdraw"
-  >("deposit");
-  const [transactionAmount, setTransactionAmount] = useState(0);
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [showClaimRewardModal, setShowClaimRewardModal] = useState(false);
   const [selectedReward, setSelectedReward] = useState<RewardCard | null>(null);
@@ -404,20 +405,14 @@ const EarnPage = () => {
     },
   ];
 
-  const handleAddFundsSuccess = (amount: number) => {
+  const handleAddFundsSuccess = () => {
     setShowAddFundsModal(false);
-    setTransactionType("deposit");
-    setTransactionAmount(amount);
-    setCurrentBalance((prev) => prev + amount);
-    setShowTransactionSuccess(true);
+    refetchBalance();
   };
 
-  const handleWithdrawSuccess = (amount: number) => {
-    setShowWithdrawModal(false);
-    setTransactionType("withdraw");
-    setTransactionAmount(amount);
-    setCurrentBalance((prev) => prev - amount);
-    setShowTransactionSuccess(true);
+  const handleWithdrawSuccess = () => {
+    // Withdraw modal shows its own success screen; refetch balance when it closes
+    refetchBalance();
   };
 
   const handleClaimReward = (reward: RewardCard) => {
@@ -446,6 +441,8 @@ const EarnPage = () => {
     switch (activeTab) {
       case "rewards":
         return <RewardsTab onClaimReward={handleClaimReward as any} />;
+      case "votes":
+        return <VotingTab />;
       case "quest":
         return <QuestTab />;
       case "leaderboard":
@@ -461,9 +458,9 @@ const EarnPage = () => {
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <OverviewCard stat={{ label: "USDC Balance", value: usdcBalance != null ? `$${parseFloat(usdcBalance).toFixed(2)}` : "—" }} />
+                <OverviewCard stat={{ label: "SEE Points", value: seePoints != null ? seePoints.toLocaleString() : "—" }} />
                 <OverviewCard stat={{ label: "Transactions", value: txLoading ? "…" : String(transactions.length) }} />
                 <OverviewCard stat={{ label: "Videos Watched", value: String(watchHistory.length) }} />
-                <OverviewCard stat={{ label: "Voting APR", value: VOTING_APR }} />
               </div>
             </section>
 
@@ -659,16 +656,9 @@ const EarnPage = () => {
 
       <WithdrawModal
         isOpen={showWithdrawModal}
-        onClose={() => setShowWithdrawModal(false)}
+        onClose={() => { setShowWithdrawModal(false); handleWithdrawSuccess(); }}
         onSuccess={handleWithdrawSuccess}
         currentBalance={currentBalance}
-      />
-
-      <TransactionSuccessModal
-        isOpen={showTransactionSuccess}
-        onClose={() => setShowTransactionSuccess(false)}
-        type={transactionType}
-        amount={transactionAmount}
       />
 
       <ReferralModal
