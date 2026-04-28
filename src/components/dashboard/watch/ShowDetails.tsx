@@ -35,7 +35,12 @@ import {
 } from "@/app/hooks/useVideo";
 import { ApiEpisode, ApiShow } from "@/app/types/pixsee-api";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
-import { useLike, useComments, useFollow, useWatchlist } from "@/app/hooks/useSocial";
+import {
+  useLike,
+  useComments,
+  useFollow,
+  useWatchlist,
+} from "@/app/hooks/useSocial";
 import { useSocialState } from "@/app/context/SocialStateContext";
 import type { Address } from "viem";
 import { formatUnits } from "viem";
@@ -92,11 +97,13 @@ const BuyAndWatchButton = ({
   // Fetch tix address + user's tix balance for this show
   useEffect(() => {
     if (!bondingCurveAddress || episode.is_free) return;
-    getTixAddress(bondingCurveAddress).then((addr) => {
-      setTixAddress(addr);
-      // Try to read tick symbol from contract for display
-      return getTixBalance(addr).then((bal) => setUserTixBalance(bal));
-    }).catch(() => {});
+    getTixAddress(bondingCurveAddress)
+      .then((addr) => {
+        setTixAddress(addr);
+        // Try to read tick symbol from contract for display
+        return getTixBalance(addr).then((bal) => setUserTixBalance(bal));
+      })
+      .catch(() => {});
   }, [bondingCurveAddress, episode.is_free, getTixAddress, getTixBalance]);
 
   // Fetch USDC cost quote (only needed when user doesn't have enough tix)
@@ -105,7 +112,13 @@ const BuyAndWatchButton = ({
     quoteCostToWatch(bondingCurveAddress, durationMinutes)
       .then((q) => setCost(q.displayCost))
       .catch(() => {});
-  }, [bondingCurveAddress, durationMinutes, episode.is_free, hasEnoughTix, quoteCostToWatch]);
+  }, [
+    bondingCurveAddress,
+    durationMinutes,
+    episode.is_free,
+    hasEnoughTix,
+    quoteCostToWatch,
+  ]);
 
   const notifyBackend = async (tx: string) => {
     const token = await getAccessToken();
@@ -169,7 +182,9 @@ const BuyAndWatchButton = ({
 
   if (episode.is_free) return null;
 
-  const tixBalanceDisplay = parseFloat(formatUnits(userTixBalance, 18)).toFixed(4);
+  const tixBalanceDisplay = parseFloat(formatUnits(userTixBalance, 18)).toFixed(
+    4
+  );
 
   return (
     <div className="mt-4 p-4 rounded-xl bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20">
@@ -182,10 +197,11 @@ const BuyAndWatchButton = ({
 
       {hasEnoughTix ? (
         // User has enough tix — show tix balance and unlock-with-tix option
-        <p className="text-sm text-neutral-secondary-text mb-3">
-          You have{" "}
+        <p className="text-sm text-neutral-tertiary-text mb-3">
+          {cost ? ` (${parseFloat(cost).toFixed(4)})` : ""} {tickSymbol} tix
+          needed. You have{" "}
           <span className="font-semibold text-brand-pixsee-secondary">
-            {tixBalanceDisplay} {tickSymbol}
+            {tixBalanceDisplay} {tickSymbol} tix
           </span>{" "}
           — enough to unlock this episode without spending USDC.
         </p>
@@ -225,7 +241,7 @@ const BuyAndWatchButton = ({
           ) : (
             <>
               <Unlock className="w-4 h-4" />
-              Unlock with {tickSymbol}
+              Unlock with your {tickSymbol} tix balance.{" "}
             </>
           )}
         </Button>
@@ -305,7 +321,7 @@ const VideoPlayer = ({
             {episode.title}
           </p>
           <p className="text-white/60 text-sm">
-            Purchase tix to unlock this episode
+            Purchase {tickSymbol} tix to unlock this episode
           </p>
           {showContractAddress && bondingCurveAddress && (
             <div className="mt-4">
@@ -485,7 +501,9 @@ const ShowDetails = ({ id }: { id: string }) => {
   const [bondingCurveAddress, setBondingCurveAddress] = useState<
     Address | undefined
   >();
-  const [resolvedTickSymbol, setResolvedTickSymbol] = useState<string | undefined>();
+  const [resolvedTickSymbol, setResolvedTickSymbol] = useState<
+    string | undefined
+  >();
 
   const activeEpisode =
     episodes.find((ep) => ep.id === activeEpisodeId) ?? episodes[0] ?? null;
@@ -507,7 +525,9 @@ const ShowDetails = ({ id }: { id: string }) => {
     const onChainId = apiShow?.on_chain_show_id;
     if (!onChainId) return;
     getShowInfo(Number(onChainId))
-      .then((info) => { if (info.tickSymbol) setResolvedTickSymbol(info.tickSymbol); })
+      .then((info) => {
+        if (info.tickSymbol) setResolvedTickSymbol(info.tickSymbol);
+      })
       .catch(() => {});
   }, [apiShow?.tick_symbol, apiShow?.on_chain_show_id, getShowInfo]);
 
@@ -562,13 +582,18 @@ const ShowDetails = ({ id }: { id: string }) => {
     }
   }, [activeEpisode?.id, activeEpisode?.is_liked, activeEpisode?.like_count]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { liked, likesCount, setLikesCount, loading: likeLoading, toggle: toggleLike } =
-    useLike(
-      activeEpisode?.id ?? null,
-      getAccessToken,
-      activeEpisode?.is_liked ?? false,
-      activeEpisode?.like_count ?? 0
-    );
+  const {
+    liked,
+    likesCount,
+    setLikesCount,
+    loading: likeLoading,
+    toggle: toggleLike,
+  } = useLike(
+    activeEpisode?.id ?? null,
+    getAccessToken,
+    activeEpisode?.is_liked ?? false,
+    activeEpisode?.like_count ?? 0
+  );
 
   // Mirror episode liked state to show ID so ShowCard on the browse page reflects it
   useEffect(() => {
@@ -576,11 +601,15 @@ const ShowDetails = ({ id }: { id: string }) => {
     const showIdNum = parseInt(id);
     if (!isNaN(showIdNum)) socialCache.setLiked(showIdNum, liked);
   }, [liked, activeEpisode?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const { following, loading: followLoading, toggle: toggleFollow } =
-    useFollow(creator?.id, getAccessToken);
+  const {
+    following,
+    loading: followLoading,
+    toggle: toggleFollow,
+  } = useFollow(creator?.id, getAccessToken);
   const { addShow, removeShow, isInWatchlist } = useWatchlist(getAccessToken);
   const inWatchlist = isInWatchlist(parseInt(id));
-  const toggleWatchlist = () => inWatchlist ? removeShow(parseInt(id)) : addShow(parseInt(id));
+  const toggleWatchlist = () =>
+    inWatchlist ? removeShow(parseInt(id)) : addShow(parseInt(id));
   const {
     comments,
     isLoading: commentsLoading,
@@ -748,7 +777,9 @@ const ShowDetails = ({ id }: { id: string }) => {
                       : "border-neutral-tertiary-border"
                   )}
                 >
-                  <Heart className={cn("w-3.5 h-3.5", liked && "fill-current")} />
+                  <Heart
+                    className={cn("w-3.5 h-3.5", liked && "fill-current")}
+                  />
                   {likesCount > 0 && <span>{likesCount}</span>}
                 </Button>
                 <Button
@@ -761,8 +792,12 @@ const ShowDetails = ({ id }: { id: string }) => {
                       : "border-neutral-tertiary-border"
                   )}
                 >
-                  <Star className={cn("w-3.5 h-3.5", inWatchlist && "fill-current")} />
-                  <span className="hidden sm:inline">{inWatchlist ? "Saved" : "Watchlist"}</span>
+                  <Star
+                    className={cn("w-3.5 h-3.5", inWatchlist && "fill-current")}
+                  />
+                  <span className="hidden sm:inline">
+                    {inWatchlist ? "Saved" : "Watchlist"}
+                  </span>
                 </Button>
                 <Button
                   variant="outline"
@@ -865,9 +900,13 @@ const ShowDetails = ({ id }: { id: string }) => {
                   )}
                 >
                   {following ? (
-                    <><UserCheck className="w-4 h-4" /> Following</>
+                    <>
+                      <UserCheck className="w-4 h-4" /> Following
+                    </>
                   ) : (
-                    <><UserPlus className="w-4 h-4" /> Follow creator</>
+                    <>
+                      <UserPlus className="w-4 h-4" /> Follow creator
+                    </>
                   )}
                 </Button>
               </div>
@@ -892,7 +931,9 @@ const ShowDetails = ({ id }: { id: string }) => {
                   Comments
                 </h2>
                 <MessageCircle size={16} />
-                <span className="text-sm text-neutral-tertiary-text">{comments.length > 0 ? comments.length : ""}</span>
+                <span className="text-sm text-neutral-tertiary-text">
+                  {comments.length > 0 ? comments.length : ""}
+                </span>
               </div>
 
               {/* Sort tabs */}
@@ -940,7 +981,11 @@ const ShowDetails = ({ id }: { id: string }) => {
                   disabled={isPosting || !newComment.trim()}
                   className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-lg px-3 sm:px-4 text-sm shrink-0 disabled:opacity-60"
                 >
-                  {isPosting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Post"}
+                  {isPosting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Post"
+                  )}
                 </Button>
               </div>
 
@@ -958,23 +1003,31 @@ const ShowDetails = ({ id }: { id: string }) => {
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-neutral-tertiary flex items-center justify-center text-sm font-semibold text-neutral-secondary-text shrink-0">
-                        {(comment.user?.name ?? comment.user?.username ?? "?").charAt(0).toUpperCase()}
+                        {(comment.user?.name ?? comment.user?.username ?? "?")
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="text-xs font-semibold text-neutral-primary-text">
-                            {comment.user?.name ?? comment.user?.username ?? "User"}
+                            {comment.user?.name ??
+                              comment.user?.username ??
+                              "User"}
                           </span>
                           <span className="text-xs text-neutral-tertiary-text">
                             {new Date(comment.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-sm text-neutral-secondary-text">{comment.body}</p>
+                        <p className="text-sm text-neutral-secondary-text">
+                          {comment.body}
+                        </p>
 
                         <div className="flex items-center gap-3 mt-1">
                           <button
                             onClick={() => {
-                              setReplyingTo(replyingTo === comment.id ? null : comment.id);
+                              setReplyingTo(
+                                replyingTo === comment.id ? null : comment.id
+                              );
                               setReplyText("");
                             }}
                             className="text-xs text-neutral-tertiary-text hover:text-brand-pixsee-secondary transition-colors"
@@ -1001,8 +1054,14 @@ const ShowDetails = ({ id }: { id: string }) => {
                             />
                             <Button
                               onClick={async () => {
-                                const ok = await postComment(replyText, comment.id);
-                                if (ok) { setReplyText(""); setReplyingTo(null); }
+                                const ok = await postComment(
+                                  replyText,
+                                  comment.id
+                                );
+                                if (ok) {
+                                  setReplyText("");
+                                  setReplyingTo(null);
+                                }
                               }}
                               disabled={isPosting || !replyText.trim()}
                               className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-lg px-3 text-xs shrink-0 disabled:opacity-60"
@@ -1018,18 +1077,30 @@ const ShowDetails = ({ id }: { id: string }) => {
                             {comment.replies.map((reply) => (
                               <div key={reply.id} className="flex gap-2">
                                 <div className="w-6 h-6 rounded-full bg-neutral-tertiary flex items-center justify-center text-xs font-semibold text-neutral-secondary-text shrink-0">
-                                  {(reply.user?.name ?? reply.user?.username ?? "?").charAt(0).toUpperCase()}
+                                  {(
+                                    reply.user?.name ??
+                                    reply.user?.username ??
+                                    "?"
+                                  )
+                                    .charAt(0)
+                                    .toUpperCase()}
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2 mb-0.5">
                                     <span className="text-xs font-semibold text-neutral-primary-text">
-                                      {reply.user?.name ?? reply.user?.username ?? "User"}
+                                      {reply.user?.name ??
+                                        reply.user?.username ??
+                                        "User"}
                                     </span>
                                     <span className="text-xs text-neutral-tertiary-text">
-                                      {new Date(reply.created_at).toLocaleDateString()}
+                                      {new Date(
+                                        reply.created_at
+                                      ).toLocaleDateString()}
                                     </span>
                                   </div>
-                                  <p className="text-sm text-neutral-secondary-text">{reply.body}</p>
+                                  <p className="text-sm text-neutral-secondary-text">
+                                    {reply.body}
+                                  </p>
                                 </div>
                               </div>
                             ))}
