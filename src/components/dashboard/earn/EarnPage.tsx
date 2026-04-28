@@ -392,6 +392,7 @@ const EarnPage = () => {
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [faucetDone, setFaucetDone] = useState(false);
   const [faucetClaimed, setFaucetClaimed] = useState(false);
+  const [faucetError, setFaucetError] = useState<string | null>(null);
   const claimTestUsdc = async () => {
     const activeWallet = wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
     if (!activeWallet) return;
@@ -418,6 +419,8 @@ const EarnPage = () => {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("Already claimed")) {
         setFaucetClaimed(true);
+      } else if (msg.toLowerCase().includes("insufficient funds for gas")) {
+        setFaucetError("no-gas");
       } else {
         console.error("[Faucet] failed:", err);
       }
@@ -661,9 +664,9 @@ const EarnPage = () => {
 
             {/* Testnet faucet — only visible on Base Sepolia */}
             {CHAIN_ID === 84532 && (
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-2">
                 <button
-                  onClick={claimTestUsdc}
+                  onClick={() => { setFaucetError(null); claimTestUsdc(); }}
                   disabled={faucetLoading || faucetDone || faucetClaimed}
                   className="flex items-center gap-1.5 text-base text-white hover:text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -677,6 +680,23 @@ const EarnPage = () => {
                     "🧪 Get 10,000 test USDC (testnet only)"
                   )}
                 </button>
+                {faucetError === "no-gas" && (
+                  <p className="text-xs text-yellow-300/80 text-center max-w-xs leading-relaxed">
+                    Your embedded wallet needs <strong>Base Sepolia ETH</strong> for gas — regular Sepolia ETH won&apos;t work here.{" "}
+                    <a
+                      href="https://www.alchemy.com/faucets/base-sepolia"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline hover:text-yellow-200"
+                    >
+                      Get Base Sepolia ETH →
+                    </a>
+                    {" "}and send a small amount (0.001 ETH is enough) to:{" "}
+                    <span className="font-mono text-white/70 break-all">
+                      {wallets.find((w) => w.walletClientType === "privy")?.address ?? "—"}
+                    </span>
+                  </p>
+                )}
               </div>
             )}
 
