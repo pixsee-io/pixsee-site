@@ -23,7 +23,7 @@ import WithdrawModal from "@/components/dashboard/earn/modals/WithdrawModal";
 import Image from "next/image";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { useMe, useWatchHistory, useWatchlist } from "@/app/hooks/useSocial";
+import { useMe, useWatchHistory, useWatchlist, useSeePoints } from "@/app/hooks/useSocial";
 import { formatCount, useMyShows } from "@/app/hooks/useVideo";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 
@@ -237,6 +237,7 @@ const ProfilePage = () => {
   const { items: watchlistItems, isLoading: watchlistLoading } = useWatchlist(getAccessToken);
   const { shows: myShows, isLoading: myShowsLoading } = useMyShows(getAccessToken);
   const { getUsdcBalance } = usePixseeContract();
+  const { balance: seePoints, earnData } = useSeePoints(getAccessToken);
 
   useEffect(() => {
     getUsdcBalance().then(setUsdcBalance).catch(() => {});
@@ -400,28 +401,47 @@ const ProfilePage = () => {
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Balance Card */}
-              <div className="relative rounded-2xl overflow-hidden bg-brand-primary p-6 py-16 sm:py-20 balance_bg">
-                <div className="flex flex-col items-center justify-center relative z-10">
-                  <p className="text-white/80 text-sm mb-2">Balance</p>
-                  <div className="flex items-center gap-2 mb-6">
-                    <p className="text-3xl sm:text-4xl font-bold text-white">
-                      {showBalance ? (usdcBalance != null ? `$${parseFloat(usdcBalance).toFixed(2)}` : "—") : "••••••"}
-                    </p>
-                    <button
-                      onClick={() => setShowBalance(!showBalance)}
-                      className="text-white/60 hover:text-white transition-colors"
-                    >
-                      {showBalance ? (
-                        <EyeOff className="w-5 h-5" />
-                      ) : (
-                        <Eye className="w-5 h-5" />
-                      )}
-                    </button>
+              <div className="relative rounded-2xl overflow-hidden bg-brand-primary p-6 py-10 sm:py-12 balance_bg">
+                <div className="flex flex-col items-center justify-center relative z-10 gap-4">
+                  {/* USDC */}
+                  <div className="text-center">
+                    <p className="text-white/70 text-xs mb-1">USDC Balance</p>
+                    <div className="flex items-center gap-2 justify-center">
+                      <p className="text-3xl sm:text-4xl font-bold text-white">
+                        {showBalance
+                          ? (usdcBalance != null
+                            ? `$${parseFloat(usdcBalance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : "—")
+                          : "••••••"}
+                      </p>
+                      <button
+                        onClick={() => setShowBalance(!showBalance)}
+                        className="text-white/60 hover:text-white transition-colors"
+                      >
+                        {showBalance ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  {/* $PIX + SEE Points row */}
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-white/60 text-xs mb-0.5">$PIX</p>
+                      <p className="text-lg font-semibold text-white/80">
+                        {showBalance ? "0" : "•••"}
+                      </p>
+                    </div>
+                    <div className="w-px h-8 bg-white/20" />
+                    <div className="text-center">
+                      <p className="text-white/60 text-xs mb-0.5">SEE Points</p>
+                      <p className="text-lg font-semibold text-white/80">
+                        {showBalance ? (seePoints != null ? seePoints.toLocaleString() : "—") : "•••"}
+                      </p>
+                    </div>
                   </div>
                   <Button
                     variant="outline"
                     onClick={() => setShowWithdraw(true)}
-                    className="bg-transparent hover:bg-white/10 text-white border-white/50 rounded-full px-8 py-6 gap-2 w-full sm:w-auto"
+                    className="bg-transparent hover:bg-white/10 text-white border-white/50 rounded-full px-8 py-5 gap-2 w-full sm:w-auto"
                   >
                     Withdraw
                     <Plus className="w-4 h-4" />
@@ -432,27 +452,38 @@ const ProfilePage = () => {
               {/* Reward Sources */}
               <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
                 <p className="text-lg font-paytone text-neutral-primary-text mb-4">
-                  Reward sources
+                  SEE Points Breakdown
                 </p>
                 <div className="space-y-4">
-                  {rewardSources.map((source, index) => (
-                    <div key={index}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-neutral-secondary-text">
-                          {source.label}
-                        </span>
-                        <span className="text-sm font-medium text-neutral-primary-text">
-                          {source.percentage}%
-                        </span>
+                  {(() => {
+                    const total = earnData
+                      ? ((earnData.watch_points ?? 0) + (earnData.engagement_points ?? 0) + (earnData.referral_points ?? 0))
+                      : 0;
+                    const sources = earnData && total > 0
+                      ? [
+                          { label: "Watch Rewards", pts: earnData.watch_points ?? 0, color: "bg-brand-primary" },
+                          { label: "Engagement", pts: earnData.engagement_points ?? 0, color: "bg-brand-pixsee-secondary" },
+                          { label: "Referrals", pts: earnData.referral_points ?? 0, color: "bg-pink-500" },
+                        ].filter((s) => s.pts > 0)
+                      : rewardSources.map((s) => ({ label: s.label, pts: s.percentage, color: s.color }));
+                    const maxPts = Math.max(...sources.map((s) => s.pts), 1);
+                    return sources.map((source, index) => (
+                      <div key={index}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-neutral-secondary-text">{source.label}</span>
+                          <span className="text-sm font-medium text-neutral-primary-text">
+                            {earnData && total > 0 ? `${source.pts.toLocaleString()} pts` : `${source.pts}%`}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-neutral-tertiary rounded-full overflow-hidden">
+                          <div
+                            className={cn("h-full rounded-full", source.color)}
+                            style={{ width: `${Math.round((source.pts / maxPts) * 100)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-neutral-tertiary rounded-full overflow-hidden">
-                        <div
-                          className={cn("h-full rounded-full", source.color)}
-                          style={{ width: `${source.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               </div>
             </div>

@@ -724,7 +724,7 @@ const CreatePage = () => {
         <label className="block text-sm font-medium text-neutral-primary-text mb-2">
           $Tix Ticker{" "}
           <span className="text-xs font-normal text-neutral-tertiary-text">
-            (e.g. FIRE, HERO — max 5 chars, auto-generated if blank)
+            (e.g. FIRE, HERO — auto-generated if blank)
           </span>
         </label>
         <input
@@ -733,11 +733,10 @@ const CreatePage = () => {
           onChange={(e) =>
             setShowDetails((d) => ({
               ...d,
-              tickSymbol: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5),
+              tickSymbol: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
             }))
           }
           placeholder="e.g. FIRE"
-          maxLength={5}
           className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-primary text-neutral-primary-text focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary font-mono tracking-widest"
         />
       </div>

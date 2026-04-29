@@ -14,6 +14,11 @@ export default function PWAInstallButton() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isDismissed, setIsDismissed] = useState(true);
 
+  const isMobile = useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    return /iphone|ipad|ipod|android|mobile/i.test(navigator.userAgent);
+  }, []);
+
   const isIos = useMemo(() => {
     if (typeof navigator === "undefined") return false;
     return /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -66,7 +71,7 @@ export default function PWAInstallButton() {
     setIsDismissed(true);
   };
 
-  if (isInstalled || isDismissed) return null;
+  if (!isMobile || isInstalled || isDismissed) return null;
 
   const showInstallPrompt = Boolean(deferredPrompt);
   const showIosPrompt = !showInstallPrompt && isIos && !isStandalone;
