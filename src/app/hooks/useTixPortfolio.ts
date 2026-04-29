@@ -17,6 +17,25 @@ import {
 } from "../lib/pixsee-contracts";
 import type { ShowInfo } from "./usePixseeContract";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
+
+async function fetchBackendIdMap(): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/v1/shows?per_page=200&sort=-created_at`);
+    if (!res.ok) return map;
+    const json = await res.json();
+    for (const show of json.data ?? []) {
+      if (show.bonding_curve) {
+        map.set(show.bonding_curve.toLowerCase(), show.id);
+      }
+    }
+  } catch {
+    // non-critical — links will just be missing
+  }
+  return map;
+}
+
 const publicClient = createPublicClient({
   chain: baseSepolia,
   transport: http(undefined, { batch: true }),
@@ -39,11 +58,13 @@ export type TixHolding = {
 
 export type ShowListing = {
   showId: number;
+  backendShowId?: number;
   show: ShowInfo;
   spotPricePerToken: bigint;
   spotPricePerMinute: bigint;
   pricePerMinuteDisplay: string;
   totalVolumeUsdc: string;
+  tixSupply: bigint;
 };
 
 export type TixPortfolio = {
@@ -69,6 +90,9 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
     setError(null);
 
     try {
+      // ── Backend ID map (non-blocking, best-effort) ───────────────────────
+      const backendIdMap = await fetchBackendIdMap();
+
       // ── Round-trip 1: showCount + USDC balance ────────────────────────────
       // Two individual reads — avoids the conditional-spread type complexity.
       const [showCountRaw, usdcRaw] = await Promise.all([
@@ -159,14 +183,19 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
         const spotPricePerToken = curveState?.[0] ?? 0n;
         const spotPricePerMinute = curveState?.[1] ?? 0n;
         const totalVolumeUsdc = curveState?.[3] ?? 0n;
+        const tixSupply = curveState?.[4] ?? 0n;
+
+        const backendShowId = backendIdMap.get(show.bondingCurve.toLowerCase());
 
         listings.push({
           showId: showIds[i],
+          backendShowId,
           show,
           spotPricePerToken,
           spotPricePerMinute,
           pricePerMinuteDisplay: formatUnits(spotPricePerMinute, 6),
           totalVolumeUsdc: formatUnits(totalVolumeUsdc, 6),
+          tixSupply,
         });
 
         if (tixBalance > 0n) {

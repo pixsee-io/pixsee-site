@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/app/hooks/useAuth";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { useNotifications } from "@/app/hooks/useSocial";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useExportWallet, useWallets } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -34,7 +34,12 @@ import {
   MessageCircle,
   UserPlus,
   Reply,
+  ArrowDownLeft,
+  ArrowUpRight,
+  KeyRound,
 } from "lucide-react";
+import AddFundsModal from "@/components/dashboard/earn/modals/AddFundsModal";
+import WithdrawModal from "@/components/dashboard/earn/modals/WithdrawModal";
 
 type DashboardHeaderProps = {
   onMenuClick?: () => void;
@@ -60,11 +65,16 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const { user, logout } = useAuth();
   const { getAccessToken } = usePrivy();
+  const { exportWallet } = useExportWallet();
+  const { wallets } = useWallets();
+  const hasEmbeddedWallet = wallets.some((w) => w.walletClientType === "privy");
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string>("0.00");
   const [copied, setCopied] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [showFundModal, setShowFundModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const { getUsdcBalance, walletAddress } = usePixseeContract();
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications(getAccessToken);
@@ -148,6 +158,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
   })();
 
   return (
+    <>
     <header className="sticky top-0 z-40 bg-neutral-primary text-neutral-primary-text border-b border-neutral-tertiary-border px-3 sm:px-4 md:px-6 py-3">
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Mobile menu */}
@@ -176,7 +187,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
         {/* Create — icon-only on xs, full on sm+ */}
         <Button
           asChild
-          className="hidden sm:flex bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-3 sm:px-4 py-2 gap-1.5 font-medium shrink-0 min-h-[40px]"
+          className="hidden sm:flex bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-3 sm:px-4 py-2 gap-1.5 font-medium shrink-0 min-h-10"
         >
           <Link href="/dashboard/create" aria-label="Create">
             <Plus className="w-4 h-4" />
@@ -185,13 +196,37 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
         </Button>
 
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          <div className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 md:px-4 py-2 bg-neutral-secondary rounded-2xl">
-            <Wallet className="w-4 h-4 text-neutral-tertiary-text" />
-            <span className="text-xs sm:text-sm font-medium text-neutral-primary-text whitespace-nowrap">
-              ${usdcBalance.split(".")[0]}
-              <span className="hidden sm:inline">.{usdcBalance.split(".")[1] ?? "00"}</span>
-            </span>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 md:px-4 py-2 bg-neutral-secondary rounded-2xl hover:bg-neutral-secondary/80 transition-colors">
+                <Wallet className="w-4 h-4 text-neutral-tertiary-text" />
+                <span className="text-xs sm:text-sm font-medium text-neutral-primary-text whitespace-nowrap">
+                  ${usdcBalance.split(".")[0]}
+                  <span className="hidden sm:inline">.{usdcBalance.split(".")[1] ?? "00"}</span>
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-xs text-neutral-tertiary-text font-normal">
+                ${usdcBalance} USDC
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setShowFundModal(true)}
+                className="cursor-pointer"
+              >
+                <ArrowUpRight className="mr-2 h-4 w-4 text-brand-pixsee-secondary" />
+                Fund Wallet
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowWithdrawModal(true)}
+                className="cursor-pointer"
+              >
+                <ArrowDownLeft className="mr-2 h-4 w-4 text-neutral-secondary-text" />
+                Withdraw
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
@@ -205,7 +240,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
             >
               <Bell className="w-5 h-5 text-neutral-secondary-text" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 bg-semantic-error-primary rounded-full flex items-center justify-center text-[9px] text-white font-bold">
+                <span className="absolute top-1 right-1 min-w-4 h-4 px-0.5 bg-semantic-error-primary rounded-full flex items-center justify-center text-[9px] text-white font-bold">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
@@ -264,7 +299,7 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
                     {getInitials()}
                   </span>
                 </div>
-                <span className="hidden lg:block text-sm font-medium text-neutral-primary-text max-w-[10rem] truncate">
+                <span className="hidden lg:block text-sm font-medium text-neutral-primary-text max-w-40 truncate">
                   {getUserDisplay()}
                 </span>
                 <ChevronDown className="hidden lg:block w-4 h-4 text-neutral-tertiary-text" />
@@ -315,6 +350,19 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
 
               <DropdownMenuSeparator />
 
+              {hasEmbeddedWallet && (
+                <DropdownMenuItem
+                  onClick={() => exportWallet()}
+                  onSelect={(e) => e.preventDefault()}
+                  className="cursor-pointer"
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Export Wallet
+                </DropdownMenuItem>
+              )}
+
+              <DropdownMenuSeparator />
+
               <DropdownMenuItem
                 onClick={logout}
                 className="cursor-pointer text-semantic-error-text focus:text-semantic-error-text"
@@ -327,6 +375,24 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
         </div>
       </div>
     </header>
+
+    {showFundModal && (
+      <AddFundsModal
+        isOpen={showFundModal}
+        onClose={() => setShowFundModal(false)}
+        onSuccess={() => setShowFundModal(false)}
+        currentBalance={parseFloat(usdcBalance.replace(/,/g, ""))}
+      />
+    )}
+    {showWithdrawModal && (
+      <WithdrawModal
+        isOpen={showWithdrawModal}
+        onClose={() => setShowWithdrawModal(false)}
+        onSuccess={() => setShowWithdrawModal(false)}
+        currentBalance={parseFloat(usdcBalance.replace(/,/g, ""))}
+      />
+    )}
+    </>
   );
 };
 

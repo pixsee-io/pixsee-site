@@ -556,8 +556,18 @@ export function useWatchlist(getAccessToken: GetAccessToken) {
 
 // ─── SEE Points (Earn) ────────────────────────────────────────────────────────
 
+export type EarnData = {
+  see_points_balance: number;
+  watch_points?: number;
+  engagement_points?: number;
+  referral_points?: number;
+  comment_points?: number;
+  like_points?: number;
+};
+
 export function useSeePoints(getAccessToken: GetAccessToken) {
   const [balance, setBalance] = useState<number | null>(null);
+  const [earnData, setEarnData] = useState<EarnData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -572,7 +582,10 @@ export function useSeePoints(getAccessToken: GetAccessToken) {
         });
         if (!res.ok) return;
         const json = await res.json();
-        if (!cancelled) setBalance(json.see_points_balance ?? 0);
+        if (!cancelled) {
+          setBalance(json.see_points_balance ?? 0);
+          setEarnData(json);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -594,5 +607,5 @@ export function useSeePoints(getAccessToken: GetAccessToken) {
     return json;
   }, [getAccessToken]);
 
-  return { balance, isLoading, claim };
+  return { balance, earnData, isLoading, claim };
 }

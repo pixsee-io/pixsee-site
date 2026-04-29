@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   TrendingUp,
   Wallet,
@@ -139,6 +140,15 @@ function BuyModal({ show, onClose, onSuccess }: BuyModalProps) {
             </span>
           </div>
 
+          <div className="rounded-xl border border-neutral-tertiary-border px-3 py-2.5 space-y-1">
+            <p className="text-xs font-medium text-neutral-secondary-text">3% transaction fee</p>
+            <div className="flex justify-between text-xs text-neutral-tertiary-text">
+              <span>1% Pixsee platform</span>
+              <span>1% Voting pool</span>
+              <span>1% Creator</span>
+            </div>
+          </div>
+
           {txError && (
             <p className="text-xs text-semantic-error-primary">{txError}</p>
           )}
@@ -274,6 +284,15 @@ function SellModal({ holding, onClose, onSuccess }: SellModalProps) {
             </span>
           </div>
 
+          <div className="rounded-xl border border-neutral-tertiary-border px-3 py-2.5 space-y-1">
+            <p className="text-xs font-medium text-neutral-secondary-text">3% transaction fee</p>
+            <div className="flex justify-between text-xs text-neutral-tertiary-text">
+              <span>1% Pixsee platform</span>
+              <span>1% Voting pool</span>
+              <span>1% Creator</span>
+            </div>
+          </div>
+
           {txError && <p className="text-xs text-semantic-error-primary">{txError}</p>}
 
           <Button
@@ -404,7 +423,17 @@ export default function TradePage() {
                   {sortedHoldings.map((h) => (
                     <tr key={h.showId} className="border-b border-neutral-tertiary-border last:border-0 hover:bg-neutral-secondary/30 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-neutral-primary-text">{h.show.title}</div>
+                        {(() => {
+                          const listing = allShows.find((s) => s.showId === h.showId);
+                          const bid = listing?.backendShowId;
+                          return bid ? (
+                            <Link href={`/dashboard/watch/${bid}`} className="font-medium text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
+                              {h.show.title}
+                            </Link>
+                          ) : (
+                            <div className="font-medium text-neutral-primary-text">{h.show.title}</div>
+                          );
+                        })()}
                         <div className="text-xs text-neutral-tertiary-text">{h.show.tickSymbol}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-neutral-primary-text">
@@ -471,7 +500,13 @@ export default function TradePage() {
                   className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 flex flex-col gap-3"
                 >
                   <div>
-                    <p className="font-semibold text-neutral-primary-text">{s.show.title}</p>
+                    {s.backendShowId ? (
+                      <Link href={`/dashboard/watch/${s.backendShowId}`} className="font-semibold text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
+                        {s.show.title}
+                      </Link>
+                    ) : (
+                      <p className="font-semibold text-neutral-primary-text">{s.show.title}</p>
+                    )}
                     <p className="text-xs text-neutral-tertiary-text">{s.show.tickSymbol}</p>
                   </div>
 
@@ -483,13 +518,19 @@ export default function TradePage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-neutral-tertiary-text">Volume</p>
+                      <p className="text-neutral-tertiary-text">TIX Volume</p>
                       <p className="font-medium text-neutral-primary-text">
                         {fmtUsdc(s.totalVolumeUsdc)}
                       </p>
                     </div>
+                    <div>
+                      <p className="text-neutral-tertiary-text">TIX Supply</p>
+                      <p className="font-medium text-neutral-primary-text">
+                        {fmtTix(s.tixSupply)}
+                      </p>
+                    </div>
                     {holding && (
-                      <div className="col-span-2">
+                      <div>
                         <p className="text-neutral-tertiary-text">Your balance</p>
                         <p className="font-medium text-brand-pixsee-secondary">
                           {fmtTix(holding.tixBalance)} {s.show.tickSymbol}

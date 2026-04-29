@@ -502,7 +502,7 @@ const EarnPage = () => {
                 Overview
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                <OverviewCard stat={{ label: "USDC Balance", value: usdcBalance != null ? `$${parseFloat(usdcBalance).toFixed(2)}` : "—" }} />
+                <OverviewCard stat={{ label: "USDC Balance", value: usdcBalance != null ? `$${parseFloat(usdcBalance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—" }} />
                 <OverviewCard stat={{ label: "SEE Points", value: seePoints != null ? seePoints.toLocaleString() : "—" }} />
                 <OverviewCard stat={{ label: "Transactions", value: txLoading ? "…" : String(transactions.length) }} />
                 <OverviewCard stat={{ label: "Videos Watched", value: String(watchHistory.length) }} />
@@ -536,7 +536,7 @@ const EarnPage = () => {
                     ...earningStreams[0],
                     stats: [
                       { label: "$PIX Earned", value: profile?.token_balance ?? "—" },
-                      { label: "Cashback(10%)", value: usdcBalance != null ? `$${(parseFloat(usdcBalance) * 0.1).toFixed(2)}` : "—" },
+                      { label: "Cashback(10%)", value: usdcBalance != null ? `$${(parseFloat(usdcBalance) * 0.1).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—" },
                       { label: "Videos Watched", value: String(watchHistory.length) },
                     ],
                   },
@@ -628,8 +628,8 @@ const EarnPage = () => {
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">
                 {showBalance
                   ? usdcBalance != null
-                    ? `$${parseFloat(usdcBalance).toFixed(2)}`
-                    : `$${currentBalance.toFixed(2)}`
+                    ? `$${parseFloat(usdcBalance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `$${currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : "••••••"}
               </h2>
               <button
@@ -707,21 +707,29 @@ const EarnPage = () => {
         {/* Tab Navigation — edge-bleed scroll on mobile */}
         <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-8">
           <div className="flex gap-2 md:gap-3 pb-1 w-max md:w-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 border",
-                  activeTab === tab.id
-                    ? "bg-brand-primary text-white border-brand-primary"
-                    : "bg-neutral-primary text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
-                )}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+            {tabs.map((tab) => {
+              const isVoting = tab.id === "votes";
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => !isVoting && setActiveTab(tab.id)}
+                  disabled={isVoting}
+                  title={isVoting ? "Voting is not yet available" : undefined}
+                  className={cn(
+                    "px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 border",
+                    isVoting
+                      ? "opacity-40 cursor-not-allowed bg-neutral-primary text-neutral-tertiary-text border-neutral-tertiary-border"
+                      : activeTab === tab.id
+                        ? "bg-brand-primary text-white border-brand-primary"
+                        : "bg-neutral-primary text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
+                  )}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  {isVoting && <span className="text-xs opacity-70 ml-0.5">(soon)</span>}
+                </button>
+              );
+            })}
           </div>
         </div>
 
