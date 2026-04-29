@@ -282,11 +282,22 @@ const ProfilePage = () => {
             ) : myShows.length === 0 ? (
               <p className="text-sm text-neutral-tertiary-text text-center py-12 italic">No published shows yet.</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-                {myShows.map((show) => (
-                  <ShowCard key={show.id} {...show} />
-                ))}
-              </div>
+              <>
+                {myShows.filter((s) => s.videoFormat === "landscape").length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-4">
+                    {myShows.filter((s) => s.videoFormat === "landscape").map((show) => (
+                      <ShowCard key={show.id} {...show} />
+                    ))}
+                  </div>
+                )}
+                {myShows.filter((s) => s.videoFormat !== "landscape").length > 0 && (
+                  <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+                    {myShows.filter((s) => s.videoFormat !== "landscape").map((show) => (
+                      <ShowCard key={show.id} {...show} />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         );
@@ -351,24 +362,29 @@ const ProfilePage = () => {
                 No saved shows yet.
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
                 {watchlistItems.map((item) => {
                   const s = item.show ?? item.video;
                   if (!s) return null;
+                  const fmt = s.video_format === "landscape" ? "landscape" : "portrait";
                   return (
-                    <ShowCard
+                    <div
                       key={item.id}
-                      id={String(s.id)}
-                      title={s.title ?? "Untitled"}
-                      thumbnailUrl={s.cover_image_url ?? s.thumbnail_url ?? s.cover_url ?? "/images/movie1.png"}
-                      creatorName={s.creator?.name ?? s.creator?.username ?? s.user?.name ?? "Unknown"}
-                      creatorAvatar={s.creator?.avatar_url ?? s.user?.avatar_url}
-                      views={formatCount(s.view_count ?? s.views_count)}
-                      likes={formatCount(s.likes_count ?? s.like_count)}
-                      description={s.description}
-                      isLiked={s.is_liked}
-                      videoFormat={s.video_format === "landscape" ? "landscape" : "portrait"}
-                    />
+                      className={fmt === "landscape" ? "col-span-2" : "col-span-1"}
+                    >
+                      <ShowCard
+                        id={String(s.id)}
+                        title={s.title ?? "Untitled"}
+                        thumbnailUrl={s.cover_image_url ?? s.thumbnail_url ?? s.cover_url ?? "/images/movie1.png"}
+                        creatorName={s.creator?.name ?? s.creator?.username ?? s.user?.name ?? "Unknown"}
+                        creatorAvatar={s.creator?.avatar_url ?? s.user?.avatar_url}
+                        views={formatCount(s.view_count ?? s.views_count)}
+                        likes={formatCount(s.likes_count ?? s.like_count)}
+                        description={s.description}
+                        isLiked={s.is_liked}
+                        videoFormat={fmt}
+                      />
+                    </div>
                   );
                 })}
               </div>
