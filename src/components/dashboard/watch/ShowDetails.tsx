@@ -917,11 +917,22 @@ const ShowDetails = ({ id }: { id: string }) => {
                 <h2 className="text-lg sm:text-xl font-paytone text-neutral-primary-text mb-4">
                   More to watch
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                  {related.map((show) => (
-                    <ShowCard key={show.id} {...show} />
-                  ))}
-                </div>
+                {/* Landscape first */}
+                {related.filter((s) => s.videoFormat === "landscape").length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-4">
+                    {related.filter((s) => s.videoFormat === "landscape").map((show) => (
+                      <ShowCard key={show.id} {...show} />
+                    ))}
+                  </div>
+                )}
+                {/* Portrait after */}
+                {related.filter((s) => s.videoFormat !== "landscape").length > 0 && (
+                  <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+                    {related.filter((s) => s.videoFormat !== "landscape").map((show) => (
+                      <ShowCard key={show.id} {...show} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
