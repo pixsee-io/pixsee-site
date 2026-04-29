@@ -14,6 +14,7 @@ type StudioShow = {
   slug: string;
   description: string;
   type: string;
+  video_format?: "landscape" | "portrait" | null;
   cover_image_url: string | null;
   status: "draft" | "published";
   on_chain_show_id: string | null;
@@ -38,6 +39,7 @@ function ShowCard({ show }: { show: StudioShow }) {
     show.view_count ??
     0;
   const isOnChain = !!show.on_chain_show_id;
+  const isPortrait = show.video_format === "portrait";
 
   return (
     <Link
@@ -45,7 +47,7 @@ function ShowCard({ show }: { show: StudioShow }) {
       className="group relative bg-neutral-primary rounded-2xl overflow-hidden border border-neutral-tertiary-border hover:border-brand-pixsee-secondary/50 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-neutral-secondary overflow-hidden">
+      <div className={`relative ${isPortrait ? "aspect-3/4" : "aspect-video"} bg-neutral-secondary overflow-hidden`}>
         {show.cover_image_url ? (
           <Image
             src={show.cover_image_url}
@@ -180,8 +182,8 @@ export default function StudioPage() {
 
         {/* Content */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
-            {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+            {[...Array(4)].map((_, i) => (
               <div
                 key={i}
                 className="bg-neutral-primary rounded-2xl overflow-hidden border border-neutral-tertiary-border animate-pulse"
@@ -227,11 +229,22 @@ export default function StudioPage() {
             <p className="text-xs sm:text-sm text-neutral-tertiary-text mb-4 sm:mb-5">
               {shows.length} {shows.length === 1 ? "show" : "shows"}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
-              {shows.map((show) => (
-                <ShowCard key={show.id} show={show} />
-              ))}
-            </div>
+            {/* Landscape shows — wider cards, 2 per row */}
+            {shows.filter((s) => s.video_format !== "portrait").length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5 mb-6">
+                {shows.filter((s) => s.video_format !== "portrait").map((show) => (
+                  <ShowCard key={show.id} show={show} />
+                ))}
+              </div>
+            )}
+            {/* Portrait shows — tall cards, 3-4 per row */}
+            {shows.filter((s) => s.video_format === "portrait").length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+                {shows.filter((s) => s.video_format === "portrait").map((show) => (
+                  <ShowCard key={show.id} show={show} />
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
