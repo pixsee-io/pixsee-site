@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -306,7 +307,7 @@ const VideoPlayer = ({
   // Locked episode — show paywal
   if (!episode.is_free && !hasAccess) {
     return (
-      <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden relative flex items-center justify-center">
+      <div className="w-full min-h-[56.25vw] sm:aspect-video bg-black rounded-2xl overflow-hidden relative flex items-center justify-center py-8 sm:py-0">
         {episode.thumbnail_url && (
           <Image
             src={episode.thumbnail_url}
@@ -315,7 +316,7 @@ const VideoPlayer = ({
             className="object-cover opacity-20 blur-sm"
           />
         )}
-        <div className="relative z-10 text-center px-6 max-w-md">
+        <div className="relative z-10 text-center px-6 max-w-md w-full">
           <Lock className="w-12 h-12 text-white/50 mx-auto mb-3" />
           <p className="text-white font-semibold text-lg mb-1">
             {episode.title}
@@ -567,6 +568,7 @@ const ShowDetails = ({ id }: { id: string }) => {
 
   const creator = apiShow?.creator;
   const creatorName = creator?.name ?? creator?.username ?? "Unknown";
+  const creatorProfileHref = creator?.id ? `/dashboard/profile/${creator.id}` : null;
 
   // Pre-seed the social cache from API data so persistence works on remount
   const socialCache = useSocialState();
@@ -876,17 +878,35 @@ const ShowDetails = ({ id }: { id: string }) => {
                   Creator
                 </h2>
                 <div className="flex items-start gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-neutral-tertiary overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-neutral-secondary-text">
-                    {creatorName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-neutral-primary-text">
-                      {creatorName}
-                    </h3>
-                    <p className="text-xs text-neutral-tertiary-text">
-                      Video Creator
-                    </p>
-                  </div>
+                  {creatorProfileHref ? (
+                    <Link href={creatorProfileHref} className="flex items-start gap-3 hover:opacity-80 transition-opacity">
+                      <div className="w-12 h-12 rounded-full bg-neutral-tertiary overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-neutral-secondary-text">
+                        {creatorName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
+                          {creatorName}
+                        </h3>
+                        <p className="text-xs text-neutral-tertiary-text">
+                          Video Creator
+                        </p>
+                      </div>
+                    </Link>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 rounded-full bg-neutral-tertiary overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-neutral-secondary-text">
+                        {creatorName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-neutral-primary-text">
+                          {creatorName}
+                        </h3>
+                        <p className="text-xs text-neutral-tertiary-text">
+                          Video Creator
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <Button
                   variant="outline"
