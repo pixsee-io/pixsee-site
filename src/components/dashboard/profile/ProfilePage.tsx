@@ -23,9 +23,126 @@ import WithdrawModal from "@/components/dashboard/earn/modals/WithdrawModal";
 import Image from "next/image";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { useMe, useWatchHistory, useWatchlist, useSeePoints } from "@/app/hooks/useSocial";
+import { useMe, useWatchHistory, useWatchlist, useSeePoints, useTransactions } from "@/app/hooks/useSocial";
 import { formatCount, useMyShows } from "@/app/hooks/useVideo";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+import { createPublicClient, http, formatUnits, type Address } from "viem";
+import { baseSepolia } from "viem/chains";
+import { BASE_SEPOLIA_RPC } from "@/app/lib/pixsee-contracts";
+
+const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
+
+const royaltyClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(BASE_SEPOLIA_RPC),
+});
+
+const GET_PENDING_ROYALTY_ABI = [
+  { name: "getPendingRoyaltyTix", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
+] as const;
+
+type CreatorShow = { id: number; title: string; show_contract: string | null };
+type ShowRoyalty = { show: CreatorShow; pendingTix: bigint; isClaiming: boolean };
+
+const CreatorRoyaltiesSection = ({ getAccessToken }: { getAccessToken: () => Promise<string | null> }) => {
+  const { claimRoyalties } = usePixseeContract();
+  const [royalties, setRoyalties] = useState<ShowRoyalty[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setIsLoading(true);
+      try {
+        const token = await getAccessToken();
+        const res = await fetch(`${BASE_URL}/api/v1/my-shows`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        const shows: CreatorShow[] = (json?.data ?? json?.shows ?? json ?? []).filter(
+          (s: CreatorShow) => s.show_contract
+        );
+        const results = await Promise.all(
+          shows.map(async (show) => {
+            try {
+              const tix = (await royaltyClient.readContract({
+                address: show.show_contract as Address,
+                abi: GET_PENDING_ROYALTY_ABI,
+                functionName: "getPendingRoyaltyTix",
+              })) as bigint;
+              return { show, pendingTix: tix, isClaiming: false };
+            } catch {
+              return { show, pendingTix: 0n, isClaiming: false };
+            }
+          })
+        );
+        if (!cancelled) setRoyalties(results);
+      } catch {
+        // silently ignore
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [getAccessToken]);
+
+  const handleClaim = async (index: number) => {
+    const entry = royalties[index];
+    if (!entry.show.show_contract) return;
+    setRoyalties((prev) => prev.map((r, i) => i === index ? { ...r, isClaiming: true } : r));
+    const tx = await claimRoyalties(entry.show.show_contract as Address, 0n);
+    setRoyalties((prev) =>
+      prev.map((r, i) => i === index ? { ...r, isClaiming: false, pendingTix: tx ? 0n : r.pendingTix } : r)
+    );
+  };
+
+  if (isLoading) return (
+    <div className="flex items-center gap-2 py-4 text-sm text-neutral-tertiary-text">
+      <Loader2 className="w-4 h-4 animate-spin" /> Loading royalties…
+    </div>
+  );
+  if (royalties.length === 0) return (
+    <p className="text-sm text-neutral-tertiary-text italic py-2">
+      No on-chain shows yet. Royalties accumulate once viewers pay to watch.
+    </p>
+  );
+  return (
+    <div className="space-y-3">
+      {royalties.map((entry, index) => {
+        const hasPending = entry.pendingTix > 0n;
+        return (
+          <div
+            key={entry.show.id}
+            className="bg-neutral-secondary rounded-xl p-4 border border-neutral-tertiary-border flex items-center justify-between gap-4"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-neutral-primary-text truncate">{entry.show.title}</p>
+              <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                {hasPending ? (
+                  <>Pending: <span className="font-medium text-brand-pixsee-secondary">{parseFloat(formatUnits(entry.pendingTix, 18)).toFixed(2)} TIX</span></>
+                ) : (
+                  <span className="text-semantic-success-text">Up to date — no pending TIX</span>
+                )}
+              </p>
+            </div>
+            {hasPending ? (
+              <button
+                onClick={() => handleClaim(index)}
+                disabled={entry.isClaiming}
+                className="shrink-0 flex items-center gap-1.5 px-4 py-2 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-xs font-medium rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {entry.isClaiming ? <><Loader2 className="w-3 h-3 animate-spin" /> Claiming…</> : "Claim as USDC"}
+              </button>
+            ) : (
+              <span className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-semantic-success-subtle text-semantic-success-text font-medium">Claimed</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 // Types
 type ProfileTabId = "overview" | "published" | "watchlist" | "history" | "earnings";
@@ -238,6 +355,7 @@ const ProfilePage = () => {
   const { shows: myShows, isLoading: myShowsLoading } = useMyShows(getAccessToken);
   const { getUsdcBalance } = usePixseeContract();
   const { balance: seePoints, earnData } = useSeePoints(getAccessToken);
+  const { transactions, isLoading: txLoading } = useTransactions(getAccessToken);
 
   useEffect(() => {
     getUsdcBalance().then(setUsdcBalance).catch(() => {});
@@ -399,7 +517,7 @@ const ProfilePage = () => {
             <h2 className="text-xl font-paytone text-neutral-primary-text mb-6">
               Earnings
             </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Balance Card */}
               <div className="relative rounded-2xl overflow-hidden bg-brand-primary p-6 py-10 sm:py-12 balance_bg">
                 <div className="flex flex-col items-center justify-center relative z-10 gap-4">
@@ -449,7 +567,7 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              {/* Reward Sources */}
+              {/* SEE Points Breakdown */}
               <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
                 <p className="text-lg font-paytone text-neutral-primary-text mb-4">
                   SEE Points Breakdown
@@ -486,6 +604,63 @@ const ProfilePage = () => {
                   })()}
                 </div>
               </div>
+            </div>
+
+            {/* Creator Royalties */}
+            <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
+              <div className="mb-4">
+                <h3 className="text-lg font-paytone text-neutral-primary-text">Creator Royalties</h3>
+                <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                  90% of TIX spent by viewers accumulates per show. Claim to convert to USDC.
+                </p>
+              </div>
+              <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
+            </div>
+
+            {/* Watch Earnings — cashback history */}
+            <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
+              <div className="mb-4">
+                <h3 className="text-lg font-paytone text-neutral-primary-text">Watch Earnings</h3>
+                <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                  10% cashback TIX returned each time you watch a paid episode.
+                </p>
+              </div>
+              {txLoading ? (
+                <div className="flex items-center gap-2 py-4 text-sm text-neutral-tertiary-text">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+                </div>
+              ) : (() => {
+                const watchTxs = transactions.filter((tx) =>
+                  tx.type === "watch_reward" || tx.type === "cashback" || tx.description?.toLowerCase().includes("watch")
+                );
+                if (watchTxs.length === 0) return (
+                  <p className="text-sm text-neutral-tertiary-text italic py-2">
+                    No watch earnings yet. You earn 10% TIX cashback each time you unlock a paid episode.
+                  </p>
+                );
+                return (
+                  <div className="space-y-2">
+                    {watchTxs.map((tx) => (
+                      <div key={tx.id} className="flex items-center justify-between gap-3 py-3 border-b border-neutral-tertiary-border last:border-0">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-neutral-primary-text">
+                            {tx.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                          </p>
+                          {tx.description && (
+                            <p className="text-xs text-neutral-tertiary-text truncate mt-0.5">{tx.description}</p>
+                          )}
+                          <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                            {new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold text-semantic-success-text">
+                          +{tx.amount}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );

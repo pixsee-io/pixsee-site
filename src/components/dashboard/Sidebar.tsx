@@ -83,8 +83,6 @@ const Sidebar = ({
 }: SidebarProps) => {
   const pathname = usePathname();
 
-  const userBalance = "10,000";
-
   return (
     <aside
       className={cn(
@@ -93,15 +91,37 @@ const Sidebar = ({
         className
       )}
     >
-      <Link href="/" className="hidden xl:flex items-center gap-2">
-        <Image
-          src="/images/pixseee.svg"
-          alt="Pixsee"
-          width={100}
-          height={32}
-          className="transition-all duration-300 object-contain"
-        />
-      </Link>
+      <div className="w-full flex items-end justify-between">
+        {!isCollapsed && (
+          <Link href="/" className="w-full hidden xl:flex ">
+            <Image
+              src="/images/pixseee.svg"
+              alt="Pixsee"
+              width={100}
+              height={32}
+              className="transition-all duration-300 object-contain"
+            />
+          </Link>
+        )}
+
+        {onToggleCollapse && (
+          <div
+            className={`flex ${isCollapsed ? "justify-center" : "justify-end"}`}
+          >
+            <button
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-lg bg-brand-primary transition-colors hidden lg:flex"
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <ChevronsLeft
+                className={`w-4 h-4 text-white transition-transform duration-300 ${
+                  isCollapsed ? "rotate-180" : "rotate-0"
+                }`}
+              />
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Navigation */}
       <nav className="mt-20 md:mt-14 flex-1 space-y-1">
@@ -136,26 +156,6 @@ const Sidebar = ({
             </Link>
           );
         })}
-
-        {onToggleCollapse && (
-          <div
-            className={`mt-4 flex ${
-              isCollapsed ? "justify-center" : "justify-end"
-            }`}
-          >
-            <button
-              onClick={onToggleCollapse}
-              className="p-1.5 rounded-lg bg-brand-primary transition-colors hidden lg:flex"
-              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              <ChevronsLeft
-                className={`w-4 h-4 text-white transition-transform duration-300 ${
-                  isCollapsed ? "rotate-180" : "rotate-0"
-                }`}
-              />
-            </button>
-          </div>
-        )}
       </nav>
 
       {/* Balance Card */}

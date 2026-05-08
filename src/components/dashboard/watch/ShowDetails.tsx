@@ -90,7 +90,6 @@ const BuyAndWatchButton = ({
   const tickSymbol = tickSymbolProp ?? "Tix";
 
   const durationSeconds = episode.duration ?? 600;
-  const durationMinutes = Math.ceil(durationSeconds / 60);
   // Amount of tix-wei needed for this episode
   const tixNeeded = BigInt(durationSeconds) * BigInt("1000000000000000000");
   const hasEnoughTix = userTixBalance >= tixNeeded;
@@ -110,12 +109,12 @@ const BuyAndWatchButton = ({
   // Fetch USDC cost quote (only needed when user doesn't have enough tix)
   useEffect(() => {
     if (!bondingCurveAddress || episode.is_free || hasEnoughTix) return;
-    quoteCostToWatch(bondingCurveAddress, durationMinutes)
+    quoteCostToWatch(bondingCurveAddress, durationSeconds)
       .then((q) => setCost(q.displayCost))
       .catch(() => {});
   }, [
     bondingCurveAddress,
-    durationMinutes,
+    durationSeconds,
     episode.is_free,
     hasEnoughTix,
     quoteCostToWatch,
@@ -172,7 +171,7 @@ const BuyAndWatchButton = ({
       showContractAddress,
       bondingCurveAddress,
       episodeId: onChainEpisodeId,
-      durationMinutes,
+      durationSeconds,
     });
     setStep("idle");
     if (tx) {
@@ -196,28 +195,50 @@ const BuyAndWatchButton = ({
         </p>
       </div>
 
+      {/* Episode info row */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs text-neutral-tertiary-text">
+        {durationSeconds > 0 && (
+          <span>
+            Duration:{" "}
+            <span className="font-medium text-neutral-secondary-text">{formatDuration(durationSeconds)}</span>
+          </span>
+        )}
+        <span>
+          TIX needed:{" "}
+          <span className="font-medium text-neutral-secondary-text">{durationSeconds} {tickSymbol}</span>
+        </span>
+      </div>
+
       {hasEnoughTix ? (
-        // User has enough tix — show tix balance and unlock-with-tix option
-        <p className="text-sm text-neutral-tertiary-text mb-3">
-          {cost ? ` (${parseFloat(cost).toFixed(4)})` : ""} {tickSymbol} tix
-          needed. You have{" "}
-          <span className="font-semibold text-brand-pixsee-secondary">
-            {tixBalanceDisplay} {tickSymbol} tix
-          </span>{" "}
-          — enough to unlock this episode without spending USDC.
-        </p>
-      ) : (
-        // User doesn't have enough tix — show USDC cost
-        cost && (
-          <p className="text-sm text-neutral-secondary-text mb-3">
-            Cost to watch:{" "}
+        // User has enough tix — show balance and unlock-with-tix option
+        <div className="mb-3 text-sm">
+          <p className="text-neutral-secondary-text">
+            You have{" "}
             <span className="font-semibold text-brand-pixsee-secondary">
-              ~${parseFloat(cost).toFixed(4)} USDC
-            </span>
-            <span className="text-xs ml-1 text-neutral-tertiary-text">
-              (incl. 3% fee)
-            </span>
+              {tixBalanceDisplay} {tickSymbol}
+            </span>{" "}
+            — unlock this episode without spending USDC.
           </p>
+          <p className="text-xs text-neutral-tertiary-text mt-1">
+            10% of your TIX is returned as watch rewards after unlocking.
+          </p>
+        </div>
+      ) : (
+        // User doesn't have enough tix — show USDC cost with breakdown
+        cost && (
+          <div className="mb-3">
+            <p className="text-sm text-neutral-secondary-text">
+              Cost:{" "}
+              <span className="font-semibold text-brand-pixsee-secondary">
+                ~${parseFloat(cost).toFixed(4)} USDC
+              </span>
+            </p>
+            <ul className="text-xs text-neutral-tertiary-text mt-1 space-y-0.5">
+              <li>• 90% of TIX goes to the creator as royalties</li>
+              <li>• 10% is returned to you as watch rewards</li>
+              <li>• Price includes a 3% platform fee</li>
+            </ul>
+          </div>
         )
       )}
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   ArrowLeft,
@@ -17,6 +17,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useDeleteEpisode } from "@/app/hooks/useStudio";
+import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+import { parseUnits, formatUnits, type Address } from "viem";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
@@ -44,6 +46,8 @@ type Show = {
   cover_image_url: string | null;
   status: "draft" | "published";
   on_chain_show_id: string | null;
+  bonding_curve: string | null;
+  show_contract: string | null;
   episodes: Episode[];
 };
 
@@ -234,7 +238,21 @@ export default function StudioShowPage() {
   const { getAccessToken } = usePrivy();
   const params = useParams<{ showId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const showId = Number(params?.showId);
+
+  // ?bc= is passed from CreatePage immediately after publish so the
+  // Creator Phase card shows even before the backend has returned bonding_curve.
+  const bcFromQuery = searchParams.get("bc") as Address | null;
+
+  const { creatorBuyTix, endCreatorPhase, claimRoyalties, isLoading: contractLoading } = usePixseeContract();
+  const [creatorPhaseActive, setCreatorPhaseActive] = useState<boolean | null>(null);
+  const [creatorBuyAmount, setCreatorBuyAmount] = useState("");
+  const [creatorBuyStatus, setCreatorBuyStatus] = useState<"idle" | "buying" | "ending">("idle");
+
+  // Creator royalties
+  const [pendingRoyaltyTix, setPendingRoyaltyTix] = useState<bigint | null>(null);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const [show, setShow] = useState<Show | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -286,6 +304,82 @@ export default function StudioShowPage() {
   useEffect(() => {
     fetchShow();
   }, [fetchShow]);
+
+  // Read creatorPhaseActive from the bonding curve once available.
+  // Prefer the address from the backend; fall back to the ?bc= query param
+  // passed immediately after show creation before the backend has it.
+  const bondingCurveAddress = (show?.bonding_curve as Address | null) ?? bcFromQuery;
+  useEffect(() => {
+    if (!bondingCurveAddress) return;
+    import("viem").then(({ createPublicClient, http }) =>
+      import("viem/chains").then(({ baseSepolia }) => {
+        const client = createPublicClient({ chain: baseSepolia, transport: http("https://base-sepolia-rpc.publicnode.com") });
+        client.readContract({
+          address: bondingCurveAddress,
+          abi: [{ name: "creatorPhaseActive", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "bool" }] }],
+          functionName: "creatorPhaseActive",
+        }).then((v) => setCreatorPhaseActive(v as boolean)).catch(() => setCreatorPhaseActive(false));
+      })
+    );
+  }, [bondingCurveAddress]);
+
+  // Read pending royalty tix from the ShowContract
+  useEffect(() => {
+    if (!show?.show_contract) return;
+    import("viem").then(({ createPublicClient, http }) =>
+      import("viem/chains").then(({ baseSepolia }) => {
+        const client = createPublicClient({ chain: baseSepolia, transport: http("https://base-sepolia-rpc.publicnode.com") });
+        client.readContract({
+          address: show.show_contract as Address,
+          abi: [{ name: "getPendingRoyaltyTix", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] }],
+          functionName: "getPendingRoyaltyTix",
+        }).then((v) => setPendingRoyaltyTix(v as bigint)).catch(() => {});
+      })
+    );
+  }, [show?.show_contract]);
+
+  const handleClaimRoyalties = async () => {
+    if (!show?.show_contract) return;
+    setIsClaiming(true);
+    const tx = await claimRoyalties(show.show_contract as Address, 0n);
+    setIsClaiming(false);
+    if (tx) {
+      showToast("success", "Royalties claimed — USDC sent to your wallet!");
+      setPendingRoyaltyTix(0n);
+    } else {
+      showToast("error", "Claim failed. Check your wallet and try again.");
+    }
+  };
+
+  const handleCreatorBuy = async () => {
+    if (!bondingCurveAddress || !creatorBuyAmount) return;
+    setCreatorBuyStatus("buying");
+    const usdcRaw = parseUnits(creatorBuyAmount, 6);
+    const tx = await creatorBuyTix({
+      bondingCurveAddress,
+      usdcAmount: usdcRaw,
+    });
+    setCreatorBuyStatus("idle");
+    if (tx) {
+      showToast("success", "Creator buy successful!");
+      setCreatorBuyAmount("");
+    } else {
+      showToast("error", "Creator buy failed.");
+    }
+  };
+
+  const handleEndCreatorPhase = async () => {
+    if (!bondingCurveAddress) return;
+    setCreatorBuyStatus("ending");
+    const tx = await endCreatorPhase(bondingCurveAddress);
+    setCreatorBuyStatus("idle");
+    if (tx) {
+      setCreatorPhaseActive(false);
+      showToast("success", "Creator phase ended — market is now open!");
+    } else {
+      showToast("error", "Failed to end creator phase.");
+    }
+  };
 
   const hasOnChainPurchases =
     !!show?.on_chain_show_id &&
@@ -627,6 +721,99 @@ export default function StudioShowPage() {
                 </div>
               )}
             </div>
+
+            {/* Royalties card — shown when there are pending royalties to claim */}
+            {show.show_contract && pendingRoyaltyTix !== null && pendingRoyaltyTix > 0n && (
+              <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 sm:p-5">
+                <h2 className="font-semibold text-neutral-primary-text mb-1">Creator Royalties</h2>
+                <p className="text-xs text-neutral-tertiary-text mb-4">
+                  90% of TIX spent by viewers on your show accumulates here. Claim to convert them to USDC.
+                </p>
+                <div className="flex items-center justify-between p-3 bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20 rounded-xl mb-4">
+                  <span className="text-sm text-neutral-secondary-text">Pending TIX</span>
+                  <span className="font-bold text-brand-pixsee-secondary">
+                    {parseFloat(formatUnits(pendingRoyaltyTix, 18)).toFixed(2)} TIX
+                  </span>
+                </div>
+                <button
+                  onClick={handleClaimRoyalties}
+                  disabled={isClaiming || contractLoading}
+                  className="w-full py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                >
+                  {isClaiming ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Claiming…</>
+                  ) : (
+                    "Claim Royalties as USDC"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Creator Phase card — only shown while phase is active */}
+            {bondingCurveAddress && creatorPhaseActive && (
+              <div className="bg-brand-pixsee-tertiary border-2 border-brand-pixsee-secondary/40 rounded-2xl p-4 sm:p-5">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-pixsee-secondary/20 flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-4 h-4 text-brand-pixsee-secondary" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-neutral-primary-text text-sm">Creator Phase Active</h2>
+                    <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                      Buy your show's TIX first before opening to the public. When ready, end the phase to open trading.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                      USDC to spend on TIX
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 flex items-center border border-neutral-tertiary-border rounded-xl px-3 py-2.5 gap-2 bg-neutral-primary">
+                        <span className="text-neutral-tertiary-text text-sm">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={creatorBuyAmount}
+                          onChange={(e) => setCreatorBuyAmount(e.target.value)}
+                          className="flex-1 outline-none text-sm text-neutral-primary-text bg-transparent"
+                        />
+                        <span className="text-xs text-neutral-tertiary-text">USDC</span>
+                      </div>
+                      <button
+                        onClick={handleCreatorBuy}
+                        disabled={creatorBuyStatus !== "idle" || !creatorBuyAmount || parseFloat(creatorBuyAmount) <= 0}
+                        className="px-4 py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                      >
+                        {creatorBuyStatus === "buying" ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Buying…</>
+                        ) : "Buy TIX"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-1 border-t border-neutral-tertiary-border">
+                    <p className="text-xs text-neutral-tertiary-text mb-2">
+                      Done buying? Open the market to everyone.
+                    </p>
+                    <button
+                      onClick={handleEndCreatorPhase}
+                      disabled={creatorBuyStatus !== "idle"}
+                      className="w-full py-2.5 border border-semantic-success-primary text-semantic-success-text hover:bg-semantic-success-primary/10 text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      {creatorBuyStatus === "ending" ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Opening market…</>
+                      ) : (
+                        <><CheckCircle className="w-3.5 h-3.5" /> End Creator Phase & Open Trading</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

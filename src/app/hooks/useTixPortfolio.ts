@@ -10,6 +10,7 @@ import {
 } from "viem";
 import { baseSepolia } from "viem/chains";
 import {
+  BASE_SEPOLIA_RPC,
   BONDING_CURVE_ABI,
   CONTRACT_ADDRESSES,
   ERC20_ABI,
@@ -38,7 +39,7 @@ async function fetchBackendIdMap(): Promise<Map<string, number>> {
 
 const publicClient = createPublicClient({
   chain: baseSepolia,
-  transport: http(undefined, { batch: true }),
+  transport: http(BASE_SEPOLIA_RPC, { batch: true }),
 });
 
 // Cast imported JSON ABIs to Abi so multicall accepts them without type errors

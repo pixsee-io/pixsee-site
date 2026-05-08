@@ -16,7 +16,12 @@ import {
   type Address,
 } from "viem";
 import { baseSepolia } from "viem/chains";
-import { CONTRACT_ADDRESSES, ERC20_ABI } from "@/app/lib/pixsee-contracts";
+import { BASE_SEPOLIA_RPC, CONTRACT_ADDRESSES, ERC20_ABI } from "@/app/lib/pixsee-contracts";
+
+const publicClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(BASE_SEPOLIA_RPC),
+});
 
 type WithdrawModalProps = {
   isOpen: boolean;
@@ -26,11 +31,6 @@ type WithdrawModalProps = {
 };
 
 const quickAmounts = [10, 25, 50, 100];
-
-const publicClient = createPublicClient({
-  chain: baseSepolia,
-  transport: http(),
-});
 
 const WithdrawModal = ({
   isOpen,

@@ -30,6 +30,7 @@ import {
 
 import { baseSepolia } from "viem/chains";
 import {
+  BASE_SEPOLIA_RPC,
   BONDING_CURVE_ABI,
   CONTRACT_ADDRESSES,
   ERC20_ABI,
@@ -59,8 +60,44 @@ export type CurveTier = 0 | 1 | 2; // 0=Conservative 1=Balanced 2=Aggressive
 
 const publicClient = createPublicClient({
   chain: baseSepolia,
-  transport: http(),
+  transport: http(BASE_SEPOLIA_RPC),
 });
+
+import type { TransactionReceipt } from "viem";
+
+// Minimal interface — only the one method we actually call.
+type ReceiptClient = {
+  getTransactionReceipt: (args: { hash: Hash }) => Promise<TransactionReceipt | null>;
+};
+
+// Polls multiple RPC clients in round-robin until any returns a receipt.
+// More resilient than waitForTransactionReceipt when MetaMask submits through
+// a slow/restrictive node (e.g. Infura's Base Sepolia endpoint) that takes
+// 30–120s to propagate to other nodes.
+async function waitForReceiptResilient(
+  hash: Hash,
+  clients: ReceiptClient[],
+  opts = { timeoutMs: 300_000, pollIntervalMs: 2_000 }
+) {
+  const start = Date.now();
+  while (Date.now() - start < opts.timeoutMs) {
+    for (const client of clients) {
+      try {
+        const receipt = await client.getTransactionReceipt({ hash });
+        if (receipt) return receipt;
+      } catch {
+        // not found on this client yet — try next
+      }
+    }
+    await new Promise((r) => setTimeout(r, opts.pollIntervalMs));
+  }
+  throw new Error(
+    `Transaction ${hash} was not confirmed after ${opts.timeoutMs / 1_000}s. ` +
+      "Check the explorer — it may still confirm. " +
+      "If MetaMask is on a slow RPC, switch its Base Sepolia RPC to " +
+      "https://base-sepolia-rpc.publicnode.com in MetaMask Settings → Networks → Base Sepolia → RPC URL."
+  );
+}
 
 //  Hook ─
 
@@ -76,19 +113,51 @@ export function usePixseeContract() {
   const activeWallet =
     wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
 
-  // Gets the wallet client for signing transactions
+  // Gets the wallet client for signing transactions.
+  // Switches the wallet to Base Sepolia first, regardless of which chain it's on.
   const getWalletClient = useCallback(async () => {
     const wallet = activeWallet;
     if (!wallet) throw new Error("No wallet connected");
 
+    // Switch chain — works from any network (Polygon, Ethereum, etc.)
     await wallet.switchChain(baseSepolia.id);
+
     const provider = await wallet.getEthereumProvider();
 
-    return createWalletClient({
+    const walletClient = createWalletClient({
       chain: baseSepolia,
       transport: custom(provider),
       account: wallet.address as Address,
     });
+
+    // Verify the switch actually happened (some wallets are slow to confirm)
+    const actualChainId = await walletClient.getChainId();
+    if (actualChainId !== baseSepolia.id) {
+      // Retry once
+      await wallet.switchChain(baseSepolia.id);
+      const chainAfterRetry = await walletClient.getChainId();
+      if (chainAfterRetry !== baseSepolia.id) {
+        throw new Error(
+          `Please switch your wallet to Base Sepolia (chain ${baseSepolia.id}). Currently on chain ${chainAfterRetry}.`
+        );
+      }
+    }
+
+    // Give MetaMask's injected provider ~500ms to fully warm up its RPC
+    // connection after a chain switch before we send the first transaction.
+    await new Promise((r) => setTimeout(r, 500));
+
+    // A public client backed by the same provider so receipt polling
+    // uses the same RPC node that the wallet submitted through.
+    // This prevents timeout when MetaMask submits via sepolia.base.org
+    // but the global publicClient polls publicnode.com (different nodes,
+    // slow cross-node propagation).
+    const providerPublicClient = createPublicClient({
+      chain: baseSepolia,
+      transport: custom(provider),
+    });
+
+    return { walletClient, providerPublicClient };
   }, [activeWallet]);
 
   const walletAddress = activeWallet?.address as Address | undefined;
@@ -116,18 +185,18 @@ export function usePixseeContract() {
     [walletAddress]
   );
 
-  //  READ: Get USDC cost to watch N minutes ─
+  //  READ: Get USDC cost to watch N seconds ─
 
   const quoteCostToWatch = useCallback(
     async (
       bondingCurveAddress: Address,
-      durationMinutes: number
+      durationSeconds: number
     ): Promise<{ usdcCost: bigint; fee: bigint; displayCost: string }> => {
       const [usdcCost, fee] = (await publicClient.readContract({
         address: bondingCurveAddress,
         abi: BONDING_CURVE_ABI,
         functionName: "quoteCostToWatch",
-        args: [BigInt(Math.ceil(durationMinutes))],
+        args: [BigInt(durationSeconds)],
       })) as [bigint, bigint];
       return {
         usdcCost,
@@ -217,12 +286,12 @@ export function usePixseeContract() {
       showContractAddress,
       bondingCurveAddress,
       episodeId,
-      durationMinutes,
+      durationSeconds,
     }: {
       showContractAddress: Address;
       bondingCurveAddress: Address;
       episodeId: number;
-      durationMinutes: number;
+      durationSeconds: number;
     }): Promise<Hash | null> => {
       if (!walletAddress) {
         setError("No wallet connected");
@@ -233,11 +302,11 @@ export function usePixseeContract() {
       setError(null);
 
       try {
-        const walletClient = await getWalletClient();
+        const { walletClient, providerPublicClient } = await getWalletClient();
 
         const { usdcCost } = await quoteCostToWatch(
           bondingCurveAddress,
-          durationMinutes
+          durationSeconds
         );
         const usdcWithSlippage = (usdcCost * BigInt(102)) / BigInt(100);
 
@@ -256,7 +325,7 @@ export function usePixseeContract() {
             args: [CONTRACT_ADDRESSES.router as Address, usdcWithSlippage],
             gas: 100_000n,
           });
-          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
         }
 
         const unlockTx = await walletClient.writeContract({
@@ -267,7 +336,7 @@ export function usePixseeContract() {
           gas: 1_000_000n,
         });
 
-        await publicClient.waitForTransactionReceipt({ hash: unlockTx });
+        await waitForReceiptResilient(unlockTx, [providerPublicClient, publicClient]);
         return unlockTx;
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Transaction failed";
@@ -285,12 +354,12 @@ export function usePixseeContract() {
       showContractAddress,
       bondingCurveAddress,
       episodeIds,
-      totalDurationMinutes,
+      totalDurationSeconds,
     }: {
       showContractAddress: Address;
       bondingCurveAddress: Address;
       episodeIds: number[];
-      totalDurationMinutes: number;
+      totalDurationSeconds: number;
     }): Promise<Hash | null> => {
       if (!walletAddress) {
         setError("No wallet connected");
@@ -301,11 +370,11 @@ export function usePixseeContract() {
       setError(null);
 
       try {
-        const walletClient = await getWalletClient();
+        const { walletClient, providerPublicClient } = await getWalletClient();
 
         const { usdcCost } = await quoteCostToWatch(
           bondingCurveAddress,
-          totalDurationMinutes
+          totalDurationSeconds
         );
         const usdcWithSlippage = (usdcCost * BigInt(102)) / BigInt(100);
 
@@ -324,7 +393,7 @@ export function usePixseeContract() {
             args: [CONTRACT_ADDRESSES.router as Address, usdcWithSlippage],
             gas: 100_000n,
           });
-          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
         }
 
         const unlockTx = await walletClient.writeContract({
@@ -340,7 +409,7 @@ export function usePixseeContract() {
           gas: 1_000_000n,
         });
 
-        await publicClient.waitForTransactionReceipt({ hash: unlockTx });
+        await waitForReceiptResilient(unlockTx, [providerPublicClient, publicClient]);
         return unlockTx;
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Transaction failed";
@@ -381,42 +450,29 @@ export function usePixseeContract() {
       setError(null);
 
       try {
-        const walletClient = await getWalletClient();
+        const { walletClient, providerPublicClient } = await getWalletClient();
 
         const tx = await walletClient.writeContract({
           address: CONTRACT_ADDRESSES.showFactory as Address,
           abi: SHOW_FACTORY_ABI,
           functionName: "createShow",
           args: [title, tickName, tickSymbol, creatorAddress, curveTier],
+          chain: baseSepolia,
+          gas: 3_000_000n,
         });
 
-        console.log("createShow tx hash:", tx);
-
-        // Quick check: is the tx visible on Base Sepolia at all?
-        setTimeout(async () => {
-          const pending = await publicClient.getTransaction({ hash: tx }).catch(() => null);
-          console.log("createShow tx on Base Sepolia (after 3s):", pending ? `nonce=${pending.nonce} blockNumber=${pending.blockNumber}` : "NOT FOUND — wrong chain?");
-        }, 3000);
-
-        const receipt = await publicClient.waitForTransactionReceipt({
-          hash: tx,
-          timeout: 120_000,
-        });
-        console.log("createShow receipt status:", receipt.status);
-
+        const receipt = await waitForReceiptResilient(tx, [
+          providerPublicClient,
+          publicClient,
+        ]);
         if (receipt.status === "reverted") {
           setError("Show creation transaction reverted");
           return null;
         }
 
-        // Topic0 of ShowCreated event — confirmed from Basescan Events tab
-
         const SHOW_CREATED_TOPIC = toEventHash(
           "ShowCreated(uint256,address,string,string,string,uint8,address,address,address,address)"
         );
-        console.log("SHOW_CREATED_TOPIC:", SHOW_CREATED_TOPIC);
-        // const SHOW_CREATED_TOPIC =
-        //   "0x239c2a9ff49414ff2b36f7c4a3a4021cb0c771bad39386af077912816ca9a20f";
 
         const showCreatedLog = receipt.logs.find(
           (log) =>
@@ -425,10 +481,7 @@ export function usePixseeContract() {
             log.topics[0]?.toLowerCase() === SHOW_CREATED_TOPIC
         );
 
-        console.log("ShowCreated log:", showCreatedLog);
-
         if (!showCreatedLog || !showCreatedLog.topics[1]) {
-          console.error("ShowCreated event not found in logs");
           setError("Could not find ShowCreated event in transaction");
           return null;
         }
@@ -462,7 +515,6 @@ export function usePixseeContract() {
         });
 
         const showId = decoded.args.showId as bigint;
-        console.log("showId from event:", showId.toString());
 
         const showInfo: ShowInfo = {
           creator: decoded.args.creator as Address,
@@ -509,7 +561,7 @@ export function usePixseeContract() {
       setError(null);
 
       try {
-        const walletClient = await getWalletClient();
+        const { walletClient, providerPublicClient } = await getWalletClient();
 
         const tx = await walletClient.writeContract({
           address: showContractAddress,
@@ -521,9 +573,7 @@ export function usePixseeContract() {
 
         console.log("addEpisode tx hash:", tx);
 
-        const receipt = await publicClient.waitForTransactionReceipt({
-          hash: tx,
-        });
+        const receipt = await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
 
         if (receipt.status === "reverted") {
           setError("addEpisode transaction reverted");
@@ -623,7 +673,7 @@ export function usePixseeContract() {
       setError(null);
 
       try {
-        const walletClient = await getWalletClient();
+        const { walletClient, providerPublicClient } = await getWalletClient();
 
         // Amount = durationSeconds × 1e18 tix-wei
         const tixAmount = BigInt(durationSeconds) * BigInt("1000000000000000000");
@@ -643,7 +693,7 @@ export function usePixseeContract() {
             args: [showContractAddress, tixAmount],
             gas: 100_000n,
           });
-          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
         }
 
         const tx = await walletClient.writeContract({
@@ -654,7 +704,7 @@ export function usePixseeContract() {
           gas: 300_000n,
         });
 
-        await publicClient.waitForTransactionReceipt({ hash: tx });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
         return tx;
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Unlock failed";
@@ -783,7 +833,7 @@ export function usePixseeContract() {
       setError(null);
 
       try {
-        const walletClient = await getWalletClient();
+        const { walletClient, providerPublicClient } = await getWalletClient();
 
         const currentAllowance = await publicClient.readContract({
           address: CONTRACT_ADDRESSES.usdc as Address,
@@ -800,7 +850,7 @@ export function usePixseeContract() {
             args: [bondingCurveAddress, usdcAmount],
             gas: 100_000n,
           });
-          await publicClient.waitForTransactionReceipt({ hash: approveTx });
+          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
         }
 
         const tx = await walletClient.writeContract({
@@ -811,7 +861,7 @@ export function usePixseeContract() {
           gas: 500_000n,
         });
 
-        await publicClient.waitForTransactionReceipt({ hash: tx });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
         return tx;
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Buy failed";
@@ -847,7 +897,7 @@ export function usePixseeContract() {
       setError(null);
 
       try {
-        const walletClient = await getWalletClient();
+        const { walletClient, providerPublicClient } = await getWalletClient();
 
         const tx = await walletClient.writeContract({
           address: bondingCurveAddress,
@@ -857,11 +907,122 @@ export function usePixseeContract() {
           gas: 500_000n,
         });
 
-        await publicClient.waitForTransactionReceipt({ hash: tx });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
         return tx;
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Sell failed";
         setError(msg);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
+  // ── creatorBuyTix ────────────────────────────────────────────────────────
+  const creatorBuyTix = useCallback(
+    async ({
+      bondingCurveAddress,
+      usdcAmount,
+      minTixOut = 0n,
+    }: {
+      bondingCurveAddress: Address;
+      usdcAmount: bigint;
+      minTixOut?: bigint;
+    }): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+
+        // Approve USDC first
+        const approveTx = await walletClient.writeContract({
+          address: CONTRACT_ADDRESSES.usdc as Address,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [bondingCurveAddress, usdcAmount],
+          gas: 100_000n,
+        });
+        await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+
+        const tx = await walletClient.writeContract({
+          address: bondingCurveAddress,
+          abi: BONDING_CURVE_ABI,
+          functionName: "creatorBuyTix",
+          args: [usdcAmount, minTixOut],
+          gas: 500_000n,
+        });
+
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Creator buy failed");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
+  // ── endCreatorPhase ──────────────────────────────────────────────────────
+  const endCreatorPhase = useCallback(
+    async (bondingCurveAddress: Address): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+        const tx = await walletClient.writeContract({
+          address: bondingCurveAddress,
+          abi: BONDING_CURVE_ABI,
+          functionName: "endCreatorPhase",
+          args: [],
+          gas: 200_000n,
+        });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "End creator phase failed");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
+  // ── claimRoyalties ───────────────────────────────────────────────────────
+  // Swaps the creator's pending TIX royalties back to USDC via the bonding curve.
+  // minUsdcOut = 0n means accept any price (no slippage protection).
+  const claimRoyalties = useCallback(
+    async (showContractAddress: Address, minUsdcOut: bigint = 0n): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+        const tx = await walletClient.writeContract({
+          address: showContractAddress,
+          abi: [
+            {
+              name: "claimRoyalties",
+              type: "function",
+              stateMutability: "nonpayable",
+              inputs: [{ name: "minUsdcOut", type: "uint256" }],
+              outputs: [],
+            },
+          ] as const,
+          functionName: "claimRoyalties",
+          args: [minUsdcOut],
+          gas: 500_000n,
+        });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Claim royalties failed");
         return null;
       } finally {
         setIsLoading(false);
@@ -895,5 +1056,8 @@ export function usePixseeContract() {
     buyTix,
     sellTix,
     unlockWithTix,
+    creatorBuyTix,
+    endCreatorPhase,
+    claimRoyalties,
   };
 }

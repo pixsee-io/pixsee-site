@@ -309,6 +309,7 @@ const CreatePage = () => {
     episodes: uploadStates,
     isPublishing,
     publishError,
+    publishingStatus,
     showId,
     onChainInfo, // contains showContract, bondingCurve etc after launch
     initEpisodes,
@@ -448,7 +449,12 @@ const CreatePage = () => {
         isPaid: ep.isPaid,
       })),
     });
-    if (ok) router.push("/dashboard/watch");
+    if (ok) {
+      const dest = showId
+        ? `/dashboard/studio/${showId}${onChainInfo?.bondingCurve ? `?bc=${onChainInfo.bondingCurve}` : ""}`
+        : "/dashboard/watch";
+      router.push(dest);
+    }
   };
 
   const handleBack = () => {
@@ -1162,6 +1168,12 @@ const CreatePage = () => {
       {publishError && (
         <p className="text-semantic-error-primary text-sm mb-4">
           {publishError}
+        </p>
+      )}
+
+      {isPublishing && publishingStatus && (
+        <p className="text-sm text-neutral-secondary-text mb-4 max-w-sm mx-auto">
+          {publishingStatus}
         </p>
       )}
 

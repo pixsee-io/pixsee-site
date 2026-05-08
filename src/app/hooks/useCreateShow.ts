@@ -86,6 +86,7 @@ type UseCreateShowReturn = {
   episodes: EpisodeUploadState[];
   isPublishing: boolean;
   publishError: string | null;
+  publishingStatus: string | null;
   showId: number | null;
   onChainInfo: OnChainShowInfo | null;
   attachFile: (localId: string, file: File) => void;
@@ -150,6 +151,7 @@ export function useCreateShow({
   const [episodes, setEpisodes] = useState<EpisodeUploadState[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishingStatus, setPublishingStatus] = useState<string | null>(null);
   const [showId, setShowId] = useState<number | null>(null);
   const [onChainInfo, setOnChainInfo] = useState<OnChainShowInfo | null>(null);
 
@@ -584,6 +586,7 @@ export function useCreateShow({
     async (meta: ShowMeta): Promise<boolean> => {
       setIsPublishing(true);
       setPublishError(null);
+      setPublishingStatus(null);
 
       try {
         if (!showId) {
@@ -658,6 +661,7 @@ export function useCreateShow({
         }
 
         // ── Step 1: Publish on backend ────────────────────────────────────────
+        setPublishingStatus("Saving show details…");
         const publishRes = await fetch(
           `${BASE_URL}/api/v1/my-shows/${showId}/publish`,
           {
@@ -675,6 +679,7 @@ export function useCreateShow({
         }
 
         // ── Step 2: Create show on-chain ──────────────────────────────────────
+        setPublishingStatus("Check your wallet — approve the transaction to register your show on-chain.");
         const chainResult = await createOnChainShow({
           title: meta.title,
           tickName: deriveTickName(meta.title),
@@ -694,6 +699,7 @@ export function useCreateShow({
         // addEpisode() must be called for each episode on the ShowContract
         // before buyAndUnlock() will work. Without this, the contract reverts
         // with "episode does not exist".
+        setPublishingStatus("Show registered! Now adding episodes on-chain — approve each wallet prompt.");
         let currentEpsForChain: EpisodeUploadState[] = [];
         setEpisodes((prev) => {
           currentEpsForChain = prev;
@@ -715,6 +721,7 @@ export function useCreateShow({
             `Adding episode on-chain: videoId=${ep.apiVideoId}, duration=${durationSeconds}s, isFree=${isFree}`
           );
 
+          setPublishingStatus(`Adding episode ${currentEpsForChain.filter(e => e.apiVideoId !== null).indexOf(ep) + 1} of ${currentEpsForChain.filter(e => e.apiVideoId !== null).length} on-chain — approve in your wallet.`);
           const result = await addEpisodeOnChain({
             showContractAddress: chainResult.showInfo.showContract,
             durationSeconds,
@@ -751,6 +758,7 @@ export function useCreateShow({
         }
 
         // ── Step 3: Save contract addresses to backend ────────────────────────
+        setPublishingStatus("Finalizing…");
         const { showId: onChainShowId, showInfo } = chainResult;
 
         const patchRes = await fetch(
@@ -782,6 +790,7 @@ export function useCreateShow({
         return true;
       } finally {
         setIsPublishing(false);
+        setPublishingStatus(null);
       }
     },
     [showId, walletAddress, createOnChainShow, addEpisodeOnChain]
@@ -791,6 +800,7 @@ export function useCreateShow({
     episodes,
     isPublishing,
     publishError,
+    publishingStatus,
     showId,
     onChainInfo,
     attachFile,

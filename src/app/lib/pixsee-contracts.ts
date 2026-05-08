@@ -10,11 +10,15 @@ export const ROUTER_ABI = RouterABI;
 
 export const CHAIN_ID = 84532; // Base Sepolia — change to 8453 for mainnet
 
+// CORS-friendly public RPC for browser clients.
+// https://sepolia.base.org does NOT allow cross-origin requests from browsers.
+export const BASE_SEPOLIA_RPC = "https://base-sepolia-rpc.publicnode.com";
+
 export const CONTRACT_ADDRESSES = {
-  usdc: "0x709285ca58A829073a691D173C190E0aE52C49dF",
-  showFactory: "0xed590662b5FAB61f69645964E32b6517016b1F7B",
-  subscriptionManager: "0x0Fbb50233d10CB78695b6bB0F945568BC3f39b9d",
-  router: "0xD332E7871ebcaFe23f394552f71b1E4f19DDa16B",
+  usdc: "0xe81B9cC48E24819f009E40a2F78f30b9C9E35D3F",
+  showFactory: "0x2FD3A36A1Fd8d232FAb59F9ff8E95C9e108c948F",
+  subscriptionManager: "0x0F302b5feA905a56B6b3a8143A0dB60cb7cE0689",
+  router: "0x19dc609C896c81f065bEd3d45DBbFf49405e7Dba",
 } as const;
 
 export const ERC20_ABI = [

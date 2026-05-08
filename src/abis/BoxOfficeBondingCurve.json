@@ -386,7 +386,7 @@
     "name": "quoteCostToWatch",
     "inputs": [
       {
-        "name": "minutes_",
+        "name": "seconds_",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -767,6 +767,50 @@
         "indexed": false,
         "internalType": "address"
       }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "name": "creatorBuyTix",
+    "inputs": [
+      { "name": "usdcAmount", "type": "uint256", "internalType": "uint256" },
+      { "name": "minTixOut", "type": "uint256", "internalType": "uint256" }
+    ],
+    "outputs": [
+      { "name": "tixOut", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "endCreatorPhase",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "creatorPhaseActive",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "CreatorFirstBuy",
+    "inputs": [
+      { "name": "creator", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "usdcIn", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "tixOut", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CreatorPhaseEnded",
+    "inputs": [
+      { "name": "creator", "type": "address", "indexed": true, "internalType": "address" }
     ],
     "anonymous": false
   }
