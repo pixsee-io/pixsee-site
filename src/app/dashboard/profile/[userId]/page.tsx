@@ -46,7 +46,8 @@ function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
 }
 
 export default function CreatorProfilePage() {
-  const { userId } = useParams<{ userId: string }>();
+  const params = useParams<{ userId: string }>();
+  const userId = params?.userId;
   const { getAccessToken } = usePrivy();
 
   const [profile, setProfile] = useState<CreatorProfile | null>(null);

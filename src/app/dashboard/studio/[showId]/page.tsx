@@ -243,7 +243,7 @@ export default function StudioShowPage() {
 
   // ?bc= is passed from CreatePage immediately after publish so the
   // Creator Phase card shows even before the backend has returned bonding_curve.
-  const bcFromQuery = searchParams.get("bc") as Address | null;
+  const bcFromQuery = (searchParams?.get("bc") ?? null) as Address | null;
 
   const { creatorBuyTix, endCreatorPhase, claimRoyalties, isLoading: contractLoading } = usePixseeContract();
   const [creatorPhaseActive, setCreatorPhaseActive] = useState<boolean | null>(null);
