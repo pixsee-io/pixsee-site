@@ -129,25 +129,55 @@ function BuyModal({ show, onClose, onSuccess }: BuyModalProps) {
             </div>
           </div>
 
-          <div className="bg-neutral-secondary rounded-xl px-3 py-2.5 flex items-center justify-between">
-            <span className="text-xs text-neutral-secondary-text">You receive</span>
-            <span className="text-sm font-semibold text-neutral-primary-text">
-              {quoteLoading
-                ? "..."
-                : tixQuote !== null
-                ? `${fmtTix(tixQuote)} ${show.show.tickSymbol}`
-                : "—"}
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-neutral-tertiary-border px-3 py-2.5 space-y-1">
-            <p className="text-xs font-medium text-neutral-secondary-text">3% transaction fee</p>
-            <div className="flex justify-between text-xs text-neutral-tertiary-text">
-              <span>1% Pixsee platform</span>
-              <span>1% Voting pool</span>
-              <span>1% Creator</span>
-            </div>
-          </div>
+          {(() => {
+            const amount = parseFloat(usdcInput);
+            const hasAmount = !isNaN(amount) && amount > 0;
+            const fee = hasAmount ? amount * 0.03 : null;
+            const perCategory = hasAmount ? amount * 0.01 : null;
+            const netToCurve = hasAmount ? amount * 0.97 : null;
+            return (
+              <div className="rounded-xl border border-neutral-tertiary-border px-3 py-2.5 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-secondary-text font-medium">You pay</span>
+                  <span className="font-semibold text-neutral-primary-text">
+                    {hasAmount ? fmtUsdc(String(amount)) : "—"}
+                  </span>
+                </div>
+                <div className="space-y-1 pl-2 border-l-2 border-semantic-error-primary/30">
+                  {[
+                    { label: "Platform (1%)", val: perCategory },
+                    { label: "Voting pool (1%)", val: perCategory },
+                    { label: "Creators (1%)", val: perCategory },
+                  ].map(({ label, val }) => (
+                    <div key={label} className="flex items-center justify-between text-xs text-neutral-tertiary-text">
+                      <span>{label}</span>
+                      <span className="text-semantic-error-primary">
+                        {val != null ? `−${fmtUsdc(String(val))}` : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-tertiary-border">
+                  <span className="text-neutral-tertiary-text">Total fee (3%)</span>
+                  <span className="text-semantic-error-primary font-medium">
+                    {fee != null ? `−${fmtUsdc(String(fee))}` : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-tertiary-text">Goes to curve</span>
+                  <span className="text-neutral-secondary-text">
+                    {netToCurve != null ? fmtUsdc(String(netToCurve)) : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-tertiary-border">
+                  <span className="font-medium text-neutral-secondary-text">You receive</span>
+                  <span className="font-semibold text-neutral-primary-text">
+                    {quoteLoading ? "..." : tixQuote !== null ? `${fmtTix(tixQuote)} ${show.show.tickSymbol}` : "—"}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           {txError && (
             <p className="text-xs text-semantic-error-primary">{txError}</p>
@@ -273,25 +303,71 @@ function SellModal({ holding, onClose, onSuccess }: SellModalProps) {
             </div>
           </div>
 
-          <div className="bg-neutral-secondary rounded-xl px-3 py-2.5 flex items-center justify-between">
-            <span className="text-xs text-neutral-secondary-text">You receive</span>
-            <span className="text-sm font-semibold text-neutral-primary-text">
-              {quoteLoading
-                ? "..."
-                : usdcQuote !== null
-                ? fmtUsdc(formatUnits(usdcQuote, 6))
-                : "—"}
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-neutral-tertiary-border px-3 py-2.5 space-y-1">
-            <p className="text-xs font-medium text-neutral-secondary-text">3% transaction fee</p>
-            <div className="flex justify-between text-xs text-neutral-tertiary-text">
-              <span>1% Pixsee platform</span>
-              <span>1% Voting pool</span>
-              <span>1% Creator</span>
-            </div>
-          </div>
+          {(() => {
+            const net = usdcQuote !== null ? parseFloat(formatUnits(usdcQuote, 6)) : null;
+            // usdcQuote is already after the 3% fee, so gross = net / 0.97
+            const gross = net != null ? net / 0.97 : null;
+            const fee = gross != null ? gross * 0.03 : null;
+            const perCategory = gross != null ? gross * 0.01 : null;
+            // Mark value = amount × spot price (what Holdings table shows, no price impact)
+            const tixAmt = parseFloat(tixInput);
+            const spotPerTix = parseFloat(formatUnits(holding.spotPricePerToken, 6));
+            const markValue = !isNaN(tixAmt) && tixAmt > 0 ? tixAmt * spotPerTix : null;
+            const priceImpact = markValue != null && gross != null && markValue > 0
+              ? ((markValue - gross) / markValue) * 100
+              : null;
+            return (
+              <div className="rounded-xl border border-neutral-tertiary-border px-3 py-2.5 space-y-2">
+                {markValue != null && (
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-neutral-tertiary-border">
+                    <span className="text-neutral-tertiary-text">
+                      Mark value <span className="opacity-60">(spot × amount)</span>
+                    </span>
+                    <span className="text-neutral-secondary-text">{fmtUsdc(String(markValue))}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-neutral-secondary-text font-medium">
+                    Curve quote
+                    {priceImpact != null && priceImpact > 0.1 && (
+                      <span className="ml-1.5 text-semantic-warning-primary font-normal">
+                        −{priceImpact.toFixed(1)}% impact
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-semibold text-neutral-primary-text">
+                    {quoteLoading ? "..." : gross != null ? `~${fmtUsdc(String(gross))}` : "—"}
+                  </span>
+                </div>
+                <div className="space-y-1 pl-2 border-l-2 border-semantic-error-primary/30">
+                  {[
+                    { label: "Platform (1%)", val: perCategory },
+                    { label: "Voting pool (1%)", val: perCategory },
+                    { label: "Creator (1%)", val: perCategory },
+                  ].map(({ label, val }) => (
+                    <div key={label} className="flex items-center justify-between text-xs text-neutral-tertiary-text">
+                      <span>{label}</span>
+                      <span className="text-semantic-error-primary">
+                        {val != null ? `−${fmtUsdc(String(val))}` : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-tertiary-border">
+                  <span className="text-neutral-tertiary-text">Total fee (3%)</span>
+                  <span className="text-semantic-error-primary font-medium">
+                    {fee != null ? `−${fmtUsdc(String(fee))}` : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-tertiary-border">
+                  <span className="font-medium text-neutral-secondary-text">You receive</span>
+                  <span className="font-semibold text-neutral-primary-text">
+                    {quoteLoading ? "..." : net != null ? fmtUsdc(String(net)) : "—"}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           {txError && <p className="text-xs text-semantic-error-primary">{txError}</p>}
 
@@ -415,7 +491,9 @@ export default function TradePage() {
                     <th className="text-left px-4 py-3 text-xs font-medium text-neutral-tertiary-text">Show</th>
                     <th className="text-right px-4 py-3 text-xs font-medium text-neutral-tertiary-text">Balance</th>
                     <th className="text-right px-4 py-3 text-xs font-medium text-neutral-tertiary-text">Price/min</th>
-                    <th className="text-right px-4 py-3 text-xs font-medium text-neutral-tertiary-text">Est. Value</th>
+                    <th className="text-right px-4 py-3 text-xs font-medium text-neutral-tertiary-text" title="Spot price × balance. Actual sell proceeds will be lower due to bonding curve price impact.">
+                      Est. Value <span className="font-normal opacity-60">(at spot)</span>
+                    </th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>

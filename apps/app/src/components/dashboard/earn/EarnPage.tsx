@@ -571,7 +571,7 @@ const EarnPage = () => {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text">
-                  Recent Earnings
+                  Recent Transactions
                 </h2>
                 <button className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap ml-2">
                   View all Activity

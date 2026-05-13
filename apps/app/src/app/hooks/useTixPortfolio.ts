@@ -14,36 +14,16 @@ import {
   BONDING_CURVE_ABI,
   CONTRACT_ADDRESSES,
   ERC20_ABI,
-  SHOW_FACTORY_ABI,
 } from "../lib/pixsee-contracts";
 import type { ShowInfo } from "./usePixseeContract";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
-
-async function fetchBackendIdMap(): Promise<Map<string, number>> {
-  const map = new Map<string, number>();
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/shows?per_page=200&sort=-created_at`);
-    if (!res.ok) return map;
-    const json = await res.json();
-    for (const show of json.data ?? []) {
-      if (show.bonding_curve) {
-        map.set(show.bonding_curve.toLowerCase(), show.id);
-      }
-    }
-  } catch {
-    // non-critical — links will just be missing
-  }
-  return map;
-}
 
 const publicClient = createPublicClient({
   chain: baseSepolia,
   transport: http(BASE_SEPOLIA_RPC, { batch: true }),
 });
 
-// Cast imported JSON ABIs to Abi so multicall accepts them without type errors
-const FACTORY_ABI = SHOW_FACTORY_ABI as Abi;
 const CURVE_ABI = BONDING_CURVE_ABI as Abi;
 const ERC20 = ERC20_ABI as Abi;
 
@@ -79,6 +59,17 @@ export type TixPortfolio = {
   refresh: () => void;
 };
 
+type BackendShow = {
+  id: number;
+  title: string;
+  bonding_curve: string;
+  tix_token: string;
+  show_contract: string;
+  fee_distributor: string | null;
+  tick_symbol: string | null;
+  creator?: { wallet_address?: string };
+};
+
 export function useTixPortfolio(walletAddress: Address | undefined): TixPortfolio {
   const [usdcBalanceRaw, setUsdcBalanceRaw] = useState<bigint>(0n);
   const [holdings, setHoldings] = useState<TixHolding[]>([]);
@@ -91,59 +82,38 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
     setError(null);
 
     try {
-      // ── Backend ID map (non-blocking, best-effort) ───────────────────────
-      const backendIdMap = await fetchBackendIdMap();
+      // ── Fetch on-chain shows from backend API ────────────────────────────
+      // This covers all factory deployments, not just the current one.
+      const res = await fetch(`${BACKEND_URL}/api/v1/shows?per_page=200&sort=-created_at`);
+      if (!res.ok) throw new Error("Failed to fetch shows list");
+      const json = await res.json();
 
-      // ── Round-trip 1: showCount + USDC balance ────────────────────────────
-      // Two individual reads — avoids the conditional-spread type complexity.
-      const [showCountRaw, usdcRaw] = await Promise.all([
-        publicClient.readContract({
-          address: CONTRACT_ADDRESSES.showFactory as Address,
-          abi: FACTORY_ABI,
-          functionName: "showCount",
-        }) as Promise<bigint>,
-        walletAddress
-          ? (publicClient.readContract({
-              address: CONTRACT_ADDRESSES.usdc as Address,
-              abi: ERC20,
-              functionName: "balanceOf",
-              args: [walletAddress],
-            }) as Promise<bigint>)
-          : Promise.resolve(0n),
-      ]);
+      const backendShows: BackendShow[] = (json.data ?? []).filter(
+        (s: BackendShow) => s.bonding_curve && s.tix_token && s.show_contract
+      );
 
+      // ── USDC balance ──────────────────────────────────────────────────────
+      const usdcRaw = walletAddress
+        ? ((await publicClient.readContract({
+            address: CONTRACT_ADDRESSES.usdc as Address,
+            abi: ERC20,
+            functionName: "balanceOf",
+            args: [walletAddress],
+          })) as bigint)
+        : 0n;
       setUsdcBalanceRaw(usdcRaw);
 
-      const showCount = Number(showCountRaw);
-      if (showCount === 0) {
+      if (backendShows.length === 0) {
         setHoldings([]);
         setAllShows([]);
         return;
       }
 
-      const showIds = Array.from({ length: showCount }, (_, i) => i + 1);
-
-      // ── Round-trip 2: all getShow(id) batched into one request ────────────
-      const showResults = await publicClient.multicall({
-        allowFailure: false,
-        contracts: showIds.map((id) => ({
-          address: CONTRACT_ADDRESSES.showFactory as Address,
-          abi: FACTORY_ABI,
-          functionName: "getShow",
-          args: [BigInt(id)],
-        })),
-      });
-
-      const showInfos = showResults as ShowInfo[];
-
-      // ── Round-trip 3: getCurveState × N + balanceOf × N in one request ────
-      // Layout per show: [curveState, ...optionally tixBalance]
-      // stride = 2 when wallet connected, 1 otherwise
+      // ── Batch: getCurveState × N + balanceOf × N ──────────────────────────
       const stride = walletAddress ? 2 : 1;
-
-      const perShowContracts = showInfos.flatMap((show) => {
+      const perShowContracts = backendShows.flatMap((s) => {
         const curveCall = {
-          address: show.bondingCurve as Address,
+          address: s.bonding_curve as Address,
           abi: CURVE_ABI,
           functionName: "getCurveState",
         };
@@ -151,7 +121,7 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
         return [
           curveCall,
           {
-            address: show.tix as Address,
+            address: s.tix_token as Address,
             abi: ERC20,
             functionName: "balanceOf",
             args: [walletAddress],
@@ -159,7 +129,7 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
         ];
       });
 
-      const perShowResults = await publicClient.multicall({
+      const results = await publicClient.multicall({
         allowFailure: true,
         contracts: perShowContracts,
       });
@@ -167,18 +137,17 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
       const listings: ShowListing[] = [];
       const userHoldings: TixHolding[] = [];
 
-      showInfos.forEach((show, i) => {
-        const curveEntry = perShowResults[i * stride];
+      backendShows.forEach((s, i) => {
+        const curveEntry = results[i * stride];
         const curveState =
           curveEntry.status === "success"
             ? (curveEntry.result as bigint[])
             : null;
 
-        const tixBalanceEntry =
-          walletAddress ? perShowResults[i * stride + 1] : undefined;
+        const tixBalEntry = walletAddress ? results[i * stride + 1] : undefined;
         const tixBalance: bigint =
-          tixBalanceEntry?.status === "success"
-            ? (tixBalanceEntry.result as bigint)
+          tixBalEntry?.status === "success"
+            ? (tixBalEntry.result as bigint)
             : 0n;
 
         const spotPricePerToken = curveState?.[0] ?? 0n;
@@ -186,12 +155,28 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
         const totalVolumeUsdc = curveState?.[3] ?? 0n;
         const tixSupply = curveState?.[4] ?? 0n;
 
-        const backendShowId = backendIdMap.get(show.bondingCurve.toLowerCase());
+        // Derive tickSymbol — backend may have null for older shows
+        const tickSymbol =
+          s.tick_symbol ??
+          s.title.toUpperCase().replace(/\s+/g, "").slice(0, 10);
+
+        const showInfo: ShowInfo = {
+          creator: (s.creator?.wallet_address ?? "0x0000000000000000000000000000000000000000") as Address,
+          tix: s.tix_token as Address,
+          feeDistributor: (s.fee_distributor ?? "0x0000000000000000000000000000000000000000") as Address,
+          bondingCurve: s.bonding_curve as Address,
+          showContract: s.show_contract as Address,
+          title: s.title,
+          tickName: tickSymbol,
+          tickSymbol,
+          curveTier: 0,
+          createdAt: 0n,
+        };
 
         listings.push({
-          showId: showIds[i],
-          backendShowId,
-          show,
+          showId: s.id,
+          backendShowId: s.id,
+          show: showInfo,
           spotPricePerToken,
           spotPricePerMinute,
           pricePerMinuteDisplay: formatUnits(spotPricePerMinute, 6),
@@ -202,8 +187,8 @@ export function useTixPortfolio(walletAddress: Address | undefined): TixPortfoli
         if (tixBalance > 0n) {
           const valueUsdc = (tixBalance * spotPricePerToken) / BigInt(1e18);
           userHoldings.push({
-            showId: showIds[i],
-            show,
+            showId: s.id,
+            show: showInfo,
             tixBalance,
             tixBalanceDisplay: formatUnits(tixBalance, 18),
             spotPricePerToken,

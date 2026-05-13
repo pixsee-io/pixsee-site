@@ -26,7 +26,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useMe, useWatchHistory, useWatchlist, useSeePoints, useTransactions } from "@/app/hooks/useSocial";
 import { formatCount, useMyShows } from "@/app/hooks/useVideo";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
-import { createPublicClient, http, formatUnits, type Address } from "viem";
+import { createPublicClient, http, formatUnits, parseAbiItem, type Address } from "viem";
 import { baseSepolia } from "viem/chains";
 import { BASE_SEPOLIA_RPC } from "@/app/lib/pixsee-contracts";
 
@@ -41,8 +41,12 @@ const GET_PENDING_ROYALTY_ABI = [
   { name: "getPendingRoyaltyTix", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
 ] as const;
 
+const ROYALTIES_CLAIMED_EVENT = parseAbiItem(
+  "event RoyaltiesClaimed(address indexed creator, uint256 tixSold, uint256 grossUsdc, uint256 platformFeeUsdc, uint256 creatorUsdc, bool automated)"
+);
+
 type CreatorShow = { id: number; title: string; show_contract: string | null };
-type ShowRoyalty = { show: CreatorShow; pendingTix: bigint; isClaiming: boolean };
+type ShowRoyalty = { show: CreatorShow; pendingTix: bigint; hasClaimed: boolean; isClaiming: boolean };
 
 const CreatorRoyaltiesSection = ({ getAccessToken }: { getAccessToken: () => Promise<string | null> }) => {
   const { claimRoyalties } = usePixseeContract();
@@ -66,14 +70,22 @@ const CreatorRoyaltiesSection = ({ getAccessToken }: { getAccessToken: () => Pro
         const results = await Promise.all(
           shows.map(async (show) => {
             try {
-              const tix = (await royaltyClient.readContract({
-                address: show.show_contract as Address,
-                abi: GET_PENDING_ROYALTY_ABI,
-                functionName: "getPendingRoyaltyTix",
-              })) as bigint;
-              return { show, pendingTix: tix, isClaiming: false };
+              const [tix, claimLogs] = await Promise.all([
+                royaltyClient.readContract({
+                  address: show.show_contract as Address,
+                  abi: GET_PENDING_ROYALTY_ABI,
+                  functionName: "getPendingRoyaltyTix",
+                }) as Promise<bigint>,
+                royaltyClient.getLogs({
+                  address: show.show_contract as Address,
+                  event: ROYALTIES_CLAIMED_EVENT,
+                  fromBlock: 0n,
+                  toBlock: "latest",
+                }).catch(() => []),
+              ]);
+              return { show, pendingTix: tix, hasClaimed: claimLogs.length > 0, isClaiming: false };
             } catch {
-              return { show, pendingTix: 0n, isClaiming: false };
+              return { show, pendingTix: 0n, hasClaimed: false, isClaiming: false };
             }
           })
         );
@@ -93,7 +105,7 @@ const CreatorRoyaltiesSection = ({ getAccessToken }: { getAccessToken: () => Pro
     setRoyalties((prev) => prev.map((r, i) => i === index ? { ...r, isClaiming: true } : r));
     const tx = await claimRoyalties(entry.show.show_contract as Address, 0n);
     setRoyalties((prev) =>
-      prev.map((r, i) => i === index ? { ...r, isClaiming: false, pendingTix: tx ? 0n : r.pendingTix } : r)
+      prev.map((r, i) => i === index ? { ...r, isClaiming: false, pendingTix: tx ? 0n : r.pendingTix, hasClaimed: tx ? true : r.hasClaimed } : r)
     );
   };
 
@@ -134,9 +146,9 @@ const CreatorRoyaltiesSection = ({ getAccessToken }: { getAccessToken: () => Pro
               >
                 {entry.isClaiming ? <><Loader2 className="w-3 h-3 animate-spin" /> Claiming…</> : "Claim as USDC"}
               </button>
-            ) : (
+            ) : entry.hasClaimed ? (
               <span className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-semantic-success-subtle text-semantic-success-text font-medium">Claimed</span>
-            )}
+            ) : null}
           </div>
         );
       })}
@@ -618,7 +630,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Watch Earnings — cashback history */}
-            <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
+            <div className="mt-4 bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
               <div className="mb-4">
                 <h3 className="text-lg font-paytone text-neutral-primary-text">Watch Earnings</h3>
                 <p className="text-xs text-neutral-tertiary-text mt-0.5">
