@@ -304,6 +304,7 @@ const VideoPlayer = ({
   showContractAddress,
   bondingCurveAddress,
   tickSymbol,
+  videoFormat,
   getAccessToken,
   onAccessGranted,
 }: {
@@ -314,9 +315,12 @@ const VideoPlayer = ({
   showContractAddress?: Address;
   bondingCurveAddress?: Address;
   tickSymbol?: string;
+  videoFormat?: "landscape" | "portrait" | null;
   getAccessToken: () => Promise<string | null>;
   onAccessGranted: () => void;
 }) => {
+  const isPortrait = videoFormat === "portrait";
+
   if (!episode) {
     return (
       <div className="w-full aspect-video bg-black rounded-2xl overflow-hidden flex items-center justify-center">
@@ -325,10 +329,17 @@ const VideoPlayer = ({
     );
   }
 
-  // Locked episode — show paywal
+  // Locked episode — show paywall
   if (!episode.is_free && !hasAccess) {
     return (
-      <div className="w-full min-h-[56.25vw] sm:aspect-video bg-black rounded-2xl overflow-hidden relative flex items-center justify-center py-8 sm:py-0">
+      <div
+        className={cn(
+          "bg-black rounded-2xl overflow-hidden relative flex items-center justify-center",
+          isPortrait
+            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16] py-0"
+            : "w-full min-h-[56.25vw] sm:aspect-video py-8 sm:py-0"
+        )}
+      >
         {episode.thumbnail_url && (
           <Image
             src={episode.thumbnail_url}
@@ -364,7 +375,14 @@ const VideoPlayer = ({
 
   if (playbackLoading || !playbackUrl) {
     return (
-      <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden flex items-center justify-center">
+      <div
+        className={cn(
+          "relative bg-black rounded-2xl overflow-hidden flex items-center justify-center",
+          isPortrait
+            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
+            : "w-full aspect-video"
+        )}
+      >
         {episode.thumbnail_url && (
           <Image
             src={episode.thumbnail_url}
@@ -386,7 +404,14 @@ const VideoPlayer = ({
   }
 
   return (
-    <div className="w-full aspect-video rounded-2xl overflow-hidden bg-black">
+    <div
+      className={cn(
+        "rounded-2xl overflow-hidden bg-black",
+        isPortrait
+          ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
+          : "w-full aspect-video"
+      )}
+    >
       <MuxPlayer
         src={playbackUrl}
         poster={episode.thumbnail_url ?? undefined}
@@ -710,6 +735,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   showContractAddress={showContractAddress}
                   bondingCurveAddress={bondingCurveAddress}
                   tickSymbol={resolvedTickSymbol}
+                  videoFormat={apiShow?.video_format}
                   getAccessToken={getAccessToken}
                   onAccessGranted={() => {
                     checkAllAccess();

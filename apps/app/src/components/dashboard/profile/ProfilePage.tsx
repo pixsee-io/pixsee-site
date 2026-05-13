@@ -26,6 +26,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useMe, useWatchHistory, useWatchlist, useSeePoints, useTransactions } from "@/app/hooks/useSocial";
 import { formatCount, useMyShows } from "@/app/hooks/useVideo";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { createPublicClient, http, formatUnits, parseAbiItem, type Address } from "viem";
 import { baseSepolia } from "viem/chains";
 import { BASE_SEPOLIA_RPC } from "@/app/lib/pixsee-contracts";
@@ -626,7 +627,9 @@ const ProfilePage = () => {
                   90% of TIX spent by viewers accumulates per show. Claim to convert to USDC.
                 </p>
               </div>
-              <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
+              <ErrorBoundary section="Creator Royalties">
+                <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
+              </ErrorBoundary>
             </div>
 
             {/* Watch Earnings — cashback history */}
