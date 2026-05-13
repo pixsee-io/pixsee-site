@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { useTixPortfolio, type TixHolding, type ShowListing } from "@/app/hooks/useTixPortfolio";
 import { formatUnits, parseUnits, type Address } from "viem";
@@ -645,18 +646,22 @@ export default function TradePage() {
 
       {/* ── Modals ── */}
       {buyTarget && (
-        <BuyModal
-          show={buyTarget}
-          onClose={() => setBuyTarget(null)}
-          onSuccess={handleSuccess}
-        />
+        <ErrorBoundary section="Buy">
+          <BuyModal
+            show={buyTarget}
+            onClose={() => setBuyTarget(null)}
+            onSuccess={handleSuccess}
+          />
+        </ErrorBoundary>
       )}
       {sellTarget && (
-        <SellModal
-          holding={sellTarget}
-          onClose={() => setSellTarget(null)}
-          onSuccess={handleSuccess}
-        />
+        <ErrorBoundary section="Sell">
+          <SellModal
+            holding={sellTarget}
+            onClose={() => setSellTarget(null)}
+            onSuccess={handleSuccess}
+          />
+        </ErrorBoundary>
       )}
     </div>
   );
