@@ -28,6 +28,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
+import ShareSheet from "@/components/ui/ShareSheet";
 import {
   useVideo,
   useVideos,
@@ -604,6 +605,7 @@ const ShowDetails = ({ id }: { id: string }) => {
     playbackRefreshKey
   );
 
+  const [shareOpen, setShareOpen] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [activeCommentTab, setActiveCommentTab] = useState<
     "top" | "recents" | "following"
@@ -850,6 +852,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                 </Button>
                 <Button
                   variant="outline"
+                  onClick={() => setShareOpen(true)}
                   className="rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm border-neutral-tertiary-border"
                 >
                   <Share2 className="w-3.5 h-3.5" />
@@ -1193,6 +1196,14 @@ const ShowDetails = ({ id }: { id: string }) => {
           </>
         )}
       </div>
+
+      <ShareSheet
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        url={typeof window !== "undefined" ? `${window.location.origin}/watch/${id}` : `/watch/${id}`}
+        title={apiShow?.title}
+        description={apiShow?.description ?? undefined}
+      />
     </div>
   );
 };
