@@ -66,7 +66,7 @@ function PortraitRow({
       <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
         {label}
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         {shows.map((show) => (
           <ShowCard
             key={show.id}
