@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ShowCardProps } from "@/app/utils";
 import { useSocialState } from "@/app/context/SocialStateContext";
+import ShareSheet from "@/components/ui/ShareSheet";
 
 type GetAccessToken = () => Promise<string | null>;
 
@@ -43,6 +44,7 @@ const ShowCard = ({
   onWatchlistToggle,
 }: ShowCardExtendedProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Read liked state from Zustand cache (populated when visiting ShowDetails)
@@ -78,12 +80,8 @@ const ShowCard = ({
   const handleShareClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (typeof window !== "undefined") {
-      navigator.clipboard
-        .writeText(`${window.location.origin}/watch/${id}`)
-        .catch(() => {});
-    }
     setMenuOpen(false);
+    setShareOpen(true);
   };
 
   return (
@@ -230,6 +228,13 @@ const ShowCard = ({
           </Link>
         </div>
       </div>
+
+      <ShareSheet
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        url={typeof window !== "undefined" ? `${window.location.origin}/watch/${id}` : `/watch/${id}`}
+        title={title}
+      />
     </div>
   );
 };
