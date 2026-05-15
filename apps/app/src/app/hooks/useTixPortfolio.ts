@@ -130,12 +130,19 @@ async function fetchPortfolioData(walletAddress: Address | undefined) {
     const lockInfo = lockInfoEntry?.status === "success"
       ? (lockInfoEntry.result as readonly [bigint, bigint])
       : null;
-    const lockedTix = lockInfo?.[0] ?? 0n;
-    const lockExpiry = lockInfo?.[1] ?? 0n;
 
     const tixBalEntry = walletAddress ? results[i * stride + 3] : undefined;
     const tixBalance: bigint =
       tixBalEntry?.status === "success" ? (tixBalEntry.result as bigint) : 0n;
+
+    // getCreatorLockInfo returns the show creator's lock — only attribute to current user
+    // if their wallet IS the creator's wallet.
+    const isCreator =
+      walletAddress &&
+      s.creator?.wallet_address &&
+      walletAddress.toLowerCase() === s.creator.wallet_address.toLowerCase();
+    const lockedTix = isCreator ? (lockInfo?.[0] ?? 0n) : 0n;
+    const lockExpiry = isCreator ? (lockInfo?.[1] ?? 0n) : 0n;
 
     const spotPricePerToken = curveState?.[0] ?? 0n;
     const spotPricePerMinute = curveState?.[1] ?? 0n;

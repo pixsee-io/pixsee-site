@@ -46,7 +46,38 @@ function ShowCardSkeleton({ count = 4 }: { count?: number }) {
   );
 }
 
-// Row of portrait cards (tall, 4-wide on xl)
+// Shared horizontal scroll row — one strip of 10 cards, no wrapping
+function HScrollRow({
+  shows,
+  cardClassName,
+  getAccessToken,
+  isInWatchlist,
+  toggleWatchlist,
+}: {
+  shows: ShowCardProps[];
+  cardClassName: string;
+  getAccessToken: () => Promise<string | null>;
+  isInWatchlist: (id: number) => boolean;
+  toggleWatchlist: (id: number) => void;
+}) {
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide -mx-3 px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
+      {shows.map((show) => (
+        <div key={show.id} className={`shrink-0 ${cardClassName}`}>
+          <ShowCard
+            {...show}
+            getAccessToken={getAccessToken}
+            inWatchlist={isInWatchlist(parseInt(show.id))}
+            onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Row of portrait cards (tall)
+// ≤ 8 → standard grid; > 8 → two horizontal scroll rows of 10
 function PortraitRow({
   shows,
   label,
@@ -61,27 +92,54 @@ function PortraitRow({
   toggleWatchlist: (id: number) => void;
 }) {
   if (!shows.length) return null;
+
+  const useScroll = shows.length > 8;
+  const row1 = shows.slice(0, 10);
+  const row2 = shows.slice(10, 20);
+
   return (
     <section className="mb-8 sm:mb-12">
       <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
         {label}
       </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        {shows.map((show) => (
-          <ShowCard
-            key={show.id}
-            {...show}
+      {useScroll ? (
+        <div className="space-y-4">
+          <HScrollRow
+            shows={row1}
+            cardClassName="w-36 sm:w-44 md:w-48"
             getAccessToken={getAccessToken}
-            inWatchlist={isInWatchlist(parseInt(show.id))}
-            onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
+            isInWatchlist={isInWatchlist}
+            toggleWatchlist={toggleWatchlist}
           />
-        ))}
-      </div>
+          {row2.length > 0 && (
+            <HScrollRow
+              shows={row2}
+              cardClassName="w-36 sm:w-44 md:w-48"
+              getAccessToken={getAccessToken}
+              isInWatchlist={isInWatchlist}
+              toggleWatchlist={toggleWatchlist}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          {shows.map((show) => (
+            <ShowCard
+              key={show.id}
+              {...show}
+              getAccessToken={getAccessToken}
+              inWatchlist={isInWatchlist(parseInt(show.id))}
+              onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
-// Row of landscape cards (wide, 2-wide on xl — each card takes half the width)
+// Row of landscape cards (wide)
+// ≤ 4 → standard grid; > 4 → two horizontal scroll rows of 10
 function LandscapeRow({
   shows,
   label,
@@ -96,22 +154,48 @@ function LandscapeRow({
   toggleWatchlist: (id: number) => void;
 }) {
   if (!shows.length) return null;
+
+  const useScroll = shows.length > 4;
+  const row1 = shows.slice(0, 10);
+  const row2 = shows.slice(10, 20);
+
   return (
     <section className="mb-8 sm:mb-12">
       <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
         {label}
       </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
-        {shows.map((show) => (
-          <ShowCard
-            key={show.id}
-            {...show}
+      {useScroll ? (
+        <div className="space-y-4">
+          <HScrollRow
+            shows={row1}
+            cardClassName="w-64 sm:w-72 md:w-80"
             getAccessToken={getAccessToken}
-            inWatchlist={isInWatchlist(parseInt(show.id))}
-            onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
+            isInWatchlist={isInWatchlist}
+            toggleWatchlist={toggleWatchlist}
           />
-        ))}
-      </div>
+          {row2.length > 0 && (
+            <HScrollRow
+              shows={row2}
+              cardClassName="w-64 sm:w-72 md:w-80"
+              getAccessToken={getAccessToken}
+              isInWatchlist={isInWatchlist}
+              toggleWatchlist={toggleWatchlist}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+          {shows.map((show) => (
+            <ShowCard
+              key={show.id}
+              {...show}
+              getAccessToken={getAccessToken}
+              inWatchlist={isInWatchlist(parseInt(show.id))}
+              onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
