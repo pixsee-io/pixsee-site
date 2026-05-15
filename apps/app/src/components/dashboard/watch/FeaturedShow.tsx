@@ -71,7 +71,7 @@ const FeaturedShow = ({
               <div
                 className={cn(
                   "relative rounded-xl sm:rounded-2xl overflow-hidden",
-                  "aspect-[4/5] xs:aspect-[5/6] sm:aspect-[3/2] md:aspect-[16/7] xl:aspect-[3/1]",
+                  "aspect-4/5 xs:aspect-[5/6] sm:aspect-3/2 md:aspect-16/7 xl:aspect-3/1",
                   "group"
                 )}
                 onMouseEnter={() => setIsHovered(true)}
@@ -89,8 +89,8 @@ const FeaturedShow = ({
                   className={cn(
                     "absolute inset-0 transition-all duration-300",
                     isHovered
-                      ? "bg-gradient-to-r from-black/85 via-black/65 to-black/30"
-                      : "bg-gradient-to-r from-black/75 via-black/45 to-transparent/30"
+                      ? "bg-linear-to-r from-black/85 via-black/65 to-black/30"
+                      : "bg-linear-to-r from-black/75 via-black/45 to-transparent/30"
                   )}
                 />
 

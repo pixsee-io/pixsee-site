@@ -987,7 +987,7 @@ const EarnPage = () => {
 
   return (
     <div className="min-h-screen bg-foundation-alternate pb-12">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-6">
+      <div className="max-w-350 mx-auto px-4 md:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-paytone text-neutral-primary-text">
