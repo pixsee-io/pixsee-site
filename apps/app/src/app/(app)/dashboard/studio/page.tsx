@@ -1,28 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import Image from "next/image";
 import Link from "next/link";
 import { Plus, Film, Eye, Play, Pencil } from "lucide-react";
-
-const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
-
-type StudioShow = {
-  id: number;
-  title: string;
-  slug: string;
-  description: string;
-  type: string;
-  video_format?: "landscape" | "portrait" | null;
-  cover_image_url: string | null;
-  status: "draft" | "published";
-  on_chain_show_id: string | null;
-  episode_count?: number;
-  view_count?: number;
-  episodes?: { id: number; view_count: number; is_free: boolean }[];
-  created_at: string;
-};
+import { useStudioShows, type StudioShow } from "@/app/hooks/useStudio";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -130,32 +112,7 @@ function ShowCard({ show }: { show: StudioShow }) {
 
 export default function StudioPage() {
   const { getAccessToken } = usePrivy();
-  const [shows, setShows] = useState<StudioShow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchShows = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const token = await getAccessToken();
-      const res = await fetch(`${BASE_URL}/api/v1/my-shows?per_page=50`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) throw new Error(`Failed to fetch shows (${res.status})`);
-      const json = await res.json();
-      const data: StudioShow[] = json?.data ?? json?.shows ?? json ?? [];
-      setShows(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load shows");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getAccessToken]);
-
-  useEffect(() => {
-    fetchShows();
-  }, [fetchShows]);
+  const { shows, isLoading, error, refetch: fetchShows } = useStudioShows(getAccessToken);
 
   return (
     <div className="min-h-screen bg-foundation-alternate">
@@ -201,7 +158,7 @@ export default function StudioPage() {
           <div className="text-center py-16 sm:py-20">
             <p className="text-semantic-error-primary mb-4 text-sm">{error}</p>
             <button
-              onClick={fetchShows}
+              onClick={() => fetchShows()}
               className="text-sm text-brand-pixsee-secondary hover:underline"
             >
               Try again

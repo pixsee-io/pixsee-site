@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Users, Film, Eye } from "lucide-react";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
 import { usePrivy } from "@privy-io/react-auth";
+import { useQuery } from "@tanstack/react-query";
 import { formatCount } from "@/app/hooks/useVideo";
+import { apiFetch } from "@/app/lib/apiClient";
+import { queryKeys } from "@/app/lib/queryKeys";
 import type { ShowCardProps } from "@/app/utils";
 import type { ApiVideo } from "@/app/types/pixsee-api";
-
-const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
 type CreatorProfile = {
   id: number;
@@ -22,6 +22,7 @@ type CreatorProfile = {
   followers_count?: number;
   following_count?: number;
   created_at?: string;
+  shows?: ApiVideo[];
 };
 
 function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
@@ -50,53 +51,46 @@ export default function CreatorProfilePage() {
   const userId = params?.userId;
   const { getAccessToken } = usePrivy();
 
-  const [profile, setProfile] = useState<CreatorProfile | null>(null);
-  const [shows, setShows] = useState<ShowCardProps[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const profileQuery = useQuery({
+    queryKey: queryKeys.profile.user(userId!),
+    queryFn: async () => {
+      const token = await getAccessToken().catch(() => null);
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+      const json = await apiFetch<{ data?: CreatorProfile } | CreatorProfile>(
+        `/api/v1/users/${userId}`,
+        { headers }
+      );
+      return ((json as any)?.data ?? json) as CreatorProfile;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-
-    async function load() {
-      setIsLoading(true);
-      setError(null);
+  const showsQuery = useQuery({
+    queryKey: queryKeys.profile.userShows(userId!),
+    queryFn: async () => {
+      const token = await getAccessToken().catch(() => null);
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       try {
-        const token = await getAccessToken().catch(() => null);
-        const headers: Record<string, string> = token
-          ? { Authorization: `Bearer ${token}` }
-          : {};
-
-        const userRes = await fetch(`${BASE_URL}/api/v1/users/${userId}`, { headers });
-        if (!userRes.ok) throw new Error("Creator not found");
-        const userJson = await userRes.json();
-        const userData = userJson.data ?? userJson;
-        if (!cancelled) setProfile(userData);
-
-        // Try dedicated user shows endpoint first, fall back to embedded shows
-        const showsRes = await fetch(
-          `${BASE_URL}/api/v1/users/${userId}/shows?per_page=50`,
+        const json = await apiFetch<{ data?: ApiVideo[]; shows?: ApiVideo[] }>(
+          `/api/v1/users/${userId}/shows?per_page=50`,
           { headers }
         );
-        if (showsRes.ok) {
-          const showsJson = await showsRes.json();
-          const items = showsJson.data ?? showsJson.shows ?? [];
-          if (!cancelled) setShows(items.map(mapVideoToShowCard));
-        } else if (userData.shows) {
-          // Some endpoints embed shows directly on the user object
-          if (!cancelled) setShows((userData.shows as ApiVideo[]).map(mapVideoToShowCard));
-        }
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load profile");
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        const items = json.data ?? json.shows ?? [];
+        return items.map(mapVideoToShowCard);
+      } catch {
+        // Fall back to embedded shows from profile if endpoint fails
+        return (profileQuery.data?.shows ?? []).map(mapVideoToShowCard);
       }
-    }
+    },
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
+  });
 
-    load();
-    return () => { cancelled = true; };
-  }, [userId, getAccessToken]);
+  const profile = profileQuery.data ?? null;
+  const shows = showsQuery.data ?? [];
+  const isLoading = profileQuery.isLoading;
+  const error = profileQuery.error ? String(profileQuery.error) : null;
 
   const displayName = profile?.name ?? profile?.username ?? "Creator";
   const portraitShows = shows.filter((s) => s.videoFormat !== "landscape");

@@ -15,6 +15,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Loader2,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import { useDeleteEpisode } from "@/app/hooks/useStudio";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
@@ -47,6 +49,7 @@ type Show = {
   status: "draft" | "published";
   on_chain_show_id: string | null;
   bonding_curve: string | null;
+  tix_token: string | null;
   show_contract: string | null;
   episodes: Episode[];
 };
@@ -245,14 +248,40 @@ export default function StudioShowPage() {
   // Creator Phase card shows even before the backend has returned bonding_curve.
   const bcFromQuery = (searchParams?.get("bc") ?? null) as Address | null;
 
-  const { creatorBuyTix, endCreatorPhase, claimRoyalties, isLoading: contractLoading } = usePixseeContract();
-  const [creatorPhaseActive, setCreatorPhaseActive] = useState<boolean | null>(null);
+  const {
+    creatorBuyTix,
+    endCreatorPhase,
+    lockCreatorTokens,
+    claimRoyalties,
+    walletAddress,
+    isLoading: contractLoading,
+  } = usePixseeContract();
+  const [creatorPhaseActive, setCreatorPhaseActive] = useState<boolean | null>(
+    null
+  );
   const [creatorBuyAmount, setCreatorBuyAmount] = useState("");
-  const [creatorBuyStatus, setCreatorBuyStatus] = useState<"idle" | "buying" | "ending">("idle");
+  const [creatorBuyStatus, setCreatorBuyStatus] = useState<
+    "idle" | "buying" | "ending"
+  >("idle");
 
   // Creator royalties
-  const [pendingRoyaltyTix, setPendingRoyaltyTix] = useState<bigint | null>(null);
+  const [pendingRoyaltyTix, setPendingRoyaltyTix] = useState<bigint | null>(
+    null
+  );
   const [isClaiming, setIsClaiming] = useState(false);
+
+  // Creator lock state
+  const [creatorTixBalance, setCreatorTixBalance] = useState<bigint | null>(
+    null
+  );
+  const [isLocked, setIsLocked] = useState<boolean | null>(null);
+  const [lockExpiry, setLockExpiry] = useState<bigint | null>(null);
+  const [lockedAmount, setLockedAmount] = useState<bigint | null>(null);
+  const [lockAmountInput, setLockAmountInput] = useState("");
+  const [lockDurationSecs, setLockDurationSecs] = useState("2592000"); // 30 days default
+  const [lockDurationMode, setLockDurationMode] = useState<"preset" | "custom">("preset");
+  const [customLockDate, setCustomLockDate] = useState("");
+  const [lockStatus, setLockStatus] = useState<"idle" | "locking">("idle");
 
   const [show, setShow] = useState<Show | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -308,32 +337,144 @@ export default function StudioShowPage() {
   // Read creatorPhaseActive from the bonding curve once available.
   // Prefer the address from the backend; fall back to the ?bc= query param
   // passed immediately after show creation before the backend has it.
-  const bondingCurveAddress = (show?.bonding_curve as Address | null) ?? bcFromQuery;
+  const bondingCurveAddress =
+    (show?.bonding_curve as Address | null) ?? bcFromQuery;
   useEffect(() => {
     if (!bondingCurveAddress) return;
     import("viem").then(({ createPublicClient, http }) =>
       import("viem/chains").then(({ baseSepolia }) => {
-        const client = createPublicClient({ chain: baseSepolia, transport: http("https://base-sepolia-rpc.publicnode.com") });
-        client.readContract({
-          address: bondingCurveAddress,
-          abi: [{ name: "creatorPhaseActive", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "bool" }] }],
-          functionName: "creatorPhaseActive",
-        }).then((v) => setCreatorPhaseActive(v as boolean)).catch(() => setCreatorPhaseActive(false));
+        const client = createPublicClient({
+          chain: baseSepolia,
+          transport: http("https://base-sepolia-rpc.publicnode.com"),
+        });
+        client
+          .readContract({
+            address: bondingCurveAddress,
+            abi: [
+              {
+                name: "creatorPhaseActive",
+                type: "function",
+                stateMutability: "view",
+                inputs: [],
+                outputs: [{ name: "", type: "bool" }],
+              },
+            ],
+            functionName: "creatorPhaseActive",
+          })
+          .then((v) => setCreatorPhaseActive(v as boolean))
+          .catch(() => setCreatorPhaseActive(false));
       })
     );
   }, [bondingCurveAddress]);
+
+  // Read creator TIX wallet balance + lock state from the bonding curve
+  const refreshCreatorOnChainState = useCallback(() => {
+    if (!bondingCurveAddress || !show?.tix_token || !walletAddress) return;
+    const tixToken = show.tix_token as Address;
+    const balAbi = [
+      {
+        name: "balanceOf",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "account", type: "address" }],
+        outputs: [{ name: "", type: "uint256" }],
+      },
+    ] as const;
+    const isLockedAbi = [
+      {
+        name: "isCreatorLocked",
+        type: "function",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [{ name: "", type: "bool" }],
+      },
+    ] as const;
+    const lockInfoAbi = [
+      {
+        name: "getCreatorLockInfo",
+        type: "function",
+        stateMutability: "view",
+        inputs: [],
+        outputs: [
+          { name: "lockedAmount", type: "uint256" },
+          { name: "lockExpiry", type: "uint256" },
+        ],
+      },
+    ] as const;
+    import("viem").then(({ createPublicClient, http }) =>
+      import("viem/chains").then(({ baseSepolia }) => {
+        const client = createPublicClient({
+          chain: baseSepolia,
+          transport: http("https://base-sepolia-rpc.publicnode.com"),
+        });
+        Promise.all([
+          client
+            .readContract({
+              address: tixToken,
+              abi: balAbi,
+              functionName: "balanceOf",
+              args: [walletAddress],
+            })
+            .catch(() => null),
+          client
+            .readContract({
+              address: bondingCurveAddress,
+              abi: isLockedAbi,
+              functionName: "isCreatorLocked",
+            })
+            .catch(() => null),
+          client
+            .readContract({
+              address: bondingCurveAddress,
+              abi: lockInfoAbi,
+              functionName: "getCreatorLockInfo",
+            })
+            .catch(() => null),
+        ]).then(([bal, locked, lockInfo]) => {
+          if (bal !== null) {
+            setCreatorTixBalance(bal as bigint);
+            setLockAmountInput(formatUnits(bal as bigint, 18));
+          }
+          if (locked !== null) setIsLocked(locked as boolean);
+          if (lockInfo !== null) {
+            const [lAmt, lExp] = lockInfo as [bigint, bigint];
+            setLockedAmount(lAmt);
+            setLockExpiry(lExp);
+          }
+        });
+      })
+    );
+  }, [bondingCurveAddress, show?.tix_token, walletAddress]);
+
+  useEffect(() => {
+    refreshCreatorOnChainState();
+  }, [refreshCreatorOnChainState]);
 
   // Read pending royalty tix from the ShowContract
   useEffect(() => {
     if (!show?.show_contract) return;
     import("viem").then(({ createPublicClient, http }) =>
       import("viem/chains").then(({ baseSepolia }) => {
-        const client = createPublicClient({ chain: baseSepolia, transport: http("https://base-sepolia-rpc.publicnode.com") });
-        client.readContract({
-          address: show.show_contract as Address,
-          abi: [{ name: "getPendingRoyaltyTix", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] }],
-          functionName: "getPendingRoyaltyTix",
-        }).then((v) => setPendingRoyaltyTix(v as bigint)).catch(() => {});
+        const client = createPublicClient({
+          chain: baseSepolia,
+          transport: http("https://base-sepolia-rpc.publicnode.com"),
+        });
+        client
+          .readContract({
+            address: show.show_contract as Address,
+            abi: [
+              {
+                name: "getPendingRoyaltyTix",
+                type: "function",
+                stateMutability: "view",
+                inputs: [],
+                outputs: [{ name: "", type: "uint256" }],
+              },
+            ],
+            functionName: "getPendingRoyaltyTix",
+          })
+          .then((v) => setPendingRoyaltyTix(v as bigint))
+          .catch(() => {});
       })
     );
   }, [show?.show_contract]);
@@ -363,6 +504,8 @@ export default function StudioShowPage() {
     if (tx) {
       showToast("success", "Creator buy successful!");
       setCreatorBuyAmount("");
+      // Wait a couple of blocks for the RPC to index, then refresh balance
+      setTimeout(() => refreshCreatorOnChainState(), 3000);
     } else {
       showToast("error", "Creator buy failed.");
     }
@@ -378,6 +521,42 @@ export default function StudioShowPage() {
       showToast("success", "Creator phase ended — market is now open!");
     } else {
       showToast("error", "Failed to end creator phase.");
+    }
+  };
+
+  const handleLockTix = async () => {
+    if (!bondingCurveAddress || !show?.tix_token || !lockAmountInput) return;
+    const amount = parseUnits(lockAmountInput, 18);
+    if (amount <= 0n) return;
+
+    let durationSecs: bigint;
+    if (lockDurationMode === "custom" && customLockDate) {
+      const targetTs = Math.floor(new Date(customLockDate).getTime() / 1000);
+      const nowTs = Math.floor(Date.now() / 1000);
+      durationSecs = BigInt(Math.max(targetTs - nowTs, 86400)); // min 1 day
+    } else {
+      durationSecs = BigInt(lockDurationSecs);
+    }
+
+    setLockStatus("locking");
+    const tx = await lockCreatorTokens({
+      bondingCurveAddress,
+      tixTokenAddress: show.tix_token as Address,
+      amount,
+      lockDuration: durationSecs,
+    });
+    setLockStatus("idle");
+    if (tx) {
+      showToast(
+        "success",
+        "TIX locked! Your show now shows the green lock badge."
+      );
+      setIsLocked(true);
+      setLockedAmount(amount);
+      setLockExpiry(BigInt(Math.floor(Date.now() / 1000)) + durationSecs);
+      setCreatorTixBalance((prev) => (prev !== null ? prev - amount : null));
+    } else {
+      showToast("error", "Lock failed. Check your wallet and try again.");
     }
   };
 
@@ -723,31 +902,44 @@ export default function StudioShowPage() {
             </div>
 
             {/* Royalties card — shown when there are pending royalties to claim */}
-            {show.show_contract && pendingRoyaltyTix !== null && pendingRoyaltyTix > 0n && (
-              <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 sm:p-5">
-                <h2 className="font-semibold text-neutral-primary-text mb-1">Creator Royalties</h2>
-                <p className="text-xs text-neutral-tertiary-text mb-4">
-                  90% of TIX spent by viewers on your show accumulates here. Claim to convert them to USDC.
-                </p>
-                <div className="flex items-center justify-between p-3 bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20 rounded-xl mb-4">
-                  <span className="text-sm text-neutral-secondary-text">Pending TIX</span>
-                  <span className="font-bold text-brand-pixsee-secondary">
-                    {parseFloat(formatUnits(pendingRoyaltyTix, 18)).toFixed(2)} TIX
-                  </span>
+            {show.show_contract &&
+              pendingRoyaltyTix !== null &&
+              pendingRoyaltyTix > 0n && (
+                <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 sm:p-5">
+                  <h2 className="font-semibold text-neutral-primary-text mb-1">
+                    Creator Royalties
+                  </h2>
+                  <p className="text-xs text-neutral-tertiary-text mb-4">
+                    90% of TIX spent by viewers on your show accumulates here.
+                    Claim to convert them to USDC.
+                  </p>
+                  <div className="flex items-center justify-between p-3 bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20 rounded-xl mb-4">
+                    <span className="text-sm text-neutral-secondary-text">
+                      Pending TIX
+                    </span>
+                    <span className="font-bold text-brand-pixsee-secondary">
+                      {parseFloat(formatUnits(pendingRoyaltyTix, 18)).toFixed(
+                        2
+                      )}{" "}
+                      TIX
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleClaimRoyalties}
+                    disabled={isClaiming || contractLoading}
+                    className="w-full py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    {isClaiming ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                        Claiming…
+                      </>
+                    ) : (
+                      "Claim Royalties as USDC"
+                    )}
+                  </button>
                 </div>
-                <button
-                  onClick={handleClaimRoyalties}
-                  disabled={isClaiming || contractLoading}
-                  className="w-full py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
-                >
-                  {isClaiming ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Claiming…</>
-                  ) : (
-                    "Claim Royalties as USDC"
-                  )}
-                </button>
-              </div>
-            )}
+              )}
 
             {/* Creator Phase card — only shown while phase is active */}
             {bondingCurveAddress && creatorPhaseActive && (
@@ -757,9 +949,12 @@ export default function StudioShowPage() {
                     <CheckCircle className="w-4 h-4 text-brand-pixsee-secondary" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-neutral-primary-text text-sm">Creator Phase Active</h2>
+                    <h2 className="font-semibold text-neutral-primary-text text-sm">
+                      Creator Phase Active
+                    </h2>
                     <p className="text-xs text-neutral-tertiary-text mt-0.5">
-                      Buy your show's TIX first before opening to the public. When ready, end the phase to open trading.
+                      Buy your show's TIX first before opening to the public.
+                      When ready, end the phase to open trading.
                     </p>
                   </div>
                 </div>
@@ -771,7 +966,9 @@ export default function StudioShowPage() {
                     </label>
                     <div className="flex gap-2">
                       <div className="flex-1 flex items-center border border-neutral-tertiary-border rounded-xl px-3 py-2.5 gap-2 bg-neutral-primary">
-                        <span className="text-neutral-tertiary-text text-sm">$</span>
+                        <span className="text-neutral-tertiary-text text-sm">
+                          $
+                        </span>
                         <input
                           type="number"
                           min="0"
@@ -781,16 +978,27 @@ export default function StudioShowPage() {
                           onChange={(e) => setCreatorBuyAmount(e.target.value)}
                           className="flex-1 outline-none text-sm text-neutral-primary-text bg-transparent"
                         />
-                        <span className="text-xs text-neutral-tertiary-text">USDC</span>
+                        <span className="text-xs text-neutral-tertiary-text">
+                          USDC
+                        </span>
                       </div>
                       <button
                         onClick={handleCreatorBuy}
-                        disabled={creatorBuyStatus !== "idle" || !creatorBuyAmount || parseFloat(creatorBuyAmount) <= 0}
+                        disabled={
+                          creatorBuyStatus !== "idle" ||
+                          !creatorBuyAmount ||
+                          parseFloat(creatorBuyAmount) <= 0
+                        }
                         className="px-4 py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
                       >
                         {creatorBuyStatus === "buying" ? (
-                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Buying…</>
-                        ) : "Buy TIX"}
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                            Buying…
+                          </>
+                        ) : (
+                          "Buy TIX"
+                        )}
                       </button>
                     </div>
                   </div>
@@ -805,13 +1013,188 @@ export default function StudioShowPage() {
                       className="w-full py-2.5 border border-semantic-success-primary text-semantic-success-text hover:bg-semantic-success-primary/10 text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
                     >
                       {creatorBuyStatus === "ending" ? (
-                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Opening market…</>
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                          Opening market…
+                        </>
                       ) : (
-                        <><CheckCircle className="w-3.5 h-3.5" /> End Creator Phase & Open Trading</>
+                        <>
+                          <CheckCircle className="w-3.5 h-3.5" /> End Creator
+                          Phase & Open Trading
+                        </>
                       )}
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Lock TIX card — only shown after creator has TIX to lock (or is already locked) */}
+            {bondingCurveAddress && show.tix_token && isLocked !== null && (isLocked || (creatorTixBalance !== null && creatorTixBalance > 0n)) && (
+              <div
+                className={`rounded-2xl p-4 sm:p-5 border-2 ${
+                  isLocked
+                    ? "bg-semantic-success-subtle border-semantic-success-primary/40"
+                    : "bg-neutral-primary border-neutral-tertiary-border"
+                }`}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                      isLocked
+                        ? "bg-semantic-success-primary/20"
+                        : "bg-neutral-tertiary"
+                    }`}
+                  >
+                    {isLocked ? (
+                      <Lock className="w-4 h-4 text-semantic-success-text" />
+                    ) : (
+                      <LockOpen className="w-4 h-4 text-neutral-tertiary-text" />
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-neutral-primary-text text-sm">
+                      {isLocked ? "TIX Locked" : "Lock Your TIX"}
+                    </h2>
+                    <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                      {isLocked
+                        ? "Your committed TIX show viewers you're in it for the long term — displayed as a green lock badge on the Trade page."
+                        : "Lock TIX to signal long-term commitment. Shows a green lock badge on the Trade page, building viewer trust."}
+                    </p>
+                  </div>
+                </div>
+
+                {isLocked && lockedAmount !== null && lockExpiry !== null ? (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center py-2 border-t border-neutral-tertiary-border">
+                      <span className="text-neutral-tertiary-text text-xs">
+                        Locked amount
+                      </span>
+                      <span className="font-semibold text-semantic-success-text">
+                        {parseFloat(
+                          formatUnits(lockedAmount, 18)
+                        ).toLocaleString("en-US", {
+                          maximumFractionDigits: 4,
+                        })}{" "}
+                        TIX
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pb-1">
+                      <span className="text-neutral-tertiary-text text-xs">
+                        Lock expires
+                      </span>
+                      <span className="text-xs font-medium text-neutral-secondary-text">
+                        {lockExpiry > 0n
+                          ? new Date(
+                              Number(lockExpiry) * 1000
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+                ) : isLocked === false ? (
+                  <div className="space-y-3 pt-1 border-t border-neutral-tertiary-border">
+                    {creatorTixBalance !== null && (
+                      <p className="text-xs text-neutral-tertiary-text">
+                        Available:{" "}
+                        <span className="font-medium text-neutral-secondary-text">
+                          {parseFloat(
+                            formatUnits(creatorTixBalance, 18)
+                          ).toLocaleString("en-US", {
+                            maximumFractionDigits: 4,
+                          })}{" "}
+                          TIX
+                        </span>
+                      </p>
+                    )}
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                        Amount to lock (TIX)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="0.00"
+                        value={lockAmountInput}
+                        onChange={(e) => setLockAmountInput(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                        Lock duration
+                      </label>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {[
+                          { label: "7d", value: "604800" },
+                          { label: "30d", value: "2592000" },
+                          { label: "90d", value: "7776000" },
+                          { label: "180d", value: "15552000" },
+                          { label: "1yr", value: "31536000" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { setLockDurationMode("preset"); setLockDurationSecs(opt.value); }}
+                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              lockDurationMode === "preset" && lockDurationSecs === opt.value
+                                ? "bg-brand-pixsee-secondary text-white border-brand-pixsee-secondary"
+                                : "bg-neutral-secondary text-neutral-secondary-text border-neutral-tertiary-border hover:border-brand-pixsee-secondary"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setLockDurationMode("custom")}
+                          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                            lockDurationMode === "custom"
+                              ? "bg-brand-pixsee-secondary text-white border-brand-pixsee-secondary"
+                              : "bg-neutral-secondary text-neutral-secondary-text border-neutral-tertiary-border hover:border-brand-pixsee-secondary"
+                          }`}
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      {lockDurationMode === "custom" && (
+                        <input
+                          type="date"
+                          value={customLockDate}
+                          min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
+                          onChange={(e) => setCustomLockDate(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
+                        />
+                      )}
+                    </div>
+                    <button
+                      onClick={handleLockTix}
+                      disabled={
+                        lockStatus !== "idle" ||
+                        !lockAmountInput ||
+                        parseFloat(lockAmountInput) <= 0 ||
+                        (lockDurationMode === "custom" && !customLockDate)
+                      }
+                      className="w-full py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      {lockStatus === "locking" ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                          Locking…
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3.5 h-3.5" /> Lock TIX
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

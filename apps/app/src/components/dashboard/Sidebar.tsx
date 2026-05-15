@@ -33,6 +33,7 @@ const topNavItems: NavItem[] = [
   { label: "Watch", href: "/watch", icon: <Play className="w-5 h-5" /> },
   { label: "Create", href: "/create", icon: <PlusCircle className="w-5 h-5" /> },
   { label: "Earn", href: "/earn", icon: <Coins className="w-5 h-5" /> },
+  { label: "Trade", href: "/trade", icon: <TrendingUp className="w-5 h-5" /> },
 ];
 
 const dashboardGroup: NavGroup = {
@@ -40,7 +41,6 @@ const dashboardGroup: NavGroup = {
   icon: <LayoutDashboard className="w-5 h-5" />,
   children: [
     { label: "My Box Office", href: "/dashboard/studio", icon: <Clapperboard className="w-5 h-5" /> },
-    { label: "Trade", href: "/dashboard/trade", icon: <TrendingUp className="w-5 h-5" /> },
   ],
 };
 

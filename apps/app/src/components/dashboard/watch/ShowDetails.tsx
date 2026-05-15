@@ -26,6 +26,9 @@ import {
   Trash2,
   UserPlus,
   UserCheck,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
 import ShareSheet from "@/components/ui/ShareSheet";
@@ -201,12 +204,16 @@ const BuyAndWatchButton = ({
         {durationSeconds > 0 && (
           <span>
             Duration:{" "}
-            <span className="font-medium text-neutral-secondary-text">{formatDuration(durationSeconds)}</span>
+            <span className="font-medium text-neutral-secondary-text">
+              {formatDuration(durationSeconds)}
+            </span>
           </span>
         )}
         <span>
           TIX needed:{" "}
-          <span className="font-medium text-neutral-secondary-text">{durationSeconds} {tickSymbol}</span>
+          <span className="font-medium text-neutral-secondary-text">
+            {durationSeconds} {tickSymbol}
+          </span>
         </span>
       </div>
 
@@ -234,11 +241,6 @@ const BuyAndWatchButton = ({
                 ~${parseFloat(cost).toFixed(4)} USDC
               </span>
             </p>
-            <ul className="text-xs text-neutral-tertiary-text mt-1 space-y-0.5">
-              <li>• 90% of TIX goes to the creator as royalties</li>
-              <li>• 10% is returned to you as watch rewards</li>
-              <li>• Price includes a 3% platform fee</li>
-            </ul>
           </div>
         )
       )}
@@ -296,6 +298,18 @@ const BuyAndWatchButton = ({
 };
 
 //  VideoPlayer ─
+// When an episode is locked, content starts with the thumbnail visible and a
+// "Continue watching" modal overlay auto-appears (simulating the play → pause → pay flow).
+// The user can dismiss the overlay to see the thumbnail, then tap the play button to bring
+// the overlay back.
+//
+// NOTE FOR BACKEND DEV (30-second teaser):
+// Once the backend can return a `preview_playback_id` on ApiEpisode (a Mux playback token
+// limited to the first N seconds), pass it as `previewPlaybackUrl` below. The MuxPlayer will
+// autoplay it; an `onTimeUpdate` handler will pause at FREE_PREVIEW_SECONDS and show the overlay.
+
+// FREE_PREVIEW_SECONDS = 30 — used by the teaser feature once backend
+// provides preview_playback_id. See NOTE FOR BACKEND DEV comment above.
 
 const VideoPlayer = ({
   episode,
@@ -306,6 +320,7 @@ const VideoPlayer = ({
   bondingCurveAddress,
   tickSymbol,
   videoFormat,
+  creatorPhaseActive,
   getAccessToken,
   onAccessGranted,
 }: {
@@ -317,10 +332,22 @@ const VideoPlayer = ({
   bondingCurveAddress?: Address;
   tickSymbol?: string;
   videoFormat?: "landscape" | "portrait" | null;
+  creatorPhaseActive?: boolean;
   getAccessToken: () => Promise<string | null>;
   onAccessGranted: () => void;
 }) => {
   const isPortrait = videoFormat === "portrait";
+
+  // Auto-show the pay overlay whenever a new locked episode is selected.
+  // Hooks must be declared before any conditional early returns.
+  const [showPayOverlay, setShowPayOverlay] = useState(true);
+  const [feeExpanded, setFeeExpanded] = useState(false);
+
+  useEffect(() => {
+    // Reset state on episode change so overlay always auto-shows for locked episodes
+    setShowPayOverlay(true);
+    setFeeExpanded(false);
+  }, [episode?.id]);
 
   if (!episode) {
     return (
@@ -330,46 +357,162 @@ const VideoPlayer = ({
     );
   }
 
-  // Locked episode — show paywall
+  // ── Creator phase: show is not yet open for public trading ────────────────
+  if (creatorPhaseActive && !episode.is_free && !hasAccess) {
+    return (
+      <div
+        className={cn(
+          "relative rounded-2xl overflow-hidden flex items-center justify-center bg-neutral-800",
+          isPortrait
+            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
+            : "w-full aspect-video"
+        )}
+      >
+        {episode.thumbnail_url && (
+          <img
+            src={episode.thumbnail_url}
+            alt={episode.title}
+            className="absolute inset-0 w-full h-full object-cover opacity-30"
+          />
+        )}
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="relative z-10 text-center px-6 py-8 max-w-xs mx-auto">
+          <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-6 h-6 text-white/70" />
+          </div>
+          <p className="text-white font-semibold text-base mb-2">
+            Not open yet
+          </p>
+          <p className="text-white/60 text-sm leading-relaxed">
+            The creator hasn't opened this show to the public yet. Check back
+            soon.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Locked episode: auto-show "Continue watching" overlay ─────────────────
   if (!episode.is_free && !hasAccess) {
     return (
       <div
         className={cn(
-          "bg-black rounded-2xl overflow-hidden relative flex items-center justify-center",
+          "relative rounded-2xl overflow-hidden",
           isPortrait
-            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16] py-0"
-            : "w-full min-h-[56.25vw] sm:aspect-video py-8 sm:py-0"
+            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
+            : "w-full aspect-video"
         )}
       >
-        {episode.thumbnail_url && (
+        {/* Thumbnail — shown clearly (not blurred) to be inviting */}
+        {episode.thumbnail_url ? (
           <Image
             src={episode.thumbnail_url}
             alt={episode.title}
             fill
-            className="object-cover opacity-20 blur-sm"
+            className="object-cover"
           />
+        ) : (
+          <div className="absolute inset-0 bg-neutral-800" />
         )}
-        <div className="relative z-10 text-center px-6 max-w-md w-full">
-          <Lock className="w-12 h-12 text-white/50 mx-auto mb-3" />
-          <p className="text-white font-semibold text-lg mb-1">
-            {episode.title}
-          </p>
-          <p className="text-white/60 text-sm">
-            Purchase {tickSymbol} tix to unlock this episode
-          </p>
-          {showContractAddress && bondingCurveAddress && (
-            <div className="mt-4">
-              <BuyAndWatchButton
-                episode={episode}
-                showContractAddress={showContractAddress}
-                bondingCurveAddress={bondingCurveAddress}
-                tickSymbol={tickSymbol}
-                getAccessToken={getAccessToken}
-                onSuccess={onAccessGranted}
-              />
+        {/* Dark scrim so UI elements are readable */}
+        <div className="absolute inset-0 bg-black/55" />
+
+        {/* ── Play button shown when overlay is dismissed ── */}
+        {!showPayOverlay && (
+          <button
+            onClick={() => setShowPayOverlay(true)}
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 group"
+            aria-label="Buy to watch"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:bg-white/30 transition-colors">
+              <Play className="w-8 h-8 text-white fill-white ml-1" />
             </div>
-          )}
-        </div>
+            <p className="text-white/80 text-sm font-medium">
+              Buy to watch this episode
+            </p>
+          </button>
+        )}
+
+        {/* ── Pay-to-watch modal overlay ── */}
+        {/* Auto-appears when a locked episode is selected, simulating
+            the "content starts → pauses → pay to continue" flow.
+            Dismiss with X to see the thumbnail + play button. */}
+        {showPayOverlay && (
+          <div className="absolute inset-0 flex items-end sm:items-center justify-center p-3 sm:p-4">
+            <div className="w-full max-w-md bg-neutral-primary rounded-2xl shadow-2xl overflow-hidden">
+              {/* Header */}
+              <div className="flex items-start justify-between p-4 pb-0">
+                <div className="min-w-0 pr-2">
+                  <p className="text-xs text-neutral-tertiary-text mb-0.5">
+                    Continue watching
+                  </p>
+                  <p className="font-semibold text-neutral-primary-text text-sm sm:text-base line-clamp-2">
+                    {episode.title}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPayOverlay(false)}
+                  className="shrink-0 text-neutral-tertiary-text hover:text-neutral-primary-text p-1 rounded-lg hover:bg-neutral-secondary transition-colors mt-0.5"
+                  aria-label="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Fee breakdown toggle */}
+              <button
+                onClick={() => setFeeExpanded((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-2 text-xs text-neutral-tertiary-text hover:text-neutral-secondary-text transition-colors"
+              >
+                <span>See what you're paying for</span>
+                {feeExpanded ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+              {feeExpanded && (
+                <div className="px-4 pb-2 space-y-1 text-xs text-neutral-tertiary-text border-t border-neutral-tertiary-border pt-2 mx-4 mb-1 rounded">
+                  <div className="flex justify-between">
+                    <span>Watch reward (back to you)</span>
+                    <span className="text-semantic-success-text">10%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Creator royalties</span>
+                    <span>90%</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-neutral-tertiary-border">
+                    <span>Platform fee</span>
+                    <span>3% of purchase</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-tertiary-text/70 pt-1 leading-relaxed">
+                    One-time unlock — watch this episode anytime, forever.
+                  </p>
+                </div>
+              )}
+
+              {/* Buy & Watch button */}
+              {showContractAddress && bondingCurveAddress ? (
+                <div className="px-4 pb-4">
+                  <BuyAndWatchButton
+                    episode={episode}
+                    showContractAddress={showContractAddress}
+                    bondingCurveAddress={bondingCurveAddress}
+                    tickSymbol={tickSymbol}
+                    getAccessToken={getAccessToken}
+                    onSuccess={onAccessGranted}
+                  />
+                </div>
+              ) : (
+                <div className="px-4 pb-4">
+                  <p className="text-xs text-neutral-tertiary-text text-center py-2">
+                    Show contract not available yet.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -532,7 +675,13 @@ const ShowDetails = ({ id }: { id: string }) => {
     perPage: 8,
     sort: "-published_at",
   });
-  const { checkAccess, walletAddress, getShowInfo } = usePixseeContract();
+  const {
+    checkAccess,
+    walletAddress,
+    getShowInfo,
+    buyAndUnlockBatch,
+    quoteCostToWatch,
+  } = usePixseeContract();
 
   const apiShow = show as unknown as ApiShow;
   const episodes = apiShow?.episodes ?? [];
@@ -543,6 +692,9 @@ const ShowDetails = ({ id }: { id: string }) => {
   const [episodeAccess, setEpisodeAccess] = useState<Record<number, boolean>>(
     {}
   );
+  const [bingeQuote, setBingeQuote] = useState<string | null>(null);
+  const [bingeLoading, setBingeLoading] = useState(false);
+  const [bingeSuccess, setBingeSuccess] = useState(false);
   const [showContractAddress, setShowContractAddress] = useState<
     Address | undefined
   >();
@@ -552,6 +704,10 @@ const ShowDetails = ({ id }: { id: string }) => {
   const [resolvedTickSymbol, setResolvedTickSymbol] = useState<
     string | undefined
   >();
+  // null = not yet read, true = creator phase active (not open), false = trading open
+  const [creatorPhaseActive, setCreatorPhaseActive] = useState<boolean | null>(
+    null
+  );
 
   const activeEpisode =
     episodes.find((ep) => ep.id === activeEpisodeId) ?? episodes[0] ?? null;
@@ -563,6 +719,35 @@ const ShowDetails = ({ id }: { id: string }) => {
     if (apiShow?.bonding_curve)
       setBondingCurveAddress(apiShow.bonding_curve as Address);
   }, [apiShow?.show_contract, apiShow?.bonding_curve]);
+
+  // Check whether the show is still in creator phase (i.e. not yet open for public trading)
+  useEffect(() => {
+    if (!bondingCurveAddress) return;
+    import("viem").then(({ createPublicClient, http }) =>
+      import("viem/chains").then(({ baseSepolia }) => {
+        const client = createPublicClient({
+          chain: baseSepolia,
+          transport: http("https://base-sepolia-rpc.publicnode.com"),
+        });
+        client
+          .readContract({
+            address: bondingCurveAddress,
+            abi: [
+              {
+                name: "creatorPhaseActive",
+                type: "function",
+                stateMutability: "view",
+                inputs: [],
+                outputs: [{ name: "", type: "bool" }],
+              },
+            ],
+            functionName: "creatorPhaseActive",
+          })
+          .then((v) => setCreatorPhaseActive(v as boolean))
+          .catch(() => setCreatorPhaseActive(false));
+      })
+    );
+  }, [bondingCurveAddress]);
 
   // Resolve tick symbol: use API value if present, otherwise read from factory contract
   useEffect(() => {
@@ -598,6 +783,72 @@ const ShowDetails = ({ id }: { id: string }) => {
   useEffect(() => {
     checkAllAccess();
   }, [checkAllAccess]);
+
+  // Binge mode: quote cost for all locked episodes
+  useEffect(() => {
+    if (!bondingCurveAddress) {
+      setBingeQuote(null);
+      return;
+    }
+    const locked = episodes.filter(
+      (ep) =>
+        !ep.is_free && !episodeAccess[ep.id] && ep.on_chain_episode_id != null
+    );
+    if (locked.length < 2) {
+      setBingeQuote(null);
+      return;
+    }
+    const totalDuration = locked.reduce(
+      (sum, ep) => sum + (ep.duration ?? 0),
+      0
+    );
+    if (totalDuration === 0) {
+      setBingeQuote(null);
+      return;
+    }
+    quoteCostToWatch(bondingCurveAddress, totalDuration)
+      .then(({ displayCost }) =>
+        setBingeQuote(parseFloat(displayCost).toFixed(4))
+      )
+      .catch(() => setBingeQuote(null));
+  }, [bondingCurveAddress, episodeAccess, episodes, quoteCostToWatch]);
+
+  const handleBingeMode = useCallback(async () => {
+    if (!showContractAddress || !bondingCurveAddress) return;
+    const locked = episodes.filter(
+      (ep) =>
+        !ep.is_free && !episodeAccess[ep.id] && ep.on_chain_episode_id != null
+    );
+    if (locked.length === 0) return;
+    const totalDuration = locked.reduce(
+      (sum, ep) => sum + (ep.duration ?? 0),
+      0
+    );
+    const episodeIds = locked.map((ep) => Number(ep.on_chain_episode_id));
+    setBingeLoading(true);
+    setBingeSuccess(false);
+    const tx = await buyAndUnlockBatch({
+      showContractAddress,
+      bondingCurveAddress,
+      episodeIds,
+      totalDurationSeconds: totalDuration,
+    });
+    setBingeLoading(false);
+    if (tx) {
+      setBingeSuccess(true);
+      // Await access re-check before triggering playback refetch,
+      // otherwise the playback request fires before episodeAccess is updated.
+      await checkAllAccess();
+      setPlaybackRefreshKey((k) => k + 1);
+    }
+  }, [
+    showContractAddress,
+    bondingCurveAddress,
+    episodes,
+    episodeAccess,
+    buyAndUnlockBatch,
+    checkAllAccess,
+  ]);
 
   const { playbackUrl, isLoading: playbackLoading } = useEpisodePlayback(
     activeEpisode?.id ?? null,
@@ -738,6 +989,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   bondingCurveAddress={bondingCurveAddress}
                   tickSymbol={resolvedTickSymbol}
                   videoFormat={apiShow?.video_format}
+                  creatorPhaseActive={creatorPhaseActive ?? false}
                   getAccessToken={getAccessToken}
                   onAccessGranted={() => {
                     checkAllAccess();
@@ -760,6 +1012,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   activeEpisode &&
                   !activeEpisode.is_free &&
                   !activeEpisodeHasAccess &&
+                  !creatorPhaseActive &&
                   showContractAddress &&
                   bondingCurveAddress && (
                     <BuyAndWatchButton
@@ -778,9 +1031,32 @@ const ShowDetails = ({ id }: { id: string }) => {
 
               {isSeries && episodes.length > 1 && (
                 <div className="bg-neutral-primary rounded-2xl p-3 sm:p-4 border border-neutral-tertiary-border">
-                  <h3 className="font-paytone text-neutral-primary-text mb-3 px-1">
-                    Episodes ({episodes.length})
-                  </h3>
+                  <div className="flex items-center justify-between gap-2 mb-3 px-1">
+                    <h3 className="font-paytone text-neutral-primary-text">
+                      Episodes ({episodes.length})
+                    </h3>
+                    {walletAddress && !creatorPhaseActive && bingeQuote && (
+                      <button
+                        onClick={handleBingeMode}
+                        disabled={bingeLoading || bingeSuccess}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover disabled:opacity-60 text-white text-xs font-medium rounded-full transition-colors whitespace-nowrap"
+                      >
+                        {bingeLoading ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />{" "}
+                            Unlocking…
+                          </>
+                        ) : bingeSuccess ? (
+                          "All unlocked!"
+                        ) : (
+                          <>
+                            <Play className="w-3 h-3" />
+                            Binge all · ${bingeQuote} USDC
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                   <div className="space-y-1 max-h-80 lg:max-h-120 overflow-y-auto pr-1">
                     {episodes.map((ep) => (
                       <EpisodeRow
@@ -896,7 +1172,12 @@ const ShowDetails = ({ id }: { id: string }) => {
                     </span>
                     <Eye className="w-4 h-4 text-neutral-tertiary-text" />
                     <span className="text-xs font-semibold text-brand-pixsee-secondary">
-                      {formatCount(activeEpisode?.view_count)}
+                      {formatCount(
+                        episodes.reduce(
+                          (sum, ep) => sum + (ep.view_count ?? 0),
+                          0
+                        ) || activeEpisode?.view_count
+                      )}
                     </span>
                   </div>
                   {activeEpisode?.duration && (
@@ -929,7 +1210,10 @@ const ShowDetails = ({ id }: { id: string }) => {
                 </h2>
                 <div className="flex items-start gap-3 mb-4">
                   {creatorProfileHref ? (
-                    <Link href={creatorProfileHref} className="flex items-start gap-3 hover:opacity-80 transition-opacity">
+                    <Link
+                      href={creatorProfileHref}
+                      className="flex items-start gap-3 hover:opacity-80 transition-opacity"
+                    >
                       <div className="w-12 h-12 rounded-full bg-neutral-tertiary overflow-hidden shrink-0 flex items-center justify-center text-lg font-semibold text-neutral-secondary-text">
                         {creatorName.charAt(0).toUpperCase()}
                       </div>
@@ -988,19 +1272,25 @@ const ShowDetails = ({ id }: { id: string }) => {
                   More to watch
                 </h2>
                 {/* Landscape first */}
-                {related.filter((s) => s.videoFormat === "landscape").length > 0 && (
+                {related.filter((s) => s.videoFormat === "landscape").length >
+                  0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 mb-4">
-                    {related.filter((s) => s.videoFormat === "landscape").map((show) => (
-                      <ShowCard key={show.id} {...show} />
-                    ))}
+                    {related
+                      .filter((s) => s.videoFormat === "landscape")
+                      .map((show) => (
+                        <ShowCard key={show.id} {...show} />
+                      ))}
                   </div>
                 )}
                 {/* Portrait after */}
-                {related.filter((s) => s.videoFormat !== "landscape").length > 0 && (
+                {related.filter((s) => s.videoFormat !== "landscape").length >
+                  0 && (
                   <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                    {related.filter((s) => s.videoFormat !== "landscape").map((show) => (
-                      <ShowCard key={show.id} {...show} />
-                    ))}
+                    {related
+                      .filter((s) => s.videoFormat !== "landscape")
+                      .map((show) => (
+                        <ShowCard key={show.id} {...show} />
+                      ))}
                   </div>
                 )}
               </div>
@@ -1200,7 +1490,11 @@ const ShowDetails = ({ id }: { id: string }) => {
       <ShareSheet
         isOpen={shareOpen}
         onClose={() => setShareOpen(false)}
-        url={typeof window !== "undefined" ? `${window.location.origin}/watch/${id}` : `/watch/${id}`}
+        url={
+          typeof window !== "undefined"
+            ? `${window.location.origin}/watch/${id}`
+            : `/watch/${id}`
+        }
         title={apiShow?.title}
         description={apiShow?.description ?? undefined}
       />

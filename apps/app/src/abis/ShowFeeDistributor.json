@@ -1,0 +1,33 @@
+[
+  {
+    "type": "function",
+    "name": "getBalances",
+    "inputs": [],
+    "outputs": [
+      { "name": "creatorBalance", "type": "uint256", "internalType": "uint256" },
+      { "name": "voterBalance", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "claimCreatorFees",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "creatorFeeBalance",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "voterFeeBalance",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+    "stateMutability": "view"
+  }
+]
