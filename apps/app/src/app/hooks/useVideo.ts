@@ -59,7 +59,10 @@ function mapVideoToFeatured(video: ApiVideo): FeaturedShowData {
     title: video.title,
     description: video.description ?? "",
     thumbnailUrl:
-      video.thumbnail_url ?? video.cover_url ?? "/images/featured-movie1.png",
+      video.cover_image_url ??
+      video.thumbnail_url ??
+      video.cover_url ??
+      "/images/featured-movie1.png",
     creatorName: creator?.name ?? creator?.username ?? "Unknown",
     creatorAvatar: creator?.avatar_url,
     views: formatCount(video.views_count ?? video.view_count),
