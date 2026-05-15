@@ -69,6 +69,7 @@ const BuyAndWatchButton = ({
   tickSymbol: tickSymbolProp,
   getAccessToken,
   onSuccess,
+  bare = false,
 }: {
   episode: ApiEpisode;
   showContractAddress: Address;
@@ -76,6 +77,7 @@ const BuyAndWatchButton = ({
   tickSymbol?: string;
   getAccessToken: () => Promise<string | null>;
   onSuccess: () => void;
+  bare?: boolean;
 }) => {
   const {
     buyAndUnlock,
@@ -191,13 +193,15 @@ const BuyAndWatchButton = ({
   );
 
   return (
-    <div className="mt-4 p-4 rounded-xl bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20">
-      <div className="flex items-center gap-2 mb-3">
-        <Lock className="w-4 h-4 text-brand-pixsee-secondary" />
-        <p className="text-sm font-medium text-brand-pixsee-secondary">
-          This episode requires {tickSymbol} tix to unlock
-        </p>
-      </div>
+    <div className={bare ? "" : "mt-4 p-4 rounded-xl bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20"}>
+      {!bare && (
+        <div className="flex items-center gap-2 mb-3">
+          <Lock className="w-4 h-4 text-brand-pixsee-secondary" />
+          <p className="text-sm font-medium text-brand-pixsee-secondary">
+            This episode requires {tickSymbol} tix to unlock
+          </p>
+        </div>
+      )}
 
       {/* Episode info row */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs text-neutral-tertiary-text">
@@ -247,7 +251,7 @@ const BuyAndWatchButton = ({
 
       {error && (
         <div className="flex items-center gap-2 text-semantic-error-primary text-sm mb-3">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -364,7 +368,7 @@ const VideoPlayer = ({
         className={cn(
           "relative rounded-2xl overflow-hidden flex items-center justify-center bg-neutral-800",
           isPortrait
-            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
+            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-9/16"
             : "w-full aspect-video"
         )}
       >
@@ -399,8 +403,11 @@ const VideoPlayer = ({
         className={cn(
           "relative rounded-2xl overflow-hidden",
           isPortrait
-            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
-            : "w-full aspect-video"
+            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-9/16"
+            // Landscape: enforce min-height on mobile so the pay modal isn't clipped
+            // by the ~210px that aspect-video yields on narrow screens.
+            // sm+ uses normal aspect-video.
+            : "w-full min-h-95 sm:min-h-0 sm:aspect-video"
         )}
       >
         {/* Thumbnail — shown clearly (not blurred) to be inviting */}
@@ -501,6 +508,7 @@ const VideoPlayer = ({
                     tickSymbol={tickSymbol}
                     getAccessToken={getAccessToken}
                     onSuccess={onAccessGranted}
+                    bare
                   />
                 </div>
               ) : (
@@ -523,7 +531,7 @@ const VideoPlayer = ({
         className={cn(
           "relative bg-black rounded-2xl overflow-hidden flex items-center justify-center",
           isPortrait
-            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
+            ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-9/16"
             : "w-full aspect-video"
         )}
       >
@@ -552,7 +560,7 @@ const VideoPlayer = ({
       className={cn(
         "rounded-2xl overflow-hidden bg-black",
         isPortrait
-          ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-[9/16]"
+          ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-9/16"
           : "w-full aspect-video"
       )}
     >
@@ -590,7 +598,7 @@ const EpisodeRow = ({
         : "hover:bg-neutral-secondary border border-transparent"
     )}
   >
-    <div className="relative w-24 h-14 rounded-lg overflow-hidden bg-neutral-tertiary flex-shrink-0">
+    <div className="relative w-24 h-14 rounded-lg overflow-hidden bg-neutral-tertiary shrink-0">
       {episode.thumbnail_url ? (
         <Image
           src={episode.thumbnail_url}
@@ -634,7 +642,7 @@ const EpisodeRow = ({
       )}
     </div>
 
-    <div className="flex-shrink-0">
+    <div className="shrink-0">
       {episode.is_free || hasAccess ? (
         <span className="text-[10px] bg-semantic-success-subtle text-semantic-success-text px-2 py-0.5 rounded-full font-medium">
           {episode.is_free ? "Free" : "Unlocked"}
@@ -1075,66 +1083,70 @@ const ShowDetails = ({ id }: { id: string }) => {
               )}
             </div>
 
-            <div className="mt-4 flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-xl sm:text-3xl font-paytone text-neutral-primary-text">
+            <div className="mt-4">
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-5 sm:gap-3">
+                <h1 className="text-xl sm:text-3xl font-paytone text-neutral-primary-text leading-tight">
                   {apiShow?.title}
                 </h1>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {apiShow?.tags?.map((tag) => (
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pt-0.5">
+                  <Button
+                    variant="outline"
+                    onClick={toggleLike}
+                    disabled={likeLoading}
+                    className={cn(
+                      "rounded-full w-9 h-9 sm:w-auto sm:h-auto px-0 sm:px-4 py-0 sm:py-1.5 gap-1.5 text-xs sm:text-sm",
+                      liked
+                        ? "border-semantic-error-primary text-semantic-error-primary bg-semantic-error-subtle"
+                        : "border-neutral-tertiary-border"
+                    )}
+                  >
+                    <Heart
+                      className={cn("w-3.5 h-3.5", liked && "fill-current")}
+                    />
+                    {likesCount > 0 && <span className="hidden sm:inline">{likesCount}</span>}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={toggleWatchlist}
+                    className={cn(
+                      "rounded-full w-9 h-9 sm:w-auto sm:h-auto px-0 sm:px-4 py-0 sm:py-1.5 gap-1.5 text-xs sm:text-sm",
+                      inWatchlist
+                        ? "border-brand-pixsee-secondary text-brand-pixsee-secondary bg-brand-pixsee-secondary/5"
+                        : "border-neutral-tertiary-border"
+                    )}
+                  >
+                    <Star
+                      className={cn("w-3.5 h-3.5", inWatchlist && "fill-current")}
+                    />
+                    <span className="hidden sm:inline">
+                      {inWatchlist ? "Saved" : "Watchlist"}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShareOpen(true)}
+                    className="rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm border-neutral-tertiary-border"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Share</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tags — horizontal scroll on mobile so they don't stack vertically */}
+              {apiShow?.tags && apiShow.tags.length > 0 && (
+                <div className="flex gap-2 mt-2.5 overflow-x-auto scrollbar-hide pb-1">
+                  {apiShow.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="flex items-center gap-1 px-2.5 py-0.5 bg-neutral-secondary rounded-full text-xs text-neutral-secondary-text"
+                      className="flex items-center gap-1 px-2.5 py-1 bg-neutral-secondary rounded-full text-xs text-neutral-secondary-text whitespace-nowrap shrink-0"
                     >
-                      <Tag className="w-3 h-3" />
+                      <Tag className="w-3 h-3 shrink-0" />
                       {tag}
                     </span>
                   ))}
                 </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  onClick={toggleLike}
-                  disabled={likeLoading}
-                  className={cn(
-                    "rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm",
-                    liked
-                      ? "border-semantic-error-primary text-semantic-error-primary bg-semantic-error-subtle"
-                      : "border-neutral-tertiary-border"
-                  )}
-                >
-                  <Heart
-                    className={cn("w-3.5 h-3.5", liked && "fill-current")}
-                  />
-                  {likesCount > 0 && <span>{likesCount}</span>}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={toggleWatchlist}
-                  className={cn(
-                    "rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm",
-                    inWatchlist
-                      ? "border-brand-pixsee-secondary text-brand-pixsee-secondary bg-brand-pixsee-secondary/5"
-                      : "border-neutral-tertiary-border"
-                  )}
-                >
-                  <Star
-                    className={cn("w-3.5 h-3.5", inWatchlist && "fill-current")}
-                  />
-                  <span className="hidden sm:inline">
-                    {inWatchlist ? "Saved" : "Watchlist"}
-                  </span>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShareOpen(true)}
-                  className="rounded-full px-3 sm:px-4 py-1.5 gap-1.5 text-xs sm:text-sm border-neutral-tertiary-border"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  Share
-                </Button>
-              </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-6">

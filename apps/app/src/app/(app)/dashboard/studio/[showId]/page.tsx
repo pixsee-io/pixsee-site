@@ -964,7 +964,7 @@ export default function StudioShowPage() {
                     <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
                       USDC to spend on TIX
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <div className="flex-1 flex items-center border border-neutral-tertiary-border rounded-xl px-3 py-2.5 gap-2 bg-neutral-primary">
                         <span className="text-neutral-tertiary-text text-sm">
                           $
@@ -989,7 +989,7 @@ export default function StudioShowPage() {
                           !creatorBuyAmount ||
                           parseFloat(creatorBuyAmount) <= 0
                         }
-                        className="px-4 py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                        className="w-full sm:w-auto px-4 py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
                       >
                         {creatorBuyStatus === "buying" ? (
                           <>
