@@ -168,7 +168,7 @@ function LandscapeRow({
         <div className="space-y-4">
           <HScrollRow
             shows={row1}
-            cardClassName="w-64 sm:w-72 md:w-80"
+            cardClassName="w-[300px] sm:w-[360px] md:w-[420px]"
             getAccessToken={getAccessToken}
             isInWatchlist={isInWatchlist}
             toggleWatchlist={toggleWatchlist}
@@ -176,7 +176,7 @@ function LandscapeRow({
           {row2.length > 0 && (
             <HScrollRow
               shows={row2}
-              cardClassName="w-64 sm:w-72 md:w-80"
+              cardClassName="w-[300px] sm:w-[360px] md:w-[420px]"
               getAccessToken={getAccessToken}
               isInWatchlist={isInWatchlist}
               toggleWatchlist={toggleWatchlist}
@@ -184,7 +184,7 @@ function LandscapeRow({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {shows.map((show) => (
             <ShowCard
               key={show.id}
@@ -307,7 +307,7 @@ const WatchPage = () => {
         {featuredShows.length > 0 && (
           <section className="mb-12">
             <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-6">
-              Top show of the week
+              Featured shows
             </h2>
             <FeaturedShow shows={featuredShows} />
           </section>
