@@ -37,6 +37,13 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   KeyRound,
+  Coins,
+  TrendingUp,
+  TrendingDown,
+  Clapperboard,
+  Gift,
+  Trash2,
+  PenLine,
 } from "lucide-react";
 import AddFundsModal from "@/components/dashboard/earn/modals/AddFundsModal";
 import WithdrawModal from "@/components/dashboard/earn/modals/WithdrawModal";
@@ -46,19 +53,40 @@ type DashboardHeaderProps = {
 };
 
 function notifIcon(type: string) {
-  if (type === "video_liked") return <Heart className="w-3.5 h-3.5 text-semantic-error-primary" />;
-  if (type === "user_followed") return <UserPlus className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
-  if (type === "comment_replied") return <Reply className="w-3.5 h-3.5 text-semantic-warning-primary" />;
-  return <MessageCircle className="w-3.5 h-3.5 text-neutral-tertiary-text" />;
+  switch (type) {
+    case "video_liked":         return <Heart className="w-3.5 h-3.5 text-semantic-error-primary" />;
+    case "user_followed":       return <UserPlus className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
+    case "comment_replied":     return <Reply className="w-3.5 h-3.5 text-semantic-warning-primary" />;
+    case "comment_posted":      return <MessageCircle className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
+    case "royalties_claimed":   return <Coins className="w-3.5 h-3.5 text-semantic-success-primary" />;
+    case "tix_bought":          return <TrendingUp className="w-3.5 h-3.5 text-semantic-success-primary" />;
+    case "tix_sold":            return <TrendingDown className="w-3.5 h-3.5 text-semantic-warning-primary" />;
+    case "tix_bought_for_show": return <TrendingUp className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
+    case "watch_cashback":      return <Gift className="w-3.5 h-3.5 text-semantic-success-primary" />;
+    case "show_created":        return <Clapperboard className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
+    case "show_updated":        return <PenLine className="w-3.5 h-3.5 text-semantic-warning-primary" />;
+    case "show_deleted":        return <Trash2 className="w-3.5 h-3.5 text-semantic-error-primary" />;
+    default:                    return <MessageCircle className="w-3.5 h-3.5 text-neutral-tertiary-text" />;
+  }
 }
 
 function notifText(n: { type: string; data: Record<string, any> }): string {
   const d = n.data;
-  if (n.type === "video_liked") return `${d.liker_name} liked your video "${d.video_title}"`;
-  if (n.type === "user_followed") return `${d.follower_name} started following you`;
-  if (n.type === "comment_posted") return `${d.commenter_name} commented on "${d.video_title}"`;
-  if (n.type === "comment_replied") return `${d.replier_name} replied to your comment`;
-  return "New notification";
+  switch (n.type) {
+    case "video_liked":         return `${d.liker_name ?? "Someone"} liked your video "${d.video_title ?? ""}"`;
+    case "user_followed":       return `${d.follower_name ?? "Someone"} started following you`;
+    case "comment_posted":      return `${d.commenter_name ?? "Someone"} commented on "${d.video_title ?? ""}"`;
+    case "comment_replied":     return `${d.replier_name ?? "Someone"} replied to your comment`;
+    case "royalties_claimed":   return `You claimed ${d.amount_usdc ?? ""} USDC in royalties for "${d.show_title ?? ""}"`;
+    case "tix_bought":          return `You bought ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} for "${d.show_title ?? ""}"`;
+    case "tix_sold":            return `You sold ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} from "${d.show_title ?? ""}"`;
+    case "tix_bought_for_show": return `${d.buyer_name ?? "Someone"} bought ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} for your show "${d.show_title ?? ""}"`;
+    case "watch_cashback":      return `You earned ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} cashback for watching "${d.show_title ?? ""}"`;
+    case "show_created":        return `Your show "${d.show_title ?? ""}" was created successfully`;
+    case "show_updated":        return `Your show "${d.show_title ?? ""}" was updated`;
+    case "show_deleted":        return `Your show "${d.show_title ?? ""}" was deleted`;
+    default:                    return "New notification";
+  }
 }
 
 const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {

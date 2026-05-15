@@ -37,6 +37,7 @@ import {
   ROUTER_ABI,
   SHOW_CONTRACT_ABI,
   SHOW_FACTORY_ABI,
+  SHOW_FEE_DISTRIBUTOR_ABI,
 } from "../lib/pixsee-contracts";
 
 //  Types
@@ -994,6 +995,54 @@ export function usePixseeContract() {
     [walletAddress, getWalletClient]
   );
 
+  // ── lockCreatorTokens ────────────────────────────────────────────────────
+  // Creator approves their TIX then locks them into the bonding curve for a
+  // chosen duration. Locked TIX earn the green lock badge on the Trade page.
+  const lockCreatorTokens = useCallback(
+    async ({
+      bondingCurveAddress,
+      tixTokenAddress,
+      amount,
+      lockDuration,
+    }: {
+      bondingCurveAddress: Address;
+      tixTokenAddress: Address;
+      amount: bigint;
+      lockDuration: bigint; // seconds
+    }): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+        // Approve TIX spending for the bonding curve
+        const approveTx = await walletClient.writeContract({
+          address: tixTokenAddress,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [bondingCurveAddress, amount],
+          gas: 100_000n,
+        });
+        await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+        const tx = await walletClient.writeContract({
+          address: bondingCurveAddress,
+          abi: BONDING_CURVE_ABI,
+          functionName: "lockCreatorTokens",
+          args: [amount, lockDuration],
+          gas: 300_000n,
+        });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Lock failed");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
   // ── claimRoyalties ───────────────────────────────────────────────────────
   // Swaps the creator's pending TIX royalties back to USDC via the bonding curve.
   // minUsdcOut = 0n means accept any price (no slippage protection).
@@ -1031,6 +1080,34 @@ export function usePixseeContract() {
     [walletAddress, getWalletClient]
   );
 
+  // ── claimCreatorFees ──────────────────────────────────────────────────────
+  // Transfers the full creatorFeeBalance from ShowFeeDistributor to the creator's wallet as USDC.
+  // No platform fee — the 1/1/1 split already happened when fees were received.
+  const claimCreatorFees = useCallback(
+    async (feeDistributorAddress: Address): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+        const tx = await walletClient.writeContract({
+          address: feeDistributorAddress,
+          abi: SHOW_FEE_DISTRIBUTOR_ABI,
+          functionName: "claimCreatorFees",
+          gas: 150_000n,
+        });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Claim creator fees failed");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
   return {
     // State
     isLoading,
@@ -1058,6 +1135,8 @@ export function usePixseeContract() {
     unlockWithTix,
     creatorBuyTix,
     endCreatorPhase,
+    lockCreatorTokens,
     claimRoyalties,
+    claimCreatorFees,
   };
 }

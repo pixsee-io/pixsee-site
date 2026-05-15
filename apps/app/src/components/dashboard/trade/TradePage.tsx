@@ -10,8 +10,11 @@ import {
   ArrowDownLeft,
   RefreshCw,
   X,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { useTixPortfolio, type TixHolding, type ShowListing } from "@/app/hooks/useTixPortfolio";
@@ -31,6 +34,59 @@ function fmtTix(raw: bigint): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(2) + "K";
   return n.toFixed(4);
+}
+
+// ── Creator Lock Badge ────────────────────────────────────────────────────────
+// Visual trust signal showing whether a creator has locked their tokens.
+// locked = true  → green  "C" + lock icon  (creator locked, lower dump risk)
+// locked = false → red    "C" + unlock icon (not locked, trade with caution)
+// locked = undefined → gray (status pending SC implementation)
+//
+// NOTE FOR SC DEV: add a view function `isCreatorLocked(address bondingCurve) external view returns (bool)`
+// to the BondingCurve contract. Once available, read it in useTixPortfolio and pass the result here
+// via a `creatorTokensLocked?: boolean` field on ShowListing.
+
+function CreatorLockBadge({ locked }: { locked?: boolean }) {
+  return (
+    <div
+      title={
+        locked === undefined
+          ? "Creator lock status coming soon"
+          : locked
+          ? "Creator has locked their tokens — lower dump risk"
+          : "Creator tokens are not locked — trade with caution"
+      }
+      className={cn(
+        "inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border cursor-default select-none",
+        locked === undefined
+          ? "bg-neutral-secondary border-neutral-tertiary-border text-neutral-tertiary-text"
+          : locked
+          ? "bg-semantic-success-primary/10 border-semantic-success-primary/30 text-semantic-success-text"
+          : "bg-semantic-error-primary/10 border-semantic-error-primary/30 text-semantic-error-primary"
+      )}
+    >
+      {/* "C" circle as described in product spec */}
+      <span
+        className={cn(
+          "w-3.5 h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center shrink-0",
+          locked === undefined
+            ? "bg-neutral-tertiary-border text-neutral-tertiary-text"
+            : locked
+            ? "bg-semantic-success-primary text-white"
+            : "bg-semantic-error-primary text-white"
+        )}
+      >
+        C
+      </span>
+      {locked === undefined ? (
+        <span className="ml-0.5">—</span>
+      ) : locked ? (
+        <Lock className="w-2.5 h-2.5" />
+      ) : (
+        <LockOpen className="w-2.5 h-2.5" />
+      )}
+    </div>
+  );
 }
 
 // ── Buy Modal ─────────────────────────────────────────────────────────────────
@@ -505,12 +561,17 @@ export default function TradePage() {
                         {(() => {
                           const listing = allShows.find((s) => s.showId === h.showId);
                           const bid = listing?.backendShowId;
-                          return bid ? (
-                            <Link href={`/watch/${bid}`} className="font-medium text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
-                              {h.show.title}
-                            </Link>
-                          ) : (
-                            <div className="font-medium text-neutral-primary-text">{h.show.title}</div>
+                          return (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {bid ? (
+                                <Link href={`/watch/${bid}`} className="font-medium text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
+                                  {h.show.title}
+                                </Link>
+                              ) : (
+                                <div className="font-medium text-neutral-primary-text">{h.show.title}</div>
+                              )}
+                              <CreatorLockBadge locked={allShows.find((s) => s.showId === h.showId)?.creatorTokensLocked} />
+                            </div>
                           );
                         })()}
                         <div className="text-xs text-neutral-tertiary-text">{h.show.tickSymbol}</div>
@@ -518,6 +579,19 @@ export default function TradePage() {
                       <td className="px-4 py-3 text-right font-medium text-neutral-primary-text">
                         {fmtTix(h.tixBalance)}
                         <div className="text-xs text-neutral-tertiary-text">{h.show.tickSymbol}</div>
+                        {h.lockedTix && h.lockedTix > 0n && (
+                          <div className="mt-0.5 space-y-0.5">
+                            <div className="flex items-center justify-end gap-1 text-xs text-semantic-warning-text">
+                              <Lock className="w-3 h-3" />
+                              {fmtTix(h.lockedTix)} locked in curve
+                            </div>
+                            {h.lockExpiry && h.lockExpiry > 0n && (
+                              <div className="text-xs text-neutral-tertiary-text">
+                                Unlocks {new Date(Number(h.lockExpiry) * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-neutral-secondary-text">
                         {fmtUsdc(formatUnits(h.spotPricePerToken * 60n, 6))}/min
@@ -579,13 +653,16 @@ export default function TradePage() {
                   className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 flex flex-col gap-3"
                 >
                   <div>
-                    {s.backendShowId ? (
-                      <Link href={`/watch/${s.backendShowId}`} className="font-semibold text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
-                        {s.show.title}
-                      </Link>
-                    ) : (
-                      <p className="font-semibold text-neutral-primary-text">{s.show.title}</p>
-                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {s.backendShowId ? (
+                        <Link href={`/watch/${s.backendShowId}`} className="font-semibold text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
+                          {s.show.title}
+                        </Link>
+                      ) : (
+                        <p className="font-semibold text-neutral-primary-text">{s.show.title}</p>
+                      )}
+                      <CreatorLockBadge locked={s.creatorTokensLocked} />
+                    </div>
                     <p className="text-xs text-neutral-tertiary-text">{s.show.tickSymbol}</p>
                   </div>
 

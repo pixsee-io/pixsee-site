@@ -432,6 +432,8 @@ const CreatePage = () => {
     goToStep("launch");
   };
 
+  const [launched, setLaunched] = useState(false);
+
   const handlePublish = async () => {
     const ok = await publishAll({
       title: showDetails.title,
@@ -450,6 +452,7 @@ const CreatePage = () => {
       })),
     });
     if (ok) {
+      setLaunched(true);
       const dest = showId
         ? `/dashboard/studio/${showId}${onChainInfo?.bondingCurve ? `?bc=${onChainInfo.bondingCurve}` : ""}`
         : "/watch";
@@ -1179,7 +1182,7 @@ const CreatePage = () => {
 
       <Button
         onClick={handlePublish}
-        disabled={isPublishing}
+        disabled={isPublishing || launched}
         className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-10 sm:px-12 py-5 sm:py-6 text-base sm:text-lg w-full sm:w-auto disabled:opacity-60"
       >
         {isPublishing ? (
@@ -1195,7 +1198,8 @@ const CreatePage = () => {
         <Button
           variant="outline"
           onClick={handleBack}
-          className="rounded-full px-8 gap-2"
+          disabled={isPublishing || launched}
+          className="rounded-full px-8 gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Review

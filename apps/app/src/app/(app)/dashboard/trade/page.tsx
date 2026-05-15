@@ -1,5 +1,5 @@
-import TradePage from "@/components/dashboard/trade/TradePage";
+import { redirect } from "next/navigation";
 
-export default function Trade() {
-  return <TradePage />;
+export default function TradeRedirect() {
+  redirect("/trade");
 }

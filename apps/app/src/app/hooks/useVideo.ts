@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { ShowCardProps, FeaturedShowData } from "@/app/utils";
-import { ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
+import type { ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
+import { apiFetch } from "../lib/apiClient";
+import { queryKeys } from "../lib/queryKeys";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
-
 type GetAccessToken = () => Promise<string | null>;
 
-//  Helpers (exported for use in other components)
+// ─── Helpers (exported for use in other components) ───────────────────────────
 
 export function formatCount(n?: number): string {
   if (!n) return "0";
@@ -25,14 +26,14 @@ export function getCreator(video: ApiVideo) {
   };
 }
 
-//  Mappers
+// ─── Mappers ──────────────────────────────────────────────────────────────────
 
 function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
   const creator = video.creator ?? video.user;
-  // Prefer explicit video_format from backend; fall back to type-based heuristic for old records
-  const isLandscape = video.video_format != null
-    ? video.video_format === "landscape"
-    : video.type === "tv_show"; // tv_show series are typically landscape; single "movie" isn't always
+  const isLandscape =
+    video.video_format != null
+      ? video.video_format === "landscape"
+      : video.type === "tv_show";
   return {
     id: String(video.id),
     title: video.title,
@@ -43,7 +44,7 @@ function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
       "/images/movie1.png",
     creatorName: creator?.name ?? creator?.username ?? "Unknown",
     creatorAvatar: creator?.avatar_url,
-    views: formatCount(video.view_count),
+    views: formatCount(video.views_count ?? video.view_count),
     likes: formatCount(video.likes_count),
     description: video.description,
     isLiked: video.is_liked,
@@ -61,12 +62,12 @@ function mapVideoToFeatured(video: ApiVideo): FeaturedShowData {
       video.thumbnail_url ?? video.cover_url ?? "/images/featured-movie1.png",
     creatorName: creator?.name ?? creator?.username ?? "Unknown",
     creatorAvatar: creator?.avatar_url,
-    views: formatCount(video.view_count),
+    views: formatCount(video.views_count ?? video.view_count),
     likes: formatCount(video.likes_count),
   };
 }
 
-//  useVideos (list)
+// ─── useVideos (list) ─────────────────────────────────────────────────────────
 
 type UseVideosOptions = {
   page?: number;
@@ -75,15 +76,7 @@ type UseVideosOptions = {
   filterIsFree?: boolean;
   filterCategoryId?: number;
   filterTitle?: string;
-};
-
-type UseVideosReturn = {
-  shows: ShowCardProps[];
-  featuredShows: FeaturedShowData[];
-  isLoading: boolean;
-  error: string | null;
-  meta: ApiVideosResponse["meta"] | null;
-  refetch: () => void;
+  getAccessToken?: GetAccessToken;
 };
 
 export function useVideos({
@@ -94,232 +87,124 @@ export function useVideos({
   filterCategoryId,
   filterTitle,
   getAccessToken,
-}: UseVideosOptions & { getAccessToken?: GetAccessToken } = {}): UseVideosReturn {
-  const [data, setData] = useState<ApiVideo[]>([]);
-  const [meta, setMeta] = useState<ApiVideosResponse["meta"] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
+}: UseVideosOptions = {}) {
+  const params: Record<string, unknown> = { page, perPage, sort, filterIsFree, filterCategoryId, filterTitle };
 
-  const refetch = useCallback(() => setTick((t) => t + 1), []);
+  const query = useQuery({
+    queryKey: queryKeys.shows.list(params),
+    queryFn: async () => {
+      const qs = new URLSearchParams({ page: String(page), per_page: String(perPage), sort });
+      if (filterIsFree !== undefined) qs.set("filter[is_free]", String(filterIsFree));
+      if (filterCategoryId !== undefined) qs.set("filter[category_id]", String(filterCategoryId));
+      if (filterTitle) qs.set("filter[title]", filterTitle);
 
-  useEffect(() => {
-    let cancelled = false;
+      const token = getAccessToken ? await getAccessToken() : null;
+      const json = await apiFetch<ApiVideosResponse>(`/api/v1/shows?${qs}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
 
-    async function fetchVideos() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          per_page: String(perPage),
-          sort,
-        });
-
-        if (filterIsFree !== undefined)
-          params.set("filter[is_free]", String(filterIsFree));
-        if (filterCategoryId !== undefined)
-          params.set("filter[category_id]", String(filterCategoryId));
-        if (filterTitle) params.set("filter[title]", filterTitle);
-
-        // Send auth token on public routes so is_liked resolves correctly
-        const token = getAccessToken ? await getAccessToken() : null;
-        const res = await fetch(
-          `${BASE_URL}/api/v1/shows?${params.toString()}`,
-          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-        );
-        if (!res.ok)
-          throw new Error(`API error: ${res.status} ${res.statusText}`);
-
-        const json: ApiVideosResponse = await res.json();
-        if (!cancelled) {
-          // Only show videos whose parent show is registered on-chain
-          const filtered = (json.data ?? []).filter(
-            (item: any) => item.bonding_curve != null
-          );
-          setData(filtered);
-          setMeta(json.meta ?? null);
-        }
-      } catch (err) {
-        if (!cancelled)
-          setError(
-            err instanceof Error ? err.message : "Failed to fetch videos"
-          );
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    fetchVideos();
-    return () => {
-      cancelled = true;
-    };
-  }, [page, perPage, sort, filterIsFree, filterCategoryId, filterTitle, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+      // Only show videos whose parent show is registered on-chain
+      const filtered = (json.data ?? []).filter((item: any) => item.bonding_curve != null);
+      return { data: filtered, meta: json.meta ?? null };
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
   return {
-    shows: data.map(mapVideoToShowCard),
-    featuredShows: data.slice(0, 5).map(mapVideoToFeatured),
-    isLoading,
-    error,
-    meta,
-    refetch,
+    shows: (query.data?.data ?? []).map(mapVideoToShowCard),
+    featuredShows: (query.data?.data ?? []).slice(0, 5).map(mapVideoToFeatured),
+    isLoading: query.isLoading,
+    error: query.error ? String(query.error) : null,
+    meta: query.data?.meta ?? null,
+    refetch: query.refetch,
   };
 }
 
-//  useVideo (single) ─
+// ─── useVideo (single) ────────────────────────────────────────────────────────
 
-type UseVideoReturn = {
-  video: ApiVideo | null;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
-};
+export function useVideo(id: string | number, getAccessToken?: GetAccessToken) {
+  const query = useQuery({
+    queryKey: queryKeys.shows.detail(id),
+    queryFn: async () => {
+      const token = getAccessToken ? await getAccessToken() : null;
+      const json = await apiFetch<{ data?: ApiVideo } | ApiVideo>(
+        `/api/v1/my-shows/${id}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      return (json as any)?.data ?? json;
+    },
+    enabled: !!id,
+    staleTime: 60 * 1000,
+  });
 
-export function useVideo(
-  id: string | number,
-  getAccessToken?: GetAccessToken
-): UseVideoReturn {
-  const [video, setVideo] = useState<ApiVideo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [tick, setTick] = useState(0);
-
-  const refetch = useCallback(() => setTick((t) => t + 1), []);
-
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-
-    async function fetchShow() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Use authenticated my-shows endpoint to get full episode data
-        const token = getAccessToken ? await getAccessToken() : null;
-        const res = await fetch(`${BASE_URL}/api/v1/my-shows/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (!res.ok) throw new Error(`API error: ${res.status}`);
-        const json = await res.json();
-        if (!cancelled) setVideo(json?.data ?? json);
-      } catch (err) {
-        if (!cancelled)
-          setError(err instanceof Error ? err.message : "Failed to fetch show");
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    fetchShow();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, tick]);
-
-  return { video, isLoading, error, refetch };
+  return {
+    video: (query.data ?? null) as ApiVideo | null,
+    isLoading: query.isLoading,
+    error: query.error ? String(query.error) : null,
+    refetch: query.refetch,
+  };
 }
 
-// useMyShows — authenticated list of the current user's own shows
+// ─── useMyShows — authenticated list of current user's shows ─────────────────
 
 export function useMyShows(getAccessToken: GetAccessToken) {
-  const [shows, setShows] = useState<ShowCardProps[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const query = useQuery({
+    queryKey: queryKeys.shows.mine(),
+    queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token) return [];
+      const json = await apiFetch<{ data?: ApiVideo[] }>("/api/v1/my-shows?per_page=50", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return (json.data ?? []).map(mapVideoToShowCard);
+    },
+    staleTime: 30 * 1000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    async function fetch_() {
-      setIsLoading(true);
-      try {
-        const token = await getAccessToken();
-        if (!token) return;
-        const res = await fetch(`${BASE_URL}/api/v1/my-shows?per_page=50`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (!cancelled) setShows((json.data ?? []).map(mapVideoToShowCard));
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-    fetch_();
-    return () => { cancelled = true; };
-  }, [getAccessToken]);
-
-  return { shows, isLoading };
+  return {
+    shows: query.data ?? [],
+    isLoading: query.isLoading,
+    refetch: query.refetch,
+  };
 }
 
-//  useEpisodePlayback
-// Fetches playback URL for a specific episode by its video.id
-// Also fires track-view on load
-
-type UseEpisodePlaybackReturn = {
-  playbackUrl: string | null;
-  isLoading: boolean;
-  error: string | null;
-};
+// ─── useEpisodePlayback ───────────────────────────────────────────────────────
 
 export function useEpisodePlayback(
   videoId: number | null,
   getAccessToken: GetAccessToken,
   refreshKey?: number
-): UseEpisodePlaybackReturn {
-  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+) {
+  const query = useQuery({
+    queryKey: queryKeys.playback.episode(videoId, refreshKey),
+    queryFn: async () => {
+      const token = await getAccessToken();
+      const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
-  useEffect(() => {
-    if (!videoId) return;
-    let cancelled = false;
+      const json = await apiFetch<{ playback_url?: string }>(`/api/v1/videos/${videoId}/playback`, { headers });
+      const url = json?.playback_url ?? "";
 
-    async function fetchPlayback() {
-      setIsLoading(true);
-      setError(null);
-      setPlaybackUrl(null);
+      // Track view — fire and forget
+      fetch(`${BASE_URL}/api/v1/videos/${videoId}/track-view`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+      }).catch(() => {});
 
-      try {
-        const token = await getAccessToken();
-        const headers: Record<string, string> = token
-          ? { Authorization: `Bearer ${token}` }
-          : {};
+      return url;
+    },
+    enabled: videoId != null,
+    staleTime: 5 * 60 * 1000, // playback URLs are valid for longer
+    retry: 1,
+  });
 
-        // 1. Get signed playback URL for this episode's video
-        const res = await fetch(
-          `${BASE_URL}/api/v1/videos/${videoId}/playback`,
-          { headers }
-        );
-        if (!res.ok) throw new Error(`Playback fetch failed: ${res.status}`);
-        const json = await res.json();
-        const url: string = json?.playback_url ?? "";
-        if (!cancelled) setPlaybackUrl(url);
-
-        // 2. Track the view (fire and forget)
-        fetch(`${BASE_URL}/api/v1/videos/${videoId}/track-view`, {
-          method: "POST",
-          headers: { ...headers, "Content-Type": "application/json" },
-        }).catch(() => {});
-      } catch (err) {
-        if (!cancelled)
-          setError(
-            err instanceof Error ? err.message : "Failed to load playback"
-          );
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    fetchPlayback();
-    return () => {
-      cancelled = true;
-    };
-  }, [videoId, refreshKey]);
-
-  return { playbackUrl, isLoading, error };
+  return {
+    playbackUrl: query.data ?? null,
+    isLoading: query.isLoading,
+    error: query.error ? String(query.error) : null,
+  };
 }
 
-//  trackProgress
-// Call this periodically while an episode is playing
+// ─── trackProgress (fire-and-forget, no hook needed) ─────────────────────────
 
 export async function trackProgress(
   videoId: number,
@@ -335,10 +220,7 @@ export async function trackProgress(
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({
-        watched_seconds: watchedSeconds,
-        current_position: currentPosition,
-      }),
+      body: JSON.stringify({ watched_seconds: watchedSeconds, current_position: currentPosition }),
     });
   } catch {
     // Non-critical — swallow silently

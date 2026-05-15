@@ -2,11 +2,13 @@ import ShowFactoryABI from "@/abis/ShowFactory.json";
 import ShowContractABI from "@/abis/ShowContract.json";
 import BondingCurveABI from "@/abis/BoxOfficeBondingCurve.json";
 import RouterABI from "@/abis/BuyAndUnlockRouter.json";
+import ShowFeeDistributorABI from "@/abis/ShowFeeDistributor.json";
 
 export const SHOW_FACTORY_ABI = ShowFactoryABI;
 export const SHOW_CONTRACT_ABI = ShowContractABI;
 export const BONDING_CURVE_ABI = BondingCurveABI;
 export const ROUTER_ABI = RouterABI;
+export const SHOW_FEE_DISTRIBUTOR_ABI = ShowFeeDistributorABI;
 
 export const CHAIN_ID = 84532; // Base Sepolia — change to 8453 for mainnet
 
@@ -15,10 +17,10 @@ export const CHAIN_ID = 84532; // Base Sepolia — change to 8453 for mainnet
 export const BASE_SEPOLIA_RPC = "https://base-sepolia-rpc.publicnode.com";
 
 export const CONTRACT_ADDRESSES = {
-  usdc: "0xe81B9cC48E24819f009E40a2F78f30b9C9E35D3F",
-  showFactory: "0x2FD3A36A1Fd8d232FAb59F9ff8E95C9e108c948F",
-  subscriptionManager: "0x0F302b5feA905a56B6b3a8143A0dB60cb7cE0689",
-  router: "0x19dc609C896c81f065bEd3d45DBbFf49405e7Dba",
+  usdc: "0x20D43f5e933aF75C17DdF68f428342b7C03f593b",
+  showFactory: "0x78B90c6E25a428E27242338f10bBad0ab8663930",
+  subscriptionManager: "0x0B518087e251157eFe9084E4F454e969931ac99d",
+  router: "0xaCaf87b250b1B5df990380921B4e55f836023c05",
 } as const;
 
 export const ERC20_ABI = [

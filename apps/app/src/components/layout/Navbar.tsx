@@ -34,7 +34,7 @@ const Navbar = (props: Props) => {
     { label: "Watch", href: "/watch" },
     { label: "Create", href: "/create" },
     { label: "Earn", href: "/earn" },
-    { label: "Trade", href: "/dashboard/trade" },
+    { label: "Trade", href: "/trade" },
   ];
 
   const isLoading = !ready;

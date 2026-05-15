@@ -8,6 +8,7 @@ import {
   Plus,
   Eye,
   EyeOff,
+  RefreshCw,
   Users,
   Play,
   LogIn,
@@ -16,11 +17,19 @@ import {
   HelpCircle,
   ChevronRight,
   ArrowUpRight,
+  TrendingUp,
+  TrendingDown,
+  Clapperboard,
+  PenLine,
+  Trash2,
   Trophy,
   ThumbsUp,
   ThumbsUpIcon,
   CircleQuestionMark,
   Loader2,
+  Wallet,
+  Lock,
+  X,
 } from "lucide-react";
 import RewardsTab from "./tabs/RewardsTab";
 import QuestTab from "./tabs/QuestTab";
@@ -34,6 +43,9 @@ import WithdrawModal from "./modals/WithdrawModal";
 import { usePrivy } from "@privy-io/react-auth";
 import { useMe, useTransactions, useWatchHistory, useSeePoints } from "@/app/hooks/useSocial";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+import { useTixPortfolio } from "@/app/hooks/useTixPortfolio";
+import { CreatorRoyaltiesSection } from "@/components/dashboard/earn/CreatorRoyaltiesSection";
+import { BoxOfficeRevenueSection } from "@/components/dashboard/earn/BoxOfficeRevenueSection";
 import { formatCount } from "@/app/hooks/useVideo";
 import { useWallets } from "@privy-io/react-auth";
 import { CONTRACT_ADDRESSES, CHAIN_ID, MOCK_USDC_FAUCET_ABI } from "@/app/lib/pixsee-contracts";
@@ -331,41 +343,255 @@ const EarningStreamCard = ({
   </div>
 );
 
-const RecentEarningRow = ({ earning }: { earning: RecentEarning }) => (
-  <div className="flex items-center justify-between gap-3 p-3 py-5 sm:p-4 bg-neutral-primary rounded-xl border border-neutral-tertiary-border">
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-semantic-error-primary/10 flex items-center justify-center shrink-0">
-        <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF3795]" />
+// ── Earnings Breakdown Card ───────────────────────────────────────────────────
+
+type EarningsBreakdownCardProps = {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  subtitle: string;
+  amount?: string;
+  currency?: string;
+  actionLabel: string;
+  onAction?: () => void;
+  actionHref?: string;
+  comingSoon?: boolean;
+  note?: string;
+  amountColor?: string;
+};
+
+const EarningsBreakdownCard = ({
+  icon,
+  iconBg,
+  title,
+  subtitle,
+  amount,
+  currency,
+  actionLabel,
+  onAction,
+  actionHref,
+  comingSoon,
+  note,
+  amountColor = "text-neutral-primary-text",
+}: EarningsBreakdownCardProps) => (
+  <div className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border flex flex-col gap-3">
+    <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+          iconBg
+        )}
+      >
+        {icon}
       </div>
       <div className="min-w-0">
-        <p className="font-medium text-sm sm:text-base text-neutral-primary-text truncate">
-          {earning.type}
+        <p className="font-semibold text-sm text-neutral-primary-text truncate">
+          {title}
         </p>
-        <p className="text-xs sm:text-sm text-neutral-tertiary-text truncate">
-          {earning.description}
-        </p>
+        <p className="text-xs text-neutral-tertiary-text">{subtitle}</p>
       </div>
     </div>
 
-    {/* Right: amount + date — shrink-0 so it never compresses */}
-    <div className="text-right shrink-0">
-      <p className="font-semibold text-sm sm:text-base text-semantic-success-text flex items-center justify-end gap-1">
-        + <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {earning.amount}
-      </p>
-      <p className="text-xs sm:text-sm text-neutral-tertiary-text">
-        {earning.date}
-      </p>
+    <div className="flex-1">
+      {comingSoon ? (
+        <span className="inline-flex items-center text-xs font-medium text-neutral-tertiary-text bg-neutral-secondary px-2.5 py-1 rounded-full">
+          Coming soon
+        </span>
+      ) : (
+        <>
+          <p className={cn("text-2xl font-bold", amountColor)}>
+            {amount ?? "—"}
+          </p>
+          {currency && (
+            <p className="text-xs text-neutral-tertiary-text mt-0.5">
+              {currency}
+            </p>
+          )}
+        </>
+      )}
+      {note && !comingSoon && (
+        <p className="text-xs text-neutral-tertiary-text mt-2 bg-neutral-secondary/60 px-2 py-1.5 rounded-lg leading-relaxed">
+          {note}
+        </p>
+      )}
     </div>
+
+    {!comingSoon && (
+      actionHref ? (
+        <a
+          href={actionHref}
+          className="w-full inline-flex items-center justify-center gap-1.5 h-10 rounded-full text-sm font-medium bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white transition-colors"
+        >
+          {actionLabel}
+          <ChevronRight className="w-4 h-4" />
+        </a>
+      ) : (
+        <Button
+          onClick={onAction}
+          className="w-full rounded-full text-sm bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white"
+        >
+          {actionLabel}
+        </Button>
+      )
+    )}
   </div>
 );
+
+// ── Box Office Revenue Modal (90% of viewer unlock payments) ──────────────────
+// "Box Office Revenue" = what creators earn when viewers pay TIX to unlock episodes.
+// 90% of each payment accumulates as pendingRoyaltyTix, claimed as USDC (minus 7% platform fee).
+
+function ClaimRoyaltiesModal({
+  isOpen,
+  onClose,
+  getAccessToken,
+  onTotalsLoaded,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  getAccessToken: () => Promise<string | null>;
+  onTotalsLoaded: (pendingGross: string, totalClaimed: string) => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-neutral-primary rounded-2xl p-5 w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-semibold text-neutral-primary-text">Box Office Revenue</h2>
+          <button
+            onClick={onClose}
+            className="text-neutral-tertiary-text hover:text-neutral-primary-text transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-xs text-neutral-tertiary-text mb-4 leading-relaxed">
+          Earned when viewers pay TIX to unlock your episodes (90% of each payment).
+          The contract deducts 7% as a platform fee and sends the remaining 93% to you as USDC.
+        </p>
+
+        <div className="max-h-72 overflow-y-auto pr-1">
+          <CreatorRoyaltiesSection getAccessToken={getAccessToken} onTotalsLoaded={onTotalsLoaded} />
+        </div>
+
+        <Button
+          onClick={onClose}
+          variant="outline"
+          className="w-full mt-4 rounded-full border-neutral-tertiary-border text-neutral-secondary-text"
+        >
+          Close
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Creator Royalties Modal (1% of every TIX trade) ───────────────────────────
+// "Creator Royalties" = ongoing 1% fee from every TIX buy/sell on the creator's show.
+
+function ClaimBoxOfficeModal({
+  isOpen,
+  onClose,
+  getAccessToken,
+  onTotalLoaded,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  getAccessToken: () => Promise<string | null>;
+  onTotalLoaded: (total: string) => void;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+      <div className="bg-neutral-primary rounded-2xl p-5 w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-semibold text-neutral-primary-text">Creator Royalties</h2>
+          <button onClick={onClose} className="text-neutral-tertiary-text hover:text-neutral-primary-text transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-xs text-neutral-tertiary-text mb-4 leading-relaxed">
+          1% of every TIX trade on your show accumulates here as USDC. Claim anytime — no platform fee deducted at this step.
+        </p>
+        <div className="max-h-72 overflow-y-auto pr-1">
+          <BoxOfficeRevenueSection getAccessToken={getAccessToken} onTotalLoaded={onTotalLoaded} />
+        </div>
+        <Button
+          onClick={onClose}
+          variant="outline"
+          className="w-full mt-4 rounded-full border-neutral-tertiary-border text-neutral-secondary-text"
+        >
+          Close
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Transaction icon helper ───────────────────────────────────────────────────
+
+function txIcon(type: string) {
+  switch (type) {
+    case "tix_bought":          return { icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
+    case "tix_sold":            return { icon: <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
+    case "royalties_claimed":   return { icon: <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
+    case "watch_cashback":      return { icon: <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
+    case "show_created":        return { icon: <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
+    case "show_updated":        return { icon: <PenLine className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
+    case "show_deleted":        return { icon: <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-error-primary" />, bg: "bg-semantic-error-primary/10" };
+    default:                    return { icon: <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF3795]" />, bg: "bg-semantic-error-primary/10" };
+  }
+}
+
+const RecentEarningRow = ({ earning, currency }: { earning: RecentEarning; currency?: string }) => {
+  const { icon, bg } = txIcon(earning.type.toLowerCase().replace(/ /g, "_"));
+  const amountNum = parseFloat(earning.amount);
+  const hasAmount = !isNaN(amountNum) && amountNum > 0;
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 py-5 sm:p-4 bg-neutral-primary rounded-xl border border-neutral-tertiary-border">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0", bg)}>
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="font-medium text-sm sm:text-base text-neutral-primary-text truncate">
+            {earning.type}
+          </p>
+          <p className="text-xs sm:text-sm text-neutral-tertiary-text truncate">
+            {earning.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="text-right shrink-0">
+        <p className="font-semibold text-sm sm:text-base text-semantic-success-text flex items-center justify-end gap-1">
+          {hasAmount ? (
+            <>+ <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {earning.amount}{currency ? ` ${currency}` : ""}</>
+          ) : (
+            <span className="text-neutral-tertiary-text font-normal">—</span>
+          )}
+        </p>
+        <p className="text-xs sm:text-sm text-neutral-tertiary-text">
+          {earning.date}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ── Main EarnPage ─────────────────────────────────────────────────────────────
 
 const EarnPage = () => {
   const { getAccessToken } = usePrivy();
   const { profile, isLoading: profileLoading } = useMe(getAccessToken);
-  const { transactions, isLoading: txLoading } = useTransactions(getAccessToken);
+  const { transactions, isLoading: txLoading, refetch: refetchTx } = useTransactions(getAccessToken);
   const { history: watchHistory } = useWatchHistory(getAccessToken);
   const { balance: seePoints } = useSeePoints(getAccessToken);
-  const { getUsdcBalance } = usePixseeContract();
+  const { getUsdcBalance, walletAddress } = usePixseeContract();
+
+  // Portfolio data for holdings card and creator shows list
+  const portfolio = useTixPortfolio(walletAddress);
 
   const [activeTab, setActiveTab] = useState<TabId>("earn");
   const [showBalance, setShowBalance] = useState(true);
@@ -429,7 +655,16 @@ const EarnPage = () => {
     }
   };
 
-  // Modal states
+  // ── Derived earnings data ────────────────────────────────────────────────────
+
+  // TIX portfolio value (mark value = spot price × balance for each holding)
+  const tixPortfolioValue = portfolio.holdings.reduce(
+    (sum, h) => sum + parseFloat(h.valueUsdcDisplay),
+    0
+  );
+
+  // ── Modal states ─────────────────────────────────────────────────────────────
+
   const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
@@ -437,17 +672,20 @@ const EarnPage = () => {
   const [selectedReward, setSelectedReward] = useState<RewardCard | null>(null);
   const [showUserProfileModal, setShowUserProfileModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showClaimRoyaltiesModal, setShowClaimRoyaltiesModal] = useState(false);
+  const [showClaimBoxOfficeModal, setShowClaimBoxOfficeModal] = useState(false);
+  const [boxOfficeTotalUsdc, setBoxOfficeTotalUsdc] = useState<string | null>(null);
+  // Box Office Revenue (90% viewer unlock): pending gross + total claimed on-chain
+  const [boxOfficePendingGross, setBoxOfficePendingGross] = useState<string | null>(null);
+  const [boxOfficeTotalClaimed, setBoxOfficeTotalClaimed] = useState<string | null>(null);
 
+  // Leaderboard placed next to Rewards per product direction
   const tabs: { id: TabId; label: string; icon?: React.ReactNode }[] = [
     { id: "earn", label: "Earn", icon: <Coins className="w-4 h-4" /> },
     { id: "rewards", label: "Rewards", icon: <Gift className="w-4 h-4" /> },
+    { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
     { id: "votes", label: "Voting", icon: <ThumbsUp className="w-4 h-4" /> },
     { id: "quest", label: "Quest", icon: <HelpCircle className="w-4 h-4" /> },
-    {
-      id: "leaderboard",
-      label: "Leaderboard",
-      icon: <Trophy className="w-4 h-4" />,
-    },
   ];
 
   const handleAddFundsSuccess = () => {
@@ -456,7 +694,6 @@ const EarnPage = () => {
   };
 
   const handleWithdrawSuccess = () => {
-    // Withdraw modal shows its own success screen; refetch balance when it closes
     refetchBalance();
   };
 
@@ -506,6 +743,136 @@ const EarnPage = () => {
                 <OverviewCard stat={{ label: "SEE Points", value: seePoints != null ? seePoints.toLocaleString() : "—" }} />
                 <OverviewCard stat={{ label: "Transactions", value: txLoading ? "…" : String(transactions.length) }} />
                 <OverviewCard stat={{ label: "Videos Watched", value: String(watchHistory.length) }} />
+              </div>
+            </section>
+
+            {/* ── Your Earnings Breakdown ── */}
+            <section className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text">
+                  Your Earnings
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+
+                {/* Holdings */}
+                <EarningsBreakdownCard
+                  icon={<Wallet className="w-5 h-5 text-brand-primary" />}
+                  iconBg="bg-brand-tertiary"
+                  title="Your Holdings"
+                  subtitle="TIX portfolio value (mark)"
+                  amount={
+                    portfolio.isLoading
+                      ? "…"
+                      : `$${tixPortfolioValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  }
+                  currency="USDC · spot price × balance"
+                  actionLabel="Go to Trade"
+                  actionHref="/trade"
+                  amountColor="text-brand-primary"
+                />
+
+                {/* Box Office Revenue — 90% of viewer unlock payments */}
+                <EarningsBreakdownCard
+                  icon={<Coins className="w-5 h-5 text-semantic-success-primary" />}
+                  iconBg="bg-semantic-success-primary/10"
+                  title="Box Office Revenue"
+                  subtitle="90% of TIX viewers pay to unlock your episodes"
+                  amount={
+                    boxOfficeTotalClaimed != null
+                      ? `$${parseFloat(boxOfficeTotalClaimed).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
+                      : undefined
+                  }
+                  currency={
+                    boxOfficePendingGross && parseFloat(boxOfficePendingGross) > 0
+                      ? `USDC · total claimed · $${parseFloat(boxOfficePendingGross).toFixed(4)} pending`
+                      : "USDC · total claimed to date"
+                  }
+                  actionLabel="Claim Revenue"
+                  onAction={() => setShowClaimRoyaltiesModal(true)}
+                  note="7% platform fee is deducted automatically by the contract on each claim"
+                  amountColor="text-semantic-success-text"
+                />
+
+                {/* Creator Royalties — 1% of every TIX trade → ShowFeeDistributor.creatorFeeBalance */}
+                <EarningsBreakdownCard
+                  icon={<TrendingUp className="w-5 h-5 text-brand-primary" />}
+                  iconBg="bg-brand-tertiary"
+                  title="Creator Royalties"
+                  subtitle="1% of every TIX trade on your shows"
+                  amount={boxOfficeTotalUsdc != null ? `$${boxOfficeTotalUsdc}` : undefined}
+                  currency="USDC · pending across all shows"
+                  actionLabel="Claim Royalties"
+                  onAction={() => setShowClaimBoxOfficeModal(true)}
+                  note="Paid as USDC directly to your wallet. No platform fee on claim."
+                  amountColor="text-brand-primary"
+                />
+
+                {/* Watch Rewards — 10% TIX cashback auto-sent on-chain when you unlock episodes */}
+                <div className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-brand-pixsee-secondary/10">
+                      <Gift className="w-5 h-5 text-brand-pixsee-secondary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-neutral-primary-text">Watch Rewards</p>
+                      <p className="text-xs text-neutral-tertiary-text">10% TIX cashback on every episode you unlock</p>
+                    </div>
+                  </div>
+
+                  {txLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-neutral-tertiary-text py-1">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
+                    </div>
+                  ) : transactions.filter((t) => t.type === "watch_cashback").length > 0 ? (
+                    <>
+                      <div>
+                        <p className="text-2xl font-bold text-brand-pixsee-secondary">
+                          {transactions
+                            .filter((t) => t.type === "watch_cashback")
+                            .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
+                            .toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} TIX
+                        </p>
+                        <p className="text-xs text-neutral-tertiary-text mt-0.5">Total cashback earned</p>
+                      </div>
+                      <div className="space-y-1.5 max-h-28 overflow-y-auto">
+                        {transactions.filter((t) => t.type === "watch_cashback").slice(0, 6).map((tx) => (
+                          <div key={tx.id} className="flex items-center justify-between text-xs">
+                            <span className="text-neutral-secondary-text truncate">{tx.description ?? "Episode unlock"}</span>
+                            <span className="shrink-0 font-medium text-brand-pixsee-secondary ml-2">+{tx.amount} TIX</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-neutral-tertiary-text italic">
+                      No rewards yet — unlock paid episodes to earn 10% TIX cashback.
+                    </p>
+                  )}
+
+                  <p className="text-xs text-neutral-tertiary-text bg-neutral-secondary/60 px-2 py-1.5 rounded-lg leading-relaxed">
+                    When you unlock an episode, 10% of the TIX spent is automatically returned to your wallet. Use them to watch more or sell in Trade (3% fee).
+                  </p>
+
+                  <a
+                    href="/trade"
+                    className="w-full inline-flex items-center justify-center gap-1.5 h-10 rounded-full text-sm font-medium bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white transition-colors"
+                  >
+                    Trade TIX
+                    <ChevronRight className="w-4 h-4" />
+                  </a>
+                </div>
+
+                {/* Voting Rewards */}
+                <EarningsBreakdownCard
+                  icon={<ThumbsUp className="w-5 h-5 text-[#FF3795]" />}
+                  iconBg="bg-[#FF3795]/10"
+                  title="Voting Rewards"
+                  subtitle="From voting on shows"
+                  actionLabel="Coming Soon"
+                  comingSoon
+                />
+
               </div>
             </section>
 
@@ -573,9 +940,19 @@ const EarnPage = () => {
                 <h2 className="text-lg sm:text-xl md:text-2xl font-paytone text-neutral-primary-text">
                   Recent Transactions
                 </h2>
-                <button className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap ml-2">
-                  View all Activity
-                </button>
+                <div className="flex items-center gap-2 ml-2">
+                  <button
+                    onClick={() => refetchTx()}
+                    disabled={txLoading}
+                    className="p-1.5 rounded-lg hover:bg-neutral-secondary transition-colors disabled:opacity-50"
+                    aria-label="Refresh transactions"
+                  >
+                    <RefreshCw className={cn("w-4 h-4 text-neutral-tertiary-text", txLoading && "animate-spin")} />
+                  </button>
+                  <button className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap">
+                    View all Activity
+                  </button>
+                </div>
               </div>
               {txLoading ? (
                 <div className="flex justify-center py-8">
@@ -590,6 +967,7 @@ const EarnPage = () => {
                   {transactions.slice(0, 10).map((tx) => (
                     <RecentEarningRow
                       key={tx.id}
+                      currency={tx.currency}
                       earning={{
                         id: String(tx.id),
                         type: tx.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
@@ -699,8 +1077,6 @@ const EarnPage = () => {
                 )}
               </div>
             )}
-
-            {/* <p className="text-white/60 text-sm">$1 USD = 10 $PIX</p> */}
           </div>
         </div>
 
@@ -789,6 +1165,38 @@ const EarnPage = () => {
           user={selectedUser}
         />
       )}
+
+      {/* Always-mounted: populate card amounts before modals are opened */}
+      <div className="hidden">
+        <BoxOfficeRevenueSection
+          getAccessToken={getAccessToken}
+          onTotalLoaded={setBoxOfficeTotalUsdc}
+        />
+        <CreatorRoyaltiesSection
+          getAccessToken={getAccessToken}
+          onTotalsLoaded={(pending, claimed) => {
+            setBoxOfficePendingGross(pending);
+            setBoxOfficeTotalClaimed(claimed);
+          }}
+        />
+      </div>
+
+      <ClaimRoyaltiesModal
+        isOpen={showClaimRoyaltiesModal}
+        onClose={() => setShowClaimRoyaltiesModal(false)}
+        getAccessToken={getAccessToken}
+        onTotalsLoaded={(pending, claimed) => {
+          setBoxOfficePendingGross(pending);
+          setBoxOfficeTotalClaimed(claimed);
+        }}
+      />
+
+      <ClaimBoxOfficeModal
+        isOpen={showClaimBoxOfficeModal}
+        onClose={() => setShowClaimBoxOfficeModal(false)}
+        getAccessToken={getAccessToken}
+        onTotalLoaded={setBoxOfficeTotalUsdc}
+      />
     </div>
   );
 };

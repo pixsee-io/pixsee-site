@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import ClientProviders from "@/components/providers/ClientProviders";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import { Toaster } from "sonner";
 
 const paytone = Paytone_One({
   subsets: ["latin"],
@@ -54,6 +55,7 @@ export default function RootLayout({
           <ClientProviders>
             {children}
             <PWAInstallButton />
+            <Toaster richColors position="bottom-right" />
           </ClientProviders>
         </ThemeProvider>
       </body>
