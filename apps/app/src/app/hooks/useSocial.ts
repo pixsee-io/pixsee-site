@@ -46,6 +46,8 @@ export type ApiTransaction = {
   currency?: "USDC" | "TIX";
   description?: string;
   created_at: string;
+  ledger_type?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type ApiNotification = {
@@ -62,7 +64,9 @@ export type ApiNotification = {
     | "watch_cashback"
     | "show_created"
     | "show_updated"
-    | "show_deleted";
+    | "show_deleted"
+    | "show_published"
+    | "creator_fee_claimed";
   data: Record<string, any>;
   read: boolean;
   read_at: string | null;
@@ -396,6 +400,75 @@ export function useTransactions(getAccessToken: GetAccessToken) {
     isLoading: query.isLoading,
     refetch: query.refetch,
   };
+}
+
+// ─── Royalty Schedule ─────────────────────────────────────────────────────────
+
+export type RoyaltySchedule = "daily" | "weekly" | "manual";
+
+export function useRoyaltySchedule(getAccessToken: GetAccessToken) {
+  const queryClient = useQueryClient();
+  const queryKey = ["royaltySchedule"] as const;
+
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token) return "manual" as RoyaltySchedule;
+      const json = await apiFetch<{ schedule: RoyaltySchedule }>("/api/v1/me/royalty-schedule", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return json.schedule ?? "manual";
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (schedule: RoyaltySchedule) => {
+      const token = await getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+      return apiFetch<{ schedule: RoyaltySchedule }>("/api/v1/me/royalty-schedule", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ schedule }),
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKey, data.schedule);
+    },
+  });
+
+  return {
+    schedule: query.data ?? "manual",
+    isLoading: query.isLoading,
+    update: mutation.mutateAsync,
+    isUpdating: mutation.isPending,
+  };
+}
+
+// ─── Transaction Analytics ────────────────────────────────────────────────────
+
+export type TransactionAnalytics = {
+  total_royalties_claimed_usdc: string;
+  royalties_claims_count: number;
+  total_box_office_revenue_usdc: string;
+  fee_claims_count: number;
+  shows_count?: number;
+};
+
+export function useTransactionAnalytics(getAccessToken: GetAccessToken) {
+  const query = useQuery({
+    queryKey: queryKeys.social.transactionAnalytics(),
+    queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token) return null;
+      return apiFetch<TransactionAnalytics>("/api/v1/me/transaction-analytics", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+  return { analytics: query.data ?? null, isLoading: query.isLoading };
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

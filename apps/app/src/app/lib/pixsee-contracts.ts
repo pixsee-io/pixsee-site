@@ -17,10 +17,10 @@ export const CHAIN_ID = 84532; // Base Sepolia — change to 8453 for mainnet
 export const BASE_SEPOLIA_RPC = "https://base-sepolia-rpc.publicnode.com";
 
 export const CONTRACT_ADDRESSES = {
-  usdc: "0x20D43f5e933aF75C17DdF68f428342b7C03f593b",
-  showFactory: "0x78B90c6E25a428E27242338f10bBad0ab8663930",
-  subscriptionManager: "0x0B518087e251157eFe9084E4F454e969931ac99d",
-  router: "0xaCaf87b250b1B5df990380921B4e55f836023c05",
+  usdc: "0x59938c8511313B69c8cE0De79Cd86E13ECd0A7dA",
+  showFactory: "0xEd2Aa0A97EE5EbFF19b83142ecc933EC75edA954",
+  subscriptionManager: "0xce32aFBFcB42C1b4Dc9e8503A365690A590F8f1E",
+  router: "0xf36877b231749Ad4F0860ADff44eC595C86739dC",
 } as const;
 
 export const ERC20_ABI = [

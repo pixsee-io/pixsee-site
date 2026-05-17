@@ -9,10 +9,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { createPublicClient, http, formatUnits, parseAbiItem, type Address } from "viem";
+import { createPublicClient, http, formatUnits, type Address } from "viem";
 import { baseSepolia } from "viem/chains";
 import { BASE_SEPOLIA_RPC } from "@/app/lib/pixsee-contracts";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+import { recordTransaction } from "@/app/lib/apiClient";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
@@ -45,16 +46,12 @@ const GET_CURVE_STATE_ABI = [
   },
 ] as const;
 
-const ROYALTIES_CLAIMED_EVENT = parseAbiItem(
-  "event RoyaltiesClaimed(address indexed creator, uint256 tixSold, uint256 grossUsdc, uint256 platformFeeUsdc, uint256 creatorUsdc, bool automated)"
-);
-
-type CreatorShow = { id: number; title: string; show_contract: string | null; bonding_curve: string | null };
+type CreatorShow = { id: number; title: string; show_contract: string | null; bonding_curve: string | null; deployment_block?: number | null };
 type ShowRoyalty = {
   show: CreatorShow;
   pendingTix: bigint;
   spotPricePerToken: bigint;
-  totalClaimedUsdc: bigint; // sum of creatorUsdc from all RoyaltiesClaimed events
+  totalClaimedUsdc: bigint;
   hasClaimed: boolean;
   isClaiming: boolean;
 };
@@ -62,11 +59,17 @@ type ShowRoyalty = {
 export function CreatorRoyaltiesSection({
   getAccessToken,
   onTotalsLoaded,
+  claimedByShowId,
+  onClaimed,
 }: {
   getAccessToken: () => Promise<string | null>;
   onTotalsLoaded?: (pendingGrossUsdc: string, totalClaimedUsdc: string) => void;
+  /** Per-show total claimed USDC derived from the transactions list (more reliable than royalties-claims API) */
+  claimedByShowId?: Record<number, number>;
+  /** Called after a successful claim so the parent can refetch transactions */
+  onClaimed?: () => void;
 }) {
-  const { claimRoyalties } = usePixseeContract();
+  const { claimRoyalties, walletAddress } = usePixseeContract();
   const [royalties, setRoyalties] = useState<ShowRoyalty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -88,20 +91,15 @@ export function CreatorRoyaltiesSection({
         const results = await Promise.all(
           shows.map(async (show) => {
             try {
-              const [tix, claimLogs, curveState] = await Promise.all([
+              const [tix, claimsRes, curveState] = await Promise.all([
                 royaltyClient.readContract({
                   address: show.show_contract as Address,
                   abi: GET_PENDING_ROYALTY_ABI,
                   functionName: "getPendingRoyaltyTix",
                 }) as Promise<bigint>,
-                royaltyClient
-                  .getLogs({
-                    address: show.show_contract as Address,
-                    event: ROYALTIES_CLAIMED_EVENT,
-                    fromBlock: 0n,
-                    toBlock: "latest",
-                  })
-                  .catch(() => []),
+                fetch(`${BASE_URL}/api/v1/shows/${show.id}/royalties-claims`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                }).then((r) => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
                 show.bonding_curve
                   ? (royaltyClient.readContract({
                       address: show.bonding_curve as Address,
@@ -111,18 +109,23 @@ export function CreatorRoyaltiesSection({
                   : Promise.resolve(null),
               ]);
 
-              // Sum all historical creatorUsdc payouts from on-chain events
-              const totalClaimedUsdc = claimLogs.reduce(
-                (sum, log) => sum + ((log.args as any).creatorUsdc ?? 0n),
+              // royalties-claims API currently returns empty; use the transactions-derived total if available
+              const claimsData: { amount_usdc: string }[] = claimsRes?.data ?? [];
+              const apiClaimedUsdc = claimsData.reduce(
+                (sum, c) => sum + BigInt(Math.round(parseFloat(c.amount_usdc) * 1_000_000)),
                 0n
               );
+              const txClaimedUsdc = claimedByShowId?.[show.id] != null
+                ? BigInt(Math.round(claimedByShowId[show.id] * 1_000_000))
+                : 0n;
+              const totalClaimedUsdc = txClaimedUsdc > apiClaimedUsdc ? txClaimedUsdc : apiClaimedUsdc;
 
               return {
                 show,
                 pendingTix: tix,
                 spotPricePerToken: curveState?.[0] ?? 0n,
                 totalClaimedUsdc,
-                hasClaimed: claimLogs.length > 0,
+                hasClaimed: totalClaimedUsdc > 0n || claimsData.length > 0,
                 isClaiming: false,
               };
             } catch {
@@ -144,7 +147,7 @@ export function CreatorRoyaltiesSection({
             // Pending gross = pending TIX × spot price (before 7% fee)
             const pendingGross = results.reduce((sum, r) => {
               const tix = parseFloat(formatUnits(r.pendingTix, 18));
-              const spot = parseFloat(formatUnits(r.spotPricePerToken, 18));
+              const spot = parseFloat(formatUnits(r.spotPricePerToken, 6));
               return sum + tix * spot;
             }, 0);
             const totalClaimed = results.reduce((sum, r) => sum + r.totalClaimedUsdc, 0n);
@@ -163,10 +166,16 @@ export function CreatorRoyaltiesSection({
   const handleClaim = async (index: number) => {
     const entry = royalties[index];
     if (!entry.show.show_contract) return;
+    const tix = parseFloat(formatUnits(entry.pendingTix, 18));
+    const spot = parseFloat(formatUnits(entry.spotPricePerToken, 6));
+    const estimatedUsdc = (tix * spot * 0.93).toFixed(6);
     setRoyalties((prev) =>
       prev.map((r, i) => (i === index ? { ...r, isClaiming: true } : r))
     );
     const tx = await claimRoyalties(entry.show.show_contract as Address, 0n);
+    const claimedRaw = tx
+      ? BigInt(Math.round(parseFloat(estimatedUsdc) * 1_000_000))
+      : 0n;
     setRoyalties((prev) =>
       prev.map((r, i) =>
         i === index
@@ -175,10 +184,39 @@ export function CreatorRoyaltiesSection({
               isClaiming: false,
               pendingTix: tx ? 0n : r.pendingTix,
               hasClaimed: tx ? true : r.hasClaimed,
+              totalClaimedUsdc: tx ? r.totalClaimedUsdc + claimedRaw : r.totalClaimedUsdc,
             }
           : r
       )
     );
+    if (tx) {
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "royalties_claimed",
+        description: `Box office revenue claimed for ${entry.show.title}`,
+        show_id: entry.show.id,
+        tx_hash: tx,
+        tix_amount: formatUnits(entry.pendingTix, 18),
+        usdc_amount: estimatedUsdc,
+        show_contract_address: entry.show.show_contract,
+        wallet_address: walletAddress,
+      });
+      // Update the earnings card totals after claim
+      if (onTotalsLoaded) {
+        const updatedRoyalties = royalties.map((r, i) =>
+          i === index ? { ...r, pendingTix: 0n, totalClaimedUsdc: r.totalClaimedUsdc + claimedRaw } : r
+        );
+        const pendingGross = updatedRoyalties.reduce((sum, r) => {
+          const tix = parseFloat(formatUnits(r.pendingTix, 18));
+          const spot = parseFloat(formatUnits(r.spotPricePerToken, 6));
+          return sum + tix * spot;
+        }, 0);
+        const totalClaimed = updatedRoyalties.reduce((sum, r) => sum + r.totalClaimedUsdc, 0n);
+        onTotalsLoaded(pendingGross.toFixed(4), parseFloat(formatUnits(totalClaimed, 6)).toFixed(4));
+      }
+      // Trigger parent refetch so transactions-derived totals stay fresh
+      onClaimed?.();
+    }
   };
 
   if (isLoading) {
@@ -202,7 +240,9 @@ export function CreatorRoyaltiesSection({
       {royalties.map((entry, index) => {
         const hasPending = entry.pendingTix > 0n;
         const tixAmount = parseFloat(formatUnits(entry.pendingTix, 18));
-        const spotPrice = parseFloat(formatUnits(entry.spotPricePerToken, 18));
+        // spotPricePerToken is raw USDC (6 dec) per TIX token — matches useTixPortfolio's
+        // valueUsdc = (tix * spotPrice) / 1e18 formula which returns 6-dec USDC
+        const spotPrice = parseFloat(formatUnits(entry.spotPricePerToken, 6));
         const grossUsdc = tixAmount * spotPrice;
         const platformFee = grossUsdc * 0.07;
         const creatorReceives = grossUsdc * 0.93;

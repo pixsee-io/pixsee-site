@@ -7,14 +7,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { createPublicClient, http, formatUnits, parseAbiItem, type Address } from "viem";
+import { createPublicClient, http, formatUnits, type Address } from "viem";
 import { baseSepolia } from "viem/chains";
 import { BASE_SEPOLIA_RPC, SHOW_FEE_DISTRIBUTOR_ABI } from "@/app/lib/pixsee-contracts";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
-
-const CREATOR_FEES_CLAIMED_EVENT = parseAbiItem(
-  "event CreatorFeesClaimed(address indexed creator, uint256 amount)"
-);
+import { recordTransaction } from "@/app/lib/apiClient";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
@@ -23,7 +20,7 @@ const feeClient = createPublicClient({
   transport: http(BASE_SEPOLIA_RPC),
 });
 
-type CreatorShow = { id: number; title: string; fee_distributor: string | null };
+type CreatorShow = { id: number; title: string; fee_distributor: string | null; deployment_block?: number | null };
 type ShowFeeEntry = {
   show: CreatorShow;
   creatorBalance: bigint;
@@ -34,11 +31,17 @@ type ShowFeeEntry = {
 export function BoxOfficeRevenueSection({
   getAccessToken,
   onTotalLoaded,
+  claimedByShowId,
+  onClaimed,
 }: {
   getAccessToken: () => Promise<string | null>;
   onTotalLoaded?: (totalUsdc: string) => void;
+  /** Per-show total claimed USDC derived from the transactions list (more reliable than fee-claims API) */
+  claimedByShowId?: Record<number, number>;
+  /** Called after a successful claim so the parent can refetch transactions */
+  onClaimed?: () => void;
 }) {
-  const { claimCreatorFees } = usePixseeContract();
+  const { claimCreatorFees, walletAddress } = usePixseeContract();
   const [entries, setEntries] = useState<ShowFeeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,24 +63,27 @@ export function BoxOfficeRevenueSection({
         const results = await Promise.all(
           shows.map(async (show) => {
             try {
-              const [balances, claimLogs] = await Promise.all([
+              const [balances, claimsRes] = await Promise.all([
                 feeClient.readContract({
                   address: show.fee_distributor as Address,
                   abi: SHOW_FEE_DISTRIBUTOR_ABI,
                   functionName: "getBalances",
                 }) as Promise<readonly [bigint, bigint]>,
-                feeClient.getLogs({
-                  address: show.fee_distributor as Address,
-                  event: CREATOR_FEES_CLAIMED_EVENT,
-                  fromBlock: 0n,
-                  toBlock: "latest",
-                }).catch(() => []),
+                fetch(`${BASE_URL}/api/v1/shows/${show.id}/fee-claims`, {
+                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                }).then((r) => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
               ]);
 
-              const totalClaimedUsdc = claimLogs.reduce(
-                (sum, log) => sum + ((log.args as any).amount ?? 0n),
+              // fee-claims API currently returns empty; use the transactions-derived total if available
+              const claimsData: { amount_usdc: string }[] = claimsRes?.data ?? [];
+              const apiClaimedUsdc = claimsData.reduce(
+                (sum, c) => sum + BigInt(Math.round(parseFloat(c.amount_usdc) * 1_000_000)),
                 0n
               );
+              const txClaimedUsdc = claimedByShowId?.[show.id] != null
+                ? BigInt(Math.round(claimedByShowId[show.id] * 1_000_000))
+                : 0n;
+              const totalClaimedUsdc = txClaimedUsdc > apiClaimedUsdc ? txClaimedUsdc : apiClaimedUsdc;
 
               return {
                 show,
@@ -124,6 +130,17 @@ export function BoxOfficeRevenueSection({
           : e
       )
     );
+    if (tx) {
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "creator_fees_claimed",
+        show_id: entry.show.id,
+        tx_hash: tx,
+        usdc_amount: formatUnits(entry.creatorBalance, 6),
+        fee_distributor_address: entry.show.fee_distributor,
+        wallet_address: walletAddress,
+      });
+    }
     // Update card total after claim
     if (tx && onTotalLoaded) {
       const updated = entries.map((e, i) =>
@@ -132,6 +149,8 @@ export function BoxOfficeRevenueSection({
       const pendingRaw = updated.reduce((sum, e) => sum + e.creatorBalance, 0n);
       onTotalLoaded(parseFloat(formatUnits(pendingRaw, 6)).toFixed(4));
     }
+    // Trigger parent refetch so transactions-derived totals stay fresh
+    if (tx) onClaimed?.();
   };
 
   if (isLoading) {

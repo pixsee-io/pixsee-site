@@ -12,12 +12,15 @@ import {
   X,
   Lock,
   LockOpen,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { usePrivy } from "@privy-io/react-auth";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { useTixPortfolio, type TixHolding, type ShowListing } from "@/app/hooks/useTixPortfolio";
+import { recordTransaction, recordNotification } from "@/app/lib/apiClient";
 import { formatUnits, parseUnits, type Address } from "viem";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -95,10 +98,11 @@ type BuyModalProps = {
   show: ShowListing;
   onClose: () => void;
   onSuccess: () => void;
+  getAccessToken: () => Promise<string | null>;
 };
 
-function BuyModal({ show, onClose, onSuccess }: BuyModalProps) {
-  const { buyTix, calculateTixOut, isLoading } = usePixseeContract();
+function BuyModal({ show, onClose, onSuccess, getAccessToken }: BuyModalProps) {
+  const { buyTix, calculateTixOut, isLoading, walletAddress } = usePixseeContract();
   const [usdcInput, setUsdcInput] = useState("");
   const [tixQuote, setTixQuote] = useState<bigint | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -132,7 +136,6 @@ function BuyModal({ show, onClose, onSuccess }: BuyModalProps) {
     if (!usdcInput || parseFloat(usdcInput) <= 0) return;
     setTxError(null);
     const usdcRaw = parseUnits(usdcInput, 6);
-    // 2% slippage on tix out
     const minTixOut = tixQuote ? (tixQuote * 98n) / 100n : 0n;
     const tx = await buyTix({
       bondingCurveAddress: show.show.bondingCurve as Address,
@@ -140,6 +143,21 @@ function BuyModal({ show, onClose, onSuccess }: BuyModalProps) {
       minTixOut,
     });
     if (tx) {
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "tix_bought",
+        show_id: show.backendShowId ?? show.showId,
+        tx_hash: tx,
+        usdc_amount: usdcInput,
+        tix_amount: tixQuote ? formatUnits(tixQuote, 18) : "0",
+        bonding_curve_address: show.show.bondingCurve,
+        wallet_address: walletAddress,
+      });
+      recordNotification(token, {
+        type: "tix_bought",
+        show_id: show.backendShowId ?? show.showId,
+        tx_hash: tx,
+      });
       onSuccess();
       onClose();
     } else {
@@ -259,10 +277,11 @@ type SellModalProps = {
   holding: TixHolding;
   onClose: () => void;
   onSuccess: () => void;
+  getAccessToken: () => Promise<string | null>;
 };
 
-function SellModal({ holding, onClose, onSuccess }: SellModalProps) {
-  const { sellTix, calculateUsdcOut, isLoading } = usePixseeContract();
+function SellModal({ holding, onClose, onSuccess, getAccessToken }: SellModalProps) {
+  const { sellTix, calculateUsdcOut, isLoading, walletAddress } = usePixseeContract();
   const [tixInput, setTixInput] = useState("");
   const [usdcQuote, setUsdcQuote] = useState<bigint | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -309,6 +328,23 @@ function SellModal({ holding, onClose, onSuccess }: SellModalProps) {
       minUsdcOut,
     });
     if (tx) {
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "tix_sold",
+        show_id: holding.showId,
+        tx_hash: tx,
+        tix_amount: tixInput,
+        usdc_amount: usdcQuote ? formatUnits(usdcQuote, 6) : "0",
+        bonding_curve_address: holding.show.bondingCurve,
+        wallet_address: walletAddress,
+      });
+      recordNotification(token, {
+        type: "tix_sold",
+        show_id: holding.showId,
+        tx_hash: tx,
+        tix_amount: tixInput,
+        usdc_amount: usdcQuote ? formatUnits(usdcQuote, 6) : "0",
+      });
       onSuccess();
       onClose();
     } else {
@@ -444,11 +480,13 @@ function SellModal({ holding, onClose, onSuccess }: SellModalProps) {
 // ── Main TradePage ────────────────────────────────────────────────────────────
 
 export default function TradePage() {
-  const { walletAddress } = usePixseeContract();
+  const { getAccessToken } = usePrivy();
+  const { walletAddress, unlockCreatorTokens } = usePixseeContract();
   const portfolio = useTixPortfolio(walletAddress);
 
   const [buyTarget, setBuyTarget] = useState<ShowListing | null>(null);
   const [sellTarget, setSellTarget] = useState<TixHolding | null>(null);
+  const [unlockingShowId, setUnlockingShowId] = useState<number | null>(null);
 
   const handleSuccess = useCallback(() => {
     portfolio.refresh();
@@ -585,11 +623,34 @@ export default function TradePage() {
                               <Lock className="w-3 h-3" />
                               {fmtTix(h.lockedTix)} locked in curve
                             </div>
-                            {h.lockExpiry && h.lockExpiry > 0n && (
-                              <div className="text-xs text-neutral-tertiary-text">
-                                Unlocks {new Date(Number(h.lockExpiry) * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                              </div>
-                            )}
+                            {h.lockExpiry && h.lockExpiry > 0n && (() => {
+                              const expiredMs = Number(h.lockExpiry) * 1000;
+                              const hasExpired = Date.now() >= expiredMs;
+                              return hasExpired ? (
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={async () => {
+                                      setUnlockingShowId(h.showId);
+                                      await unlockCreatorTokens(h.show.bondingCurve);
+                                      setUnlockingShowId(null);
+                                      portfolio.refresh();
+                                    }}
+                                    disabled={unlockingShowId === h.showId}
+                                    className="flex items-center gap-1 text-xs font-medium text-semantic-success-text bg-semantic-success-primary/10 hover:bg-semantic-success-primary/20 px-2 py-1 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {unlockingShowId === h.showId ? (
+                                      <><Loader2 className="w-3 h-3 animate-spin" /> Unlocking…</>
+                                    ) : (
+                                      <><LockOpen className="w-3 h-3" /> Unlock TIX</>
+                                    )}
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-neutral-tertiary-text text-right">
+                                  Unlocks {new Date(expiredMs).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </td>
@@ -728,6 +789,7 @@ export default function TradePage() {
             show={buyTarget}
             onClose={() => setBuyTarget(null)}
             onSuccess={handleSuccess}
+            getAccessToken={getAccessToken}
           />
         </ErrorBoundary>
       )}
@@ -737,6 +799,7 @@ export default function TradePage() {
             holding={sellTarget}
             onClose={() => setSellTarget(null)}
             onSuccess={handleSuccess}
+            getAccessToken={getAccessToken}
           />
         </ErrorBoundary>
       )}

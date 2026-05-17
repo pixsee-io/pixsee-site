@@ -41,11 +41,12 @@ import ClaimRewardModal from "./modals/ClaimRewardModal";
 import UserProfileModal from "./modals/UserProfileModal";
 import WithdrawModal from "./modals/WithdrawModal";
 import { usePrivy } from "@privy-io/react-auth";
-import { useMe, useTransactions, useWatchHistory, useSeePoints } from "@/app/hooks/useSocial";
+import { useMe, useTransactions, useWatchHistory, useSeePoints, useTransactionAnalytics } from "@/app/hooks/useSocial";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { useTixPortfolio } from "@/app/hooks/useTixPortfolio";
 import { CreatorRoyaltiesSection } from "@/components/dashboard/earn/CreatorRoyaltiesSection";
 import { BoxOfficeRevenueSection } from "@/components/dashboard/earn/BoxOfficeRevenueSection";
+import { RoyaltyScheduleCard } from "@/components/dashboard/earn/RoyaltyScheduleCard";
 import { formatCount } from "@/app/hooks/useVideo";
 import { useWallets } from "@privy-io/react-auth";
 import { CONTRACT_ADDRESSES, CHAIN_ID, MOCK_USDC_FAUCET_ABI } from "@/app/lib/pixsee-contracts";
@@ -90,6 +91,7 @@ type RecentEarning = {
   description: string;
   amount: string;
   date: string;
+  ledgerType?: string;
 };
 
 // Static fallback data (non-dynamic fields)
@@ -446,11 +448,15 @@ function ClaimRoyaltiesModal({
   onClose,
   getAccessToken,
   onTotalsLoaded,
+  claimedByShowId,
+  onClaimed,
 }: {
   isOpen: boolean;
   onClose: () => void;
   getAccessToken: () => Promise<string | null>;
-  onTotalsLoaded: (pendingGross: string, totalClaimed: string) => void;
+  onTotalsLoaded: (pendingGross: string) => void;
+  claimedByShowId?: Record<number, number>;
+  onClaimed?: () => void;
 }) {
   if (!isOpen) return null;
 
@@ -467,12 +473,21 @@ function ClaimRoyaltiesModal({
           </button>
         </div>
         <p className="text-xs text-neutral-tertiary-text mb-4 leading-relaxed">
-          Earned when viewers pay TIX to unlock your episodes (90% of each payment).
+          Earned when viewers pay TIX to unlock your videos (90% of each payment).
           The contract deducts 7% as a platform fee and sends the remaining 93% to you as USDC.
         </p>
 
         <div className="max-h-72 overflow-y-auto pr-1">
-          <CreatorRoyaltiesSection getAccessToken={getAccessToken} onTotalsLoaded={onTotalsLoaded} />
+          <CreatorRoyaltiesSection
+            getAccessToken={getAccessToken}
+            onTotalsLoaded={(pending) => onTotalsLoaded(pending)}
+            claimedByShowId={claimedByShowId}
+            onClaimed={onClaimed}
+          />
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-neutral-tertiary-border">
+          <RoyaltyScheduleCard getAccessToken={getAccessToken} />
         </div>
 
         <Button
@@ -495,11 +510,15 @@ function ClaimBoxOfficeModal({
   onClose,
   getAccessToken,
   onTotalLoaded,
+  claimedByShowId,
+  onClaimed,
 }: {
   isOpen: boolean;
   onClose: () => void;
   getAccessToken: () => Promise<string | null>;
   onTotalLoaded: (total: string) => void;
+  claimedByShowId?: Record<number, number>;
+  onClaimed?: () => void;
 }) {
   if (!isOpen) return null;
   return (
@@ -515,7 +534,12 @@ function ClaimBoxOfficeModal({
           1% of every TIX trade on your show accumulates here as USDC. Claim anytime — no platform fee deducted at this step.
         </p>
         <div className="max-h-72 overflow-y-auto pr-1">
-          <BoxOfficeRevenueSection getAccessToken={getAccessToken} onTotalLoaded={onTotalLoaded} />
+          <BoxOfficeRevenueSection
+            getAccessToken={getAccessToken}
+            onTotalLoaded={onTotalLoaded}
+            claimedByShowId={claimedByShowId}
+            onClaimed={onClaimed}
+          />
         </div>
         <Button
           onClick={onClose}
@@ -531,12 +555,40 @@ function ClaimBoxOfficeModal({
 
 // ── Transaction icon helper ───────────────────────────────────────────────────
 
+// Maps raw backend transaction types to human-readable display labels
+function txDisplayLabel(type: string): string {
+  switch (type) {
+    case "royalties_claimed":   return "Box Office Revenue";
+    case "creator_fees_claimed": return "Creator Royalties";
+    case "tix_bought":          return "TIX Bought";
+    case "tix_sold":            return "TIX Sold";
+    case "watch_cashback":
+    case "watch_reward":
+    case "cashback":            return "Watch Cashback";
+    case "show_created":        return "Show Created";
+    case "show_updated":        return "Show Updated";
+    case "show_deleted":        return "Show Deleted";
+    default: return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+}
+
+// Maps "royalties claimed for X" descriptions to cleaner box office labels
+function txDisplayDescription(type: string, description: string): string {
+  if (type === "royalties_claimed" && description.toLowerCase().startsWith("royalties claimed for")) {
+    return description.replace(/^royalties claimed for/i, "Box office revenue claimed for");
+  }
+  return description;
+}
+
 function txIcon(type: string) {
   switch (type) {
     case "tix_bought":          return { icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
     case "tix_sold":            return { icon: <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
     case "royalties_claimed":   return { icon: <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
-    case "watch_cashback":      return { icon: <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
+    case "creator_fees_claimed": return { icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-brand-primary" />, bg: "bg-brand-tertiary" };
+    case "watch_cashback":
+    case "watch_reward":
+    case "cashback":            return { icon: <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
     case "show_created":        return { icon: <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
     case "show_updated":        return { icon: <PenLine className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
     case "show_deleted":        return { icon: <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-error-primary" />, bg: "bg-semantic-error-primary/10" };
@@ -548,6 +600,7 @@ const RecentEarningRow = ({ earning, currency }: { earning: RecentEarning; curre
   const { icon, bg } = txIcon(earning.type.toLowerCase().replace(/ /g, "_"));
   const amountNum = parseFloat(earning.amount);
   const hasAmount = !isNaN(amountNum) && amountNum > 0;
+  const isDebit = earning.ledgerType === "spend" || earning.ledgerType === "purchase";
   return (
     <div className="flex items-center justify-between gap-3 p-3 py-5 sm:p-4 bg-neutral-primary rounded-xl border border-neutral-tertiary-border">
       <div className="flex items-center gap-3 min-w-0">
@@ -565,9 +618,9 @@ const RecentEarningRow = ({ earning, currency }: { earning: RecentEarning; curre
       </div>
 
       <div className="text-right shrink-0">
-        <p className="font-semibold text-sm sm:text-base text-semantic-success-text flex items-center justify-end gap-1">
+        <p className={cn("font-semibold text-sm sm:text-base flex items-center justify-end gap-1", isDebit ? "text-semantic-error-text" : "text-semantic-success-text")}>
           {hasAmount ? (
-            <>+ <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {earning.amount}{currency ? ` ${currency}` : ""}</>
+            <>{isDebit ? "−" : "+"} <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> ${earning.amount}{currency ? ` ${currency}` : ""}</>
           ) : (
             <span className="text-neutral-tertiary-text font-normal">—</span>
           )}
@@ -586,6 +639,7 @@ const EarnPage = () => {
   const { getAccessToken } = usePrivy();
   const { profile, isLoading: profileLoading } = useMe(getAccessToken);
   const { transactions, isLoading: txLoading, refetch: refetchTx } = useTransactions(getAccessToken);
+  const { analytics: txAnalytics } = useTransactionAnalytics(getAccessToken);
   const { history: watchHistory } = useWatchHistory(getAccessToken);
   const { balance: seePoints } = useSeePoints(getAccessToken);
   const { getUsdcBalance, walletAddress } = usePixseeContract();
@@ -608,6 +662,47 @@ const EarnPage = () => {
     if (usdcBalance != null) setCurrentBalance(parseFloat(usdcBalance));
   }, [usdcBalance]);
 
+  // ── Per-show claimed totals derived from transactions (most reliable source) ──
+  // Both royalties-claims and fee-claims per-show APIs return empty; transaction-analytics
+  // is static. The transactions list is the only ground truth.
+
+  const royaltiesClaimedByShowId = React.useMemo(() => {
+    const map: Record<number, number> = {};
+    transactions
+      .filter((t) => t.type === "royalties_claimed")
+      .forEach((t) => {
+        const showId = (t.metadata as { show_id?: number } | undefined)?.show_id;
+        if (showId != null) map[showId] = (map[showId] ?? 0) + (parseFloat(t.amount) || 0);
+      });
+    return map;
+  }, [transactions]);
+
+  const feesClaimedByShowId = React.useMemo(() => {
+    const map: Record<number, number> = {};
+    transactions
+      .filter((t) => t.type === "creator_fees_claimed")
+      .forEach((t) => {
+        const showId = (t.metadata as { show_id?: number } | undefined)?.show_id;
+        if (showId != null) map[showId] = (map[showId] ?? 0) + (parseFloat(t.amount) || 0);
+      });
+    return map;
+  }, [transactions]);
+
+  // Card totals — computed from transactions; fall back to analytics for creator royalties
+  // in case analytics ever returns a real non-zero value higher than the tx sum.
+  const boxOfficeClaimedTotal = React.useMemo(() => {
+    if (txLoading) return null;
+    const total = Object.values(royaltiesClaimedByShowId).reduce((a, b) => a + b, 0);
+    return total.toFixed(4);
+  }, [royaltiesClaimedByShowId, txLoading]);
+
+  const creatorRoyaltiesClaimedTotal = React.useMemo(() => {
+    if (txLoading) return null;
+    const txTotal = Object.values(feesClaimedByShowId).reduce((a, b) => a + b, 0);
+    const analyticsVal = txAnalytics ? parseFloat(txAnalytics.total_box_office_revenue_usdc) : 0;
+    return Math.max(txTotal, analyticsVal).toFixed(4);
+  }, [feesClaimedByShowId, txAnalytics, txLoading]);
+
   // Refetch balance from chain after fund/withdraw completes
   const refetchBalance = () => {
     getUsdcBalance().then(setUsdcBalance).catch(() => {});
@@ -617,7 +712,6 @@ const EarnPage = () => {
   const { wallets } = useWallets();
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [faucetDone, setFaucetDone] = useState(false);
-  const [faucetClaimed, setFaucetClaimed] = useState(false);
   const [faucetError, setFaucetError] = useState<string | null>(null);
   const claimTestUsdc = async () => {
     const activeWallet = wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
@@ -643,9 +737,7 @@ const EarnPage = () => {
       }, 3000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("Already claimed")) {
-        setFaucetClaimed(true);
-      } else if (msg.toLowerCase().includes("insufficient funds for gas")) {
+      if (msg.toLowerCase().includes("insufficient funds for gas")) {
         setFaucetError("no-gas");
       } else {
         console.error("[Faucet] failed:", err);
@@ -674,10 +766,9 @@ const EarnPage = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showClaimRoyaltiesModal, setShowClaimRoyaltiesModal] = useState(false);
   const [showClaimBoxOfficeModal, setShowClaimBoxOfficeModal] = useState(false);
-  const [boxOfficeTotalUsdc, setBoxOfficeTotalUsdc] = useState<string | null>(null);
-  // Box Office Revenue (90% viewer unlock): pending gross + total claimed on-chain
+  // Pending on-chain amounts (from live contract reads via hidden sections)
   const [boxOfficePendingGross, setBoxOfficePendingGross] = useState<string | null>(null);
-  const [boxOfficeTotalClaimed, setBoxOfficeTotalClaimed] = useState<string | null>(null);
+  const [creatorRoyaltiesPending, setCreatorRoyaltiesPending] = useState<string | null>(null);
 
   // Leaderboard placed next to Rewards per product direction
   const tabs: { id: TabId; label: string; icon?: React.ReactNode }[] = [
@@ -777,11 +868,11 @@ const EarnPage = () => {
                   icon={<Coins className="w-5 h-5 text-semantic-success-primary" />}
                   iconBg="bg-semantic-success-primary/10"
                   title="Box Office Revenue"
-                  subtitle="90% of TIX viewers pay to unlock your episodes"
+                  subtitle="90% of TIX viewers pay to unlock your videos"
                   amount={
-                    boxOfficeTotalClaimed != null
-                      ? `$${parseFloat(boxOfficeTotalClaimed).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
-                      : undefined
+                    boxOfficeClaimedTotal != null
+                      ? `$${parseFloat(boxOfficeClaimedTotal).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
+                      : txLoading ? "…" : undefined
                   }
                   currency={
                     boxOfficePendingGross && parseFloat(boxOfficePendingGross) > 0
@@ -800,8 +891,16 @@ const EarnPage = () => {
                   iconBg="bg-brand-tertiary"
                   title="Creator Royalties"
                   subtitle="1% of every TIX trade on your shows"
-                  amount={boxOfficeTotalUsdc != null ? `$${boxOfficeTotalUsdc}` : undefined}
-                  currency="USDC · pending across all shows"
+                  amount={
+                    creatorRoyaltiesClaimedTotal != null
+                      ? `$${parseFloat(creatorRoyaltiesClaimedTotal).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
+                      : txLoading ? "…" : undefined
+                  }
+                  currency={
+                    creatorRoyaltiesPending && parseFloat(creatorRoyaltiesPending) > 0
+                      ? `USDC · total claimed · $${parseFloat(creatorRoyaltiesPending).toFixed(4)} pending`
+                      : "USDC · total claimed to date"
+                  }
                   actionLabel="Claim Royalties"
                   onAction={() => setShowClaimBoxOfficeModal(true)}
                   note="Paid as USDC directly to your wallet. No platform fee on claim."
@@ -824,19 +923,19 @@ const EarnPage = () => {
                     <div className="flex items-center gap-2 text-xs text-neutral-tertiary-text py-1">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
                     </div>
-                  ) : transactions.filter((t) => t.type === "watch_cashback").length > 0 ? (
+                  ) : transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback").length > 0 ? (
                     <>
                       <div>
                         <p className="text-2xl font-bold text-brand-pixsee-secondary">
                           {transactions
-                            .filter((t) => t.type === "watch_cashback")
+                            .filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback")
                             .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
                             .toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} TIX
                         </p>
                         <p className="text-xs text-neutral-tertiary-text mt-0.5">Total cashback earned</p>
                       </div>
                       <div className="space-y-1.5 max-h-28 overflow-y-auto">
-                        {transactions.filter((t) => t.type === "watch_cashback").slice(0, 6).map((tx) => (
+                        {transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback").slice(0, 6).map((tx) => (
                           <div key={tx.id} className="flex items-center justify-between text-xs">
                             <span className="text-neutral-secondary-text truncate">{tx.description ?? "Episode unlock"}</span>
                             <span className="shrink-0 font-medium text-brand-pixsee-secondary ml-2">+{tx.amount} TIX</span>
@@ -970,10 +1069,11 @@ const EarnPage = () => {
                       currency={tx.currency}
                       earning={{
                         id: String(tx.id),
-                        type: tx.type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-                        description: tx.description ?? "",
+                        type: txDisplayLabel(tx.type),
+                        description: txDisplayDescription(tx.type, tx.description ?? ""),
                         amount: tx.amount,
                         date: new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                        ledgerType: tx.ledger_type,
                       }}
                     />
                   ))}
@@ -1045,17 +1145,15 @@ const EarnPage = () => {
               <div className="flex flex-col items-center gap-2">
                 <button
                   onClick={() => { setFaucetError(null); claimTestUsdc(); }}
-                  disabled={faucetLoading || faucetDone || faucetClaimed}
+                  disabled={faucetLoading || faucetDone}
                   className="flex items-center gap-1.5 text-base text-white hover:text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {faucetLoading ? (
                     <><Loader2 className="w-3 h-3 animate-spin" /> Minting test USDC…</>
                   ) : faucetDone ? (
-                    "✓ 10,000 test USDC sent!"
-                  ) : faucetClaimed ? (
-                    "Already claimed — one per address"
+                    "✓ 100,000 test USDC sent!"
                   ) : (
-                    "🧪 Get 10,000 test USDC (testnet only)"
+                    "🧪 Get 100,000 test USDC (testnet only)"
                   )}
                 </button>
                 {faucetError === "no-gas" && (
@@ -1166,18 +1264,19 @@ const EarnPage = () => {
         />
       )}
 
-      {/* Always-mounted: populate card amounts before modals are opened */}
+      {/* Always-mounted: populate on-chain pending amounts before modals are opened */}
       <div className="hidden">
         <BoxOfficeRevenueSection
           getAccessToken={getAccessToken}
-          onTotalLoaded={setBoxOfficeTotalUsdc}
+          claimedByShowId={feesClaimedByShowId}
+          onTotalLoaded={setCreatorRoyaltiesPending}
+          onClaimed={refetchTx}
         />
         <CreatorRoyaltiesSection
           getAccessToken={getAccessToken}
-          onTotalsLoaded={(pending, claimed) => {
-            setBoxOfficePendingGross(pending);
-            setBoxOfficeTotalClaimed(claimed);
-          }}
+          claimedByShowId={royaltiesClaimedByShowId}
+          onTotalsLoaded={(pending) => setBoxOfficePendingGross(pending)}
+          onClaimed={refetchTx}
         />
       </div>
 
@@ -1185,17 +1284,18 @@ const EarnPage = () => {
         isOpen={showClaimRoyaltiesModal}
         onClose={() => setShowClaimRoyaltiesModal(false)}
         getAccessToken={getAccessToken}
-        onTotalsLoaded={(pending, claimed) => {
-          setBoxOfficePendingGross(pending);
-          setBoxOfficeTotalClaimed(claimed);
-        }}
+        onTotalsLoaded={(pending) => setBoxOfficePendingGross(pending)}
+        claimedByShowId={royaltiesClaimedByShowId}
+        onClaimed={refetchTx}
       />
 
       <ClaimBoxOfficeModal
         isOpen={showClaimBoxOfficeModal}
         onClose={() => setShowClaimBoxOfficeModal(false)}
         getAccessToken={getAccessToken}
-        onTotalLoaded={setBoxOfficeTotalUsdc}
+        onTotalLoaded={setCreatorRoyaltiesPending}
+        claimedByShowId={feesClaimedByShowId}
+        onClaimed={refetchTx}
       />
     </div>
   );

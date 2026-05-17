@@ -17,6 +17,7 @@ import {
   Loader2,
   Film,
   LayoutList,
+  Trash2,
 } from "lucide-react";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
@@ -315,6 +316,7 @@ const CreatePage = () => {
     initEpisodes,
     attachFile,
     addUploadSlot,
+    removeUploadSlot,
     uploadAll,
     uploadSingle,
     syncEpisodesMeta,
@@ -502,6 +504,11 @@ const CreatePage = () => {
     setEpisodes((eps) => [...eps, newEp]);
     // Sync a new empty slot into uploadStates without wiping existing files
     addUploadSlot(newId, `Episode ${newId}`);
+  };
+
+  const removeEpisode = (id: string) => {
+    setEpisodes((eps) => eps.filter((ep) => ep.id !== id));
+    removeUploadSlot(id);
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -865,9 +872,21 @@ const CreatePage = () => {
             className="mb-6 border border-neutral-tertiary-border rounded-xl p-4"
           >
             {contentType === "series" && (
-              <p className="text-sm font-semibold text-neutral-primary-text mb-3">
-                Episode {index + 1}
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-neutral-primary-text">
+                  Episode {index + 1}
+                </p>
+                {episodes.length > 1 && (
+                  <button
+                    onClick={() => removeEpisode(ep.id)}
+                    className="flex items-center gap-1 text-xs text-semantic-error-text hover:text-semantic-error-primary transition-colors"
+                    title="Remove episode"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Remove
+                  </button>
+                )}
+              </div>
             )}
 
             {/* Drop zone per episode */}

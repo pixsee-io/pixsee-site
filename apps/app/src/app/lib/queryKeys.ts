@@ -25,6 +25,7 @@ export const queryKeys = {
     watchHistory: () => ["social", "watchHistory"] as const,
     transactions: () => ["social", "transactions"] as const,
     seePoints: () => ["social", "seePoints"] as const,
+    transactionAnalytics: () => ["social", "transactionAnalytics"] as const,
   },
   portfolio: {
     tix: (walletAddress: string | undefined) =>
