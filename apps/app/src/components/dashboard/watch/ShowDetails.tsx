@@ -375,14 +375,19 @@ const VideoPlayer = ({
 
   // Auto-show the pay overlay whenever a new locked episode is selected.
   // Hooks must be declared before any conditional early returns.
-  const [showPayOverlay, setShowPayOverlay] = useState(true);
+  // If a preview is available, hide the overlay until the preview finishes playing.
+  const [showPayOverlay, setShowPayOverlay] = useState(() => {
+    return !(episode?.preview_token && episode?.preview_end_seconds && episode?.mux_playback_id);
+  });
   const [feeExpanded, setFeeExpanded] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
   const previewPlayerRef = React.useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    // Reset state on episode change so overlay always auto-shows for locked episodes
-    setShowPayOverlay(true);
+    // On episode change: hide overlay if a preview is available (it shows after preview ends),
+    // otherwise show overlay immediately.
+    const hasP = !!(episode?.preview_token && episode?.preview_end_seconds && episode?.mux_playback_id);
+    setShowPayOverlay(!hasP);
     setFeeExpanded(false);
     setPreviewEnded(false);
   }, [episode?.id]);
