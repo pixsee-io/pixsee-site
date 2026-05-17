@@ -29,6 +29,10 @@ export type ApiEpisode = {
     wallet_address?: string | null;
     type?: string;
   } | null;
+  // Preview teaser fields (set by backend after Mux processing, >= 2min episodes)
+  preview_start_seconds?: number | null;
+  preview_end_seconds?: number | null;
+  preview_token?: string | null; // 5-min Mux-signed JWT for teaser stream
   created_at?: string;
   updated_at?: string;
 };
@@ -66,6 +70,8 @@ export type ApiShow = {
   } | null;
   episodes?: ApiEpisode[];
   seasons?: ApiSeason[];
+  view_count?: number; // aggregated sum of all episode view_counts
+  deployment_block?: number | null;
   created_at?: string;
   updated_at?: string;
 };

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Trophy, Diamond, Gem } from "lucide-react";
+import { Trophy, Gem } from "lucide-react";
 
 type TopRanker = {
   id: string;

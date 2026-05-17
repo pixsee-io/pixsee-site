@@ -61,6 +61,42 @@ export function apiFire(path: string, options: ApiFetchOptions = {}): void {
   apiFetch(path, options).catch(() => {});
 }
 
+/**
+ * Fire-and-forget transaction recording.
+ * Call after any on-chain tx confirms. Safe to call multiple times (deduped by tx_hash).
+ */
+export function recordTransaction(
+  token: string | null,
+  body: Record<string, unknown>
+): void {
+  apiFire("/api/v1/transactions/record", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Fire-and-forget notification recording for on-chain events.
+ * Used for events the backend has no direct visibility into.
+ */
+export function recordNotification(
+  token: string | null,
+  body: Record<string, unknown>
+): void {
+  apiFire("/api/v1/notifications/record", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 /** Retry policy: never retry 4xx, retry up to 2x for 5xx/network errors. */
 export function shouldRetry(failureCount: number, error: unknown): boolean {
   if (error instanceof ApiError && error.status < 500) return false;

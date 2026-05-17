@@ -94,6 +94,7 @@ type UseCreateShowReturn = {
     eps: { id: string; title: string; description: string }[]
   ) => void;
   addUploadSlot: (localId: string, title: string) => void;
+  removeUploadSlot: (localId: string) => void;
   uploadAll: (meta: ShowMeta) => Promise<boolean>;
   uploadSingle: (localId: string, file: File, epMeta: { title: string; description: string }) => Promise<void>;
   syncEpisodesMeta: (episodesMeta: EpisodeMeta[]) => Promise<void>;
@@ -192,6 +193,10 @@ export function useCreateShow({
       updateEpisode(localId, { file, error: null, uploadProgress: 0 }),
     [updateEpisode]
   );
+
+  const removeUploadSlot = useCallback((localId: string) => {
+    setEpisodes((prev) => prev.filter((ep) => ep.localId !== localId));
+  }, []);
 
   const addUploadSlot = useCallback((localId: string, title: string) => {
     setEpisodes((prev) => [
@@ -805,6 +810,7 @@ export function useCreateShow({
     onChainInfo,
     attachFile,
     addUploadSlot,
+    removeUploadSlot,
     initEpisodes,
     uploadAll,
     uploadSingle,

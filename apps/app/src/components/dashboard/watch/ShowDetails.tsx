@@ -49,6 +49,7 @@ import {
 import { useSocialState } from "@/app/context/SocialStateContext";
 import type { Address } from "viem";
 import { formatUnits } from "viem";
+import { recordTransaction } from "@/app/lib/apiClient";
 
 function formatDuration(seconds?: number | null): string {
   if (!seconds) return "";
@@ -87,6 +88,7 @@ const BuyAndWatchButton = ({
     unlockWithTix,
     isLoading,
     error,
+    walletAddress,
   } = usePixseeContract();
 
   const [cost, setCost] = useState<string | null>(null);
@@ -95,7 +97,10 @@ const BuyAndWatchButton = ({
   const [userTixBalance, setUserTixBalance] = useState<bigint>(0n);
   const tickSymbol = tickSymbolProp ?? "Tix";
 
-  const durationSeconds = episode.duration ?? 600;
+  const fullDuration = episode.duration ?? 600;
+  // Subtract preview seconds already watched for free so the user only pays for the remaining content
+  const previewSeconds = episode.preview_end_seconds ?? 0;
+  const durationSeconds = Math.max(0, fullDuration - previewSeconds);
   // Amount of tix-wei needed for this episode
   const tixNeeded = BigInt(durationSeconds) * BigInt("1000000000000000000");
   const hasEnoughTix = userTixBalance >= tixNeeded;
@@ -126,7 +131,7 @@ const BuyAndWatchButton = ({
     quoteCostToWatch,
   ]);
 
-  const notifyBackend = async (tx: string) => {
+  const notifyBackend = async (tx: string, extra?: Record<string, unknown>) => {
     const token = await getAccessToken();
     try {
       await fetch(
@@ -137,7 +142,7 @@ const BuyAndWatchButton = ({
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ tx_hash: tx }),
+          body: JSON.stringify({ tx_hash: tx, wallet_address: walletAddress, ...extra }),
         }
       );
     } catch {
@@ -153,6 +158,7 @@ const BuyAndWatchButton = ({
       episode.on_chain_episode_id != null
         ? Number(episode.on_chain_episode_id)
         : episode.episode_number ?? episode.id;
+    const tixAmount = formatUnits(BigInt(durationSeconds) * BigInt("1000000000000000000"), 18);
     const tx = await unlockWithTix({
       showContractAddress,
       tixAddress,
@@ -161,7 +167,19 @@ const BuyAndWatchButton = ({
     });
     setStep("idle");
     if (tx) {
-      await notifyBackend(tx);
+      await notifyBackend(tx, { tix_amount: tixAmount });
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "episode_unlocked_with_tix",
+        show_id: episode.show_id,
+        episode_id: episode.id,
+        on_chain_episode_id: String(onChainEpisodeId),
+        show_contract_address: showContractAddress,
+        tx_hash: tx,
+        tix_amount: tixAmount,
+        duration_seconds: durationSeconds,
+        wallet_address: walletAddress,
+      });
       onSuccess();
     }
   };
@@ -173,6 +191,7 @@ const BuyAndWatchButton = ({
       episode.on_chain_episode_id != null
         ? Number(episode.on_chain_episode_id)
         : episode.episode_number ?? episode.id;
+    const usdcAmount = cost ?? "0";
     const tx = await buyAndUnlock({
       showContractAddress,
       bondingCurveAddress,
@@ -181,7 +200,19 @@ const BuyAndWatchButton = ({
     });
     setStep("idle");
     if (tx) {
-      await notifyBackend(tx);
+      await notifyBackend(tx, { usdc_amount: usdcAmount });
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "episode_purchased",
+        show_id: episode.show_id,
+        episode_id: episode.id,
+        on_chain_episode_id: String(onChainEpisodeId),
+        show_contract_address: showContractAddress,
+        tx_hash: tx,
+        usdc_amount: usdcAmount,
+        duration_seconds: durationSeconds,
+        wallet_address: walletAddress,
+      });
       onSuccess();
     }
   };
@@ -205,11 +236,11 @@ const BuyAndWatchButton = ({
 
       {/* Episode info row */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs text-neutral-tertiary-text">
-        {durationSeconds > 0 && (
+        {fullDuration > 0 && (
           <span>
             Duration:{" "}
             <span className="font-medium text-neutral-secondary-text">
-              {formatDuration(durationSeconds)}
+              {formatDuration(fullDuration)}
             </span>
           </span>
         )}
@@ -346,12 +377,20 @@ const VideoPlayer = ({
   // Hooks must be declared before any conditional early returns.
   const [showPayOverlay, setShowPayOverlay] = useState(true);
   const [feeExpanded, setFeeExpanded] = useState(false);
+  const [previewEnded, setPreviewEnded] = useState(false);
+  const previewPlayerRef = React.useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     // Reset state on episode change so overlay always auto-shows for locked episodes
     setShowPayOverlay(true);
     setFeeExpanded(false);
+    setPreviewEnded(false);
   }, [episode?.id]);
+
+  const hasPreview = !!(episode?.preview_token && episode?.preview_end_seconds && episode?.mux_playback_id);
+  const previewUrl = hasPreview
+    ? `https://stream.mux.com/${episode!.mux_playback_id}.m3u8?token=${episode!.preview_token}`
+    : null;
 
   if (!episode) {
     return (
@@ -404,14 +443,27 @@ const VideoPlayer = ({
           "relative rounded-2xl overflow-hidden",
           isPortrait
             ? "mx-auto w-full max-w-xs sm:max-w-sm aspect-9/16"
-            // Landscape: enforce min-height on mobile so the pay modal isn't clipped
-            // by the ~210px that aspect-video yields on narrow screens.
-            // sm+ uses normal aspect-video.
             : "w-full min-h-95 sm:min-h-0 sm:aspect-video"
         )}
       >
-        {/* Thumbnail — shown clearly (not blurred) to be inviting */}
-        {episode.thumbnail_url ? (
+        {/* Background: preview player or thumbnail */}
+        {hasPreview && !previewEnded ? (
+          <MuxPlayer
+            src={previewUrl!}
+            poster={episode.thumbnail_url ?? undefined}
+            autoPlay
+            style={{ width: "100%", height: "100%", position: "absolute", inset: 0 }}
+            streamType="on-demand"
+            onTimeUpdate={(e) => {
+              const video = (e.target as HTMLVideoElement);
+              if (episode.preview_end_seconds && video.currentTime >= episode.preview_end_seconds) {
+                video.pause();
+                setPreviewEnded(true);
+                setShowPayOverlay(true);
+              }
+            }}
+          />
+        ) : episode.thumbnail_url ? (
           <Image
             src={episode.thumbnail_url}
             alt={episode.title}
@@ -422,10 +474,10 @@ const VideoPlayer = ({
           <div className="absolute inset-0 bg-neutral-800" />
         )}
         {/* Dark scrim so UI elements are readable */}
-        <div className="absolute inset-0 bg-black/55" />
+        <div className={cn("absolute inset-0", hasPreview && !previewEnded && !showPayOverlay ? "bg-black/0" : "bg-black/55")} />
 
-        {/* ── Play button shown when overlay is dismissed ── */}
-        {!showPayOverlay && (
+        {/* ── Play preview button when overlay is dismissed and preview hasn't played ── */}
+        {!showPayOverlay && !(hasPreview && !previewEnded) && (
           <button
             onClick={() => setShowPayOverlay(true)}
             className="absolute inset-0 flex flex-col items-center justify-center gap-3 group"
@@ -451,7 +503,7 @@ const VideoPlayer = ({
               <div className="flex items-start justify-between p-4 pb-0">
                 <div className="min-w-0 pr-2">
                   <p className="text-xs text-neutral-tertiary-text mb-0.5">
-                    Continue watching
+                    {previewEnded ? "Preview ended" : "Continue watching"}
                   </p>
                   <p className="font-semibold text-neutral-primary-text text-sm sm:text-base line-clamp-2">
                     {episode.title}
@@ -844,6 +896,32 @@ const ShowDetails = ({ id }: { id: string }) => {
     setBingeLoading(false);
     if (tx) {
       setBingeSuccess(true);
+      const token = await getAccessToken().catch(() => null);
+      // Notify backend via batch endpoint — single call unlocks all episodes
+      await fetch(`${BASE_URL}/api/v1/shows/${apiShow?.id}/episodes/grant-access-batch`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          tx_hash: tx,
+          episode_ids: locked.map((ep) => ep.id),
+          wallet_address: walletAddress,
+          usdc_amount: bingeQuote ?? "0",
+        }),
+      }).catch(() => {});
+      recordTransaction(token, {
+        type: "batch_episodes_purchased",
+        show_id: apiShow?.id,
+        show_contract_address: showContractAddress,
+        episode_ids: locked.map((ep) => ep.id),
+        on_chain_episode_ids: episodeIds.map(String),
+        tx_hash: tx,
+        usdc_amount: bingeQuote ?? "0",
+        total_duration_seconds: totalDuration,
+        wallet_address: walletAddress,
+      });
       // Await access re-check before triggering playback refetch,
       // otherwise the playback request fires before episodeAccess is updated.
       await checkAllAccess();

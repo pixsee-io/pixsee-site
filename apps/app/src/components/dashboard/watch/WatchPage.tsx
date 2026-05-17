@@ -106,7 +106,7 @@ function PortraitRow({
         <div className="space-y-4">
           <HScrollRow
             shows={row1}
-            cardClassName="w-36 sm:w-44 md:w-48"
+            cardClassName="w-48 sm:w-52 md:w-60"
             getAccessToken={getAccessToken}
             isInWatchlist={isInWatchlist}
             toggleWatchlist={toggleWatchlist}
@@ -114,7 +114,7 @@ function PortraitRow({
           {row2.length > 0 && (
             <HScrollRow
               shows={row2}
-              cardClassName="w-36 sm:w-44 md:w-48"
+              cardClassName="w-48 sm:w-52 md:w-60"
               getAccessToken={getAccessToken}
               isInWatchlist={isInWatchlist}
               toggleWatchlist={toggleWatchlist}
@@ -122,7 +122,7 @@ function PortraitRow({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {shows.map((show) => (
             <ShowCard
               key={show.id}
@@ -168,7 +168,7 @@ function LandscapeRow({
         <div className="space-y-4">
           <HScrollRow
             shows={row1}
-            cardClassName="w-[300px] sm:w-[360px] md:w-[420px]"
+            cardClassName="w-[340px] sm:w-[400px] md:w-[480px]"
             getAccessToken={getAccessToken}
             isInWatchlist={isInWatchlist}
             toggleWatchlist={toggleWatchlist}
@@ -176,7 +176,7 @@ function LandscapeRow({
           {row2.length > 0 && (
             <HScrollRow
               shows={row2}
-              cardClassName="w-[300px] sm:w-[360px] md:w-[420px]"
+              cardClassName="w-[340px] sm:w-[400px] md:w-[480px]"
               getAccessToken={getAccessToken}
               isInWatchlist={isInWatchlist}
               toggleWatchlist={toggleWatchlist}
@@ -184,7 +184,7 @@ function LandscapeRow({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {shows.map((show) => (
             <ShowCard
               key={show.id}
@@ -289,18 +289,6 @@ const WatchPage = () => {
               toggleWatchlist={toggleWatchlist}
             />
           </>
-        )}
-
-        {hasMore && !isLoading && (
-          <div className="flex justify-center mt-2 mb-8">
-            <Button
-              variant="outline"
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-full px-8 py-4 border-neutral-secondary-border bg-transparent hover:bg-neutral-secondary text-neutral-secondary-text"
-            >
-              View More Shows
-            </Button>
-          </div>
         )}
 
         {/* Featured / top show of the week */}

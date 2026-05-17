@@ -44,6 +44,7 @@ import {
   Gift,
   Trash2,
   PenLine,
+  Radio,
 } from "lucide-react";
 import AddFundsModal from "@/components/dashboard/earn/modals/AddFundsModal";
 import WithdrawModal from "@/components/dashboard/earn/modals/WithdrawModal";
@@ -59,6 +60,7 @@ function notifIcon(type: string) {
     case "comment_replied":     return <Reply className="w-3.5 h-3.5 text-semantic-warning-primary" />;
     case "comment_posted":      return <MessageCircle className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
     case "royalties_claimed":   return <Coins className="w-3.5 h-3.5 text-semantic-success-primary" />;
+    case "creator_fee_claimed": return <Coins className="w-3.5 h-3.5 text-semantic-success-primary" />;
     case "tix_bought":          return <TrendingUp className="w-3.5 h-3.5 text-semantic-success-primary" />;
     case "tix_sold":            return <TrendingDown className="w-3.5 h-3.5 text-semantic-warning-primary" />;
     case "tix_bought_for_show": return <TrendingUp className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
@@ -66,6 +68,7 @@ function notifIcon(type: string) {
     case "show_created":        return <Clapperboard className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
     case "show_updated":        return <PenLine className="w-3.5 h-3.5 text-semantic-warning-primary" />;
     case "show_deleted":        return <Trash2 className="w-3.5 h-3.5 text-semantic-error-primary" />;
+    case "show_published":      return <Radio className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
     default:                    return <MessageCircle className="w-3.5 h-3.5 text-neutral-tertiary-text" />;
   }
 }
@@ -78,6 +81,7 @@ function notifText(n: { type: string; data: Record<string, any> }): string {
     case "comment_posted":      return `${d.commenter_name ?? "Someone"} commented on "${d.video_title ?? ""}"`;
     case "comment_replied":     return `${d.replier_name ?? "Someone"} replied to your comment`;
     case "royalties_claimed":   return `You claimed ${d.amount_usdc ?? ""} USDC in royalties for "${d.show_title ?? ""}"`;
+    case "creator_fee_claimed": return `You claimed ${d.amount ?? ""} ${d.currency ?? "USDC"} in creator fees for "${d.show_title ?? ""}"`;
     case "tix_bought":          return `You bought ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} for "${d.show_title ?? ""}"`;
     case "tix_sold":            return `You sold ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} from "${d.show_title ?? ""}"`;
     case "tix_bought_for_show": return `${d.buyer_name ?? "Someone"} bought ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} for your show "${d.show_title ?? ""}"`;
@@ -85,6 +89,7 @@ function notifText(n: { type: string; data: Record<string, any> }): string {
     case "show_created":        return `Your show "${d.show_title ?? ""}" was created successfully`;
     case "show_updated":        return `Your show "${d.show_title ?? ""}" was updated`;
     case "show_deleted":        return `Your show "${d.show_title ?? ""}" was deleted`;
+    case "show_published":      return `${d.creator_name ?? "A creator"} published "${d.show_title ?? "a show"}"`;
     default:                    return "New notification";
   }
 }

@@ -21,6 +21,7 @@ import {
 import { useDeleteEpisode } from "@/app/hooks/useStudio";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { parseUnits, formatUnits, type Address } from "viem";
+import { recordTransaction, recordNotification } from "@/app/lib/apiClient";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
@@ -486,6 +487,14 @@ export default function StudioShowPage() {
     setIsClaiming(false);
     if (tx) {
       showToast("success", "Royalties claimed — USDC sent to your wallet!");
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "royalties_claimed",
+        show_id: show?.id,
+        tx_hash: tx,
+        tix_amount: pendingRoyaltyTix !== null ? formatUnits(pendingRoyaltyTix, 18) : "0",
+        show_contract_address: show?.show_contract,
+      });
       setPendingRoyaltyTix(0n);
     } else {
       showToast("error", "Claim failed. Check your wallet and try again.");
@@ -503,6 +512,32 @@ export default function StudioShowPage() {
     setCreatorBuyStatus("idle");
     if (tx) {
       showToast("success", "Creator buy successful!");
+      const token = await getAccessToken().catch(() => null);
+      // Read TIX balance delta to determine how much TIX was received
+      let tixReceived = "0";
+      const prevBalance = creatorTixBalance ?? 0n;
+      if (show?.tix_token && walletAddress) {
+        try {
+          const { createPublicClient, http } = await import("viem");
+          const { baseSepolia } = await import("viem/chains");
+          const c = createPublicClient({ chain: baseSepolia, transport: http("https://base-sepolia-rpc.publicnode.com") });
+          const newBal = await c.readContract({
+            address: show.tix_token as Address,
+            abi: [{ name: "balanceOf", type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }] }] as const,
+            functionName: "balanceOf",
+            args: [walletAddress as Address],
+          });
+          tixReceived = formatUnits((newBal as bigint) - prevBalance, 18);
+        } catch {}
+      }
+      recordTransaction(token, {
+        type: "creator_tix_purchase",
+        show_id: show?.id,
+        tx_hash: tx,
+        usdc_amount: creatorBuyAmount,
+        tix_amount: tixReceived,
+        bonding_curve_address: bondingCurveAddress,
+      });
       setCreatorBuyAmount("");
       // Wait a couple of blocks for the RPC to index, then refresh balance
       setTimeout(() => refreshCreatorOnChainState(), 3000);
@@ -519,6 +554,19 @@ export default function StudioShowPage() {
     if (tx) {
       setCreatorPhaseActive(false);
       showToast("success", "Creator phase ended — market is now open!");
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "creator_phase_ended",
+        show_id: show?.id,
+        tx_hash: tx,
+        bonding_curve_address: bondingCurveAddress,
+      });
+      recordNotification(token, {
+        type: "creator_phase_ended",
+        show_id: show?.id,
+        tx_hash: tx,
+        bonding_curve_address: bondingCurveAddress,
+      });
     } else {
       showToast("error", "Failed to end creator phase.");
     }
@@ -551,6 +599,23 @@ export default function StudioShowPage() {
         "success",
         "TIX locked! Your show now shows the green lock badge."
       );
+      const token = await getAccessToken().catch(() => null);
+      recordTransaction(token, {
+        type: "tix_locked",
+        show_id: show?.id,
+        tx_hash: tx,
+        tix_amount: formatUnits(amount, 18),
+        bonding_curve_address: bondingCurveAddress,
+        lock_duration_seconds: Number(durationSecs),
+      });
+      recordNotification(token, {
+        type: "tix_locked",
+        show_id: show?.id,
+        tx_hash: tx,
+        tix_amount: formatUnits(amount, 18),
+        bonding_curve_address: bondingCurveAddress,
+        lock_duration_seconds: Number(durationSecs),
+      });
       setIsLocked(true);
       setLockedAmount(amount);
       setLockExpiry(BigInt(Math.floor(Date.now() / 1000)) + durationSecs);

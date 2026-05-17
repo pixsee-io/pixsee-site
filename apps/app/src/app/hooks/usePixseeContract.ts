@@ -24,6 +24,7 @@ import {
   custom,
   http,
   formatUnits,
+  maxUint256,
   type Address,
   type Hash,
 } from "viem";
@@ -104,7 +105,7 @@ async function waitForReceiptResilient(
 
 export function usePixseeContract() {
   const { wallets } = useWallets();
-  const { user } = usePrivy();
+  usePrivy();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -256,7 +257,7 @@ export function usePixseeContract() {
     const [
       spotPricePerToken,
       spotPricePerMinute,
-      currentHalfSupply,
+      ,
       totalVolumeUsdc,
       supply,
       reserve,
@@ -323,7 +324,7 @@ export function usePixseeContract() {
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [CONTRACT_ADDRESSES.router as Address, usdcWithSlippage],
+            args: [CONTRACT_ADDRESSES.router as Address, maxUint256],
             gas: 100_000n,
           });
           await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
@@ -391,7 +392,7 @@ export function usePixseeContract() {
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [CONTRACT_ADDRESSES.router as Address, usdcWithSlippage],
+            args: [CONTRACT_ADDRESSES.router as Address, maxUint256],
             gas: 100_000n,
           });
           await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
@@ -691,7 +692,7 @@ export function usePixseeContract() {
             address: tixAddress,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [showContractAddress, tixAmount],
+            args: [showContractAddress, maxUint256],
             gas: 100_000n,
           });
           await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
@@ -848,7 +849,7 @@ export function usePixseeContract() {
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
             functionName: "approve",
-            args: [bondingCurveAddress, usdcAmount],
+            args: [bondingCurveAddress, maxUint256],
             gas: 100_000n,
           });
           await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
@@ -938,15 +939,22 @@ export function usePixseeContract() {
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
 
-        // Approve USDC first
-        const approveTx = await walletClient.writeContract({
+        const creatorBuyAllowance = await publicClient.readContract({
           address: CONTRACT_ADDRESSES.usdc as Address,
           abi: ERC20_ABI,
-          functionName: "approve",
-          args: [bondingCurveAddress, usdcAmount],
-          gas: 100_000n,
+          functionName: "allowance",
+          args: [walletAddress, bondingCurveAddress],
         });
-        await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+        if ((creatorBuyAllowance as bigint) < usdcAmount) {
+          const approveTx = await walletClient.writeContract({
+            address: CONTRACT_ADDRESSES.usdc as Address,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [bondingCurveAddress, maxUint256],
+            gas: 100_000n,
+          });
+          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+        }
 
         const tx = await walletClient.writeContract({
           address: bondingCurveAddress,
@@ -1015,15 +1023,22 @@ export function usePixseeContract() {
       setError(null);
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
-        // Approve TIX spending for the bonding curve
-        const approveTx = await walletClient.writeContract({
+        const lockAllowance = await publicClient.readContract({
           address: tixTokenAddress,
           abi: ERC20_ABI,
-          functionName: "approve",
-          args: [bondingCurveAddress, amount],
-          gas: 100_000n,
+          functionName: "allowance",
+          args: [walletAddress, bondingCurveAddress],
         });
-        await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+        if ((lockAllowance as bigint) < amount) {
+          const approveTx = await walletClient.writeContract({
+            address: tixTokenAddress,
+            abi: ERC20_ABI,
+            functionName: "approve",
+            args: [bondingCurveAddress, maxUint256],
+            gas: 100_000n,
+          });
+          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+        }
         const tx = await walletClient.writeContract({
           address: bondingCurveAddress,
           abi: BONDING_CURVE_ABI,
@@ -1072,6 +1087,34 @@ export function usePixseeContract() {
         return tx;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Claim royalties failed");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
+  // ── unlockCreatorTokens ───────────────────────────────────────────────────
+  // Releases locked creator TIX back to the creator's wallet after the lock period expires.
+  const unlockCreatorTokens = useCallback(
+    async (bondingCurveAddress: Address): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+        const tx = await walletClient.writeContract({
+          address: bondingCurveAddress,
+          abi: BONDING_CURVE_ABI,
+          functionName: "unlockCreatorTokens",
+          args: [],
+          gas: 200_000n,
+        });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unlock failed");
         return null;
       } finally {
         setIsLoading(false);
@@ -1136,6 +1179,7 @@ export function usePixseeContract() {
     creatorBuyTix,
     endCreatorPhase,
     lockCreatorTokens,
+    unlockCreatorTokens,
     claimRoyalties,
     claimCreatorFees,
   };
