@@ -202,7 +202,7 @@ function BondingCurveChart({
   );
 }
 
-// ── Inline Buy Panel ──────────────────────────────────────────────────────────
+// ── Inline Buy Panel ──────────
 
 function TradePanelBuy({
   listing,
