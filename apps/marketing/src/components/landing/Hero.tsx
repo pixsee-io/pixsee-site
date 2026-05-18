@@ -156,10 +156,10 @@ const Hero = (props: Props) => {
                 asChild
                 className="rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm px-5 md:px-8 py-5 md:py-6 font-semibold md:text-base flex items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:shadow-xl w-full sm:w-auto"
               >
-                <Link href="/dashboard/watch">
+                <a href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/watch`} className="flex items-center gap-2">
                   Explore Shows
                   <Globe size={18} className="sm:w-5 sm:h-5" />
-                </Link>
+                </a>
               </Button>
 
               <Button
@@ -167,10 +167,10 @@ const Hero = (props: Props) => {
                 variant="outline"
                 className="rounded-full px-5 md:px-8 py-5 md:py-6 font-semibold text-sm md:text-base flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.25)] border hover:bg-neutral-secondary transition-all duration-200 w-full sm:w-auto"
               >
-                <Link href="/dashboard/earn">
+                <a href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/earn`} className="flex items-center gap-2">
                   Begin Earning
                   <ArrowRightCircle size={18} className="sm:w-6 sm:h-6" />
-                </Link>
+                </a>
               </Button>
             </div>
           </div>

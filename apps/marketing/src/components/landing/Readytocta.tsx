@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { Button } from "@pixsee/ui/components/button";
 import { Globe, ArrowUpRight } from "lucide-react";
 import useScrollAnimation from "@/app/hooks/useScrollAnimation";
@@ -53,20 +52,20 @@ const ReadyToCTA = (props: Props) => {
                 asChild
                 className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full px-8 py-3 md:py-6 font-semibold text-base shadow-lg"
               >
-                <Link href="/dashboard/watch" className="flex items-center gap-2">
+                <a href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/watch`} className="flex items-center gap-2">
                   <Globe size={20} />
                   Explore Shows
-                </Link>
+                </a>
               </Button>
 
               <Button
                 asChild
                 className="bg-white hover:bg-white/90 text-brand-action rounded-full px-8 py-3 md:py-6 font-semibold text-base shadow-lg"
               >
-                <Link href="/dashboard/create" className="flex items-center gap-2">
+                <a href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/create`} className="flex items-center gap-2">
                   Launch a show
                   <ArrowUpRight size={20} />
-                </Link>
+                </a>
               </Button>
             </div>
           </div>

@@ -30,7 +30,7 @@ const WhyPixsee = (props: Props) => {
       title: "Creator Freedom",
       description: "Launch projects without gatekeepers or distributors.",
       buttonText: "Launch",
-      buttonHref: "/dashboard/create",
+      buttonHref: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/create`,
       iconBg: "bg-[#BDE1FF]",
     },
     {
@@ -38,7 +38,7 @@ const WhyPixsee = (props: Props) => {
       title: "Earn As You Engage",
       description: "Watch, vote, and trade to earn $PIX tokens.",
       buttonText: "Watch & Earn",
-      buttonHref: "/dashboard/earn",
+      buttonHref: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/earn`,
       iconBg: "bg-[#82E57C]",
     },
     {

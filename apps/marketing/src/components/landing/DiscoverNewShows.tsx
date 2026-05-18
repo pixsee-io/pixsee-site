@@ -181,10 +181,10 @@ const DiscoverNewShows = (props: Props) => {
                         className="w-fit rounded-full bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white px-9 py-3 md:py-5 font-medium text-sm flex items-center gap-2 shadow-lg transition-all duration-200"
                         asChild
                       >
-                        <Link href={`/dashboard/watch/${show.id}`}>
+                        <a href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/watch/${show.id}`} className="flex items-center gap-2">
                           Play show
                           <CircleArrowOutUpRight size={18} />
-                        </Link>
+                        </a>
                       </Button>
                     </div>
 
