@@ -72,6 +72,42 @@ type ReceiptClient = {
   getTransactionReceipt: (args: { hash: Hash }) => Promise<TransactionReceipt | null>;
 };
 
+// ── Approval cache (localStorage) ───────────────────────────────────────────
+// Stores token:spender pairs that have been approved with maxUint256 so we
+// can skip the on-chain allowance check (and the wallet popup) on future txs.
+// Key format: pixsee_approvals_{walletAddress}
+// Value: JSON array of "tokenAddress:spenderAddress" strings (lowercased).
+
+function approvalCacheKey(wallet: string) {
+  return `pixsee_approvals_${wallet.toLowerCase()}`;
+}
+
+export function isApprovalCached(wallet: string, token: string, spender: string): boolean {
+  try {
+    const raw = localStorage.getItem(approvalCacheKey(wallet));
+    if (!raw) return false;
+    const entries: string[] = JSON.parse(raw);
+    return entries.includes(`${token.toLowerCase()}:${spender.toLowerCase()}`);
+  } catch {
+    return false;
+  }
+}
+
+function cacheApproval(wallet: string, token: string, spender: string): void {
+  try {
+    const key = approvalCacheKey(wallet);
+    const raw = localStorage.getItem(key);
+    const entries: string[] = raw ? JSON.parse(raw) : [];
+    const entry = `${token.toLowerCase()}:${spender.toLowerCase()}`;
+    if (!entries.includes(entry)) {
+      entries.push(entry);
+      localStorage.setItem(key, JSON.stringify(entries));
+    }
+  } catch {
+    // localStorage unavailable (SSR or private mode) — no-op
+  }
+}
+
 // Polls multiple RPC clients in round-robin until any returns a receipt.
 // More resilient than waitForTransactionReceipt when MetaMask submits through
 // a slow/restrictive node (e.g. Infura's Base Sepolia endpoint) that takes
@@ -312,24 +348,24 @@ export function usePixseeContract() {
         );
         const usdcWithSlippage = (usdcCost * BigInt(102)) / BigInt(100);
 
-        // Use providerPublicClient (wallet's own RPC node) so we read the latest
-        // on-chain allowance — the global publicClient may lag behind after a recent approve.
-        const currentAllowance = await providerPublicClient.readContract({
-          address: CONTRACT_ADDRESSES.usdc as Address,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [walletAddress, CONTRACT_ADDRESSES.router as Address],
-        });
-
-        if ((currentAllowance as bigint) < usdcWithSlippage) {
-          const approveTx = await walletClient.writeContract({
+        if (!isApprovalCached(walletAddress, CONTRACT_ADDRESSES.usdc, CONTRACT_ADDRESSES.router)) {
+          const currentAllowance = await providerPublicClient.readContract({
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
-            functionName: "approve",
-            args: [CONTRACT_ADDRESSES.router as Address, maxUint256],
-            gas: 100_000n,
+            functionName: "allowance",
+            args: [walletAddress, CONTRACT_ADDRESSES.router as Address],
           });
-          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          if ((currentAllowance as bigint) < usdcWithSlippage) {
+            const approveTx = await walletClient.writeContract({
+              address: CONTRACT_ADDRESSES.usdc as Address,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [CONTRACT_ADDRESSES.router as Address, maxUint256],
+              gas: 100_000n,
+            });
+            await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          }
+          cacheApproval(walletAddress, CONTRACT_ADDRESSES.usdc, CONTRACT_ADDRESSES.router);
         }
 
         const unlockTx = await walletClient.writeContract({
@@ -382,22 +418,24 @@ export function usePixseeContract() {
         );
         const usdcWithSlippage = (usdcCost * BigInt(102)) / BigInt(100);
 
-        const currentAllowance = await providerPublicClient.readContract({
-          address: CONTRACT_ADDRESSES.usdc as Address,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [walletAddress, CONTRACT_ADDRESSES.router as Address],
-        });
-
-        if ((currentAllowance as bigint) < usdcWithSlippage) {
-          const approveTx = await walletClient.writeContract({
+        if (!isApprovalCached(walletAddress, CONTRACT_ADDRESSES.usdc, CONTRACT_ADDRESSES.router)) {
+          const currentAllowance = await providerPublicClient.readContract({
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
-            functionName: "approve",
-            args: [CONTRACT_ADDRESSES.router as Address, maxUint256],
-            gas: 100_000n,
+            functionName: "allowance",
+            args: [walletAddress, CONTRACT_ADDRESSES.router as Address],
           });
-          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          if ((currentAllowance as bigint) < usdcWithSlippage) {
+            const approveTx = await walletClient.writeContract({
+              address: CONTRACT_ADDRESSES.usdc as Address,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [CONTRACT_ADDRESSES.router as Address, maxUint256],
+              gas: 100_000n,
+            });
+            await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          }
+          cacheApproval(walletAddress, CONTRACT_ADDRESSES.usdc, CONTRACT_ADDRESSES.router);
         }
 
         const unlockTx = await walletClient.writeContract({
@@ -682,22 +720,24 @@ export function usePixseeContract() {
         // Amount = durationSeconds × 1e18 tix-wei
         const tixAmount = BigInt(durationSeconds) * BigInt("1000000000000000000");
 
-        const currentAllowance = await providerPublicClient.readContract({
-          address: tixAddress,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [walletAddress, showContractAddress],
-        });
-
-        if ((currentAllowance as bigint) < tixAmount) {
-          const approveTx = await walletClient.writeContract({
+        if (!isApprovalCached(walletAddress, tixAddress, showContractAddress)) {
+          const currentAllowance = await providerPublicClient.readContract({
             address: tixAddress,
             abi: ERC20_ABI,
-            functionName: "approve",
-            args: [showContractAddress, maxUint256],
-            gas: 100_000n,
+            functionName: "allowance",
+            args: [walletAddress, showContractAddress],
           });
-          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          if ((currentAllowance as bigint) < tixAmount) {
+            const approveTx = await walletClient.writeContract({
+              address: tixAddress,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [showContractAddress, maxUint256],
+              gas: 100_000n,
+            });
+            await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          }
+          cacheApproval(walletAddress, tixAddress, showContractAddress);
         }
 
         const tx = await walletClient.writeContract({
@@ -847,22 +887,24 @@ export function usePixseeContract() {
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
 
-        const currentAllowance = await providerPublicClient.readContract({
-          address: CONTRACT_ADDRESSES.usdc as Address,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [walletAddress, bondingCurveAddress],
-        });
-
-        if ((currentAllowance as bigint) < usdcAmount) {
-          const approveTx = await walletClient.writeContract({
+        if (!isApprovalCached(walletAddress, CONTRACT_ADDRESSES.usdc, bondingCurveAddress)) {
+          const currentAllowance = await providerPublicClient.readContract({
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
-            functionName: "approve",
-            args: [bondingCurveAddress, maxUint256],
-            gas: 100_000n,
+            functionName: "allowance",
+            args: [walletAddress, bondingCurveAddress],
           });
-          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          if ((currentAllowance as bigint) < usdcAmount) {
+            const approveTx = await walletClient.writeContract({
+              address: CONTRACT_ADDRESSES.usdc as Address,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [bondingCurveAddress, maxUint256],
+              gas: 100_000n,
+            });
+            await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          }
+          cacheApproval(walletAddress, CONTRACT_ADDRESSES.usdc, bondingCurveAddress);
         }
 
         const tx = await walletClient.writeContract({
@@ -949,21 +991,24 @@ export function usePixseeContract() {
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
 
-        const creatorBuyAllowance = await providerPublicClient.readContract({
-          address: CONTRACT_ADDRESSES.usdc as Address,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [walletAddress, bondingCurveAddress],
-        });
-        if ((creatorBuyAllowance as bigint) < usdcAmount) {
-          const approveTx = await walletClient.writeContract({
+        if (!isApprovalCached(walletAddress, CONTRACT_ADDRESSES.usdc, bondingCurveAddress)) {
+          const creatorBuyAllowance = await providerPublicClient.readContract({
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
-            functionName: "approve",
-            args: [bondingCurveAddress, maxUint256],
-            gas: 100_000n,
+            functionName: "allowance",
+            args: [walletAddress, bondingCurveAddress],
           });
-          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          if ((creatorBuyAllowance as bigint) < usdcAmount) {
+            const approveTx = await walletClient.writeContract({
+              address: CONTRACT_ADDRESSES.usdc as Address,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [bondingCurveAddress, maxUint256],
+              gas: 100_000n,
+            });
+            await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          }
+          cacheApproval(walletAddress, CONTRACT_ADDRESSES.usdc, bondingCurveAddress);
         }
 
         const tx = await walletClient.writeContract({
@@ -1033,21 +1078,24 @@ export function usePixseeContract() {
       setError(null);
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
-        const lockAllowance = await providerPublicClient.readContract({
-          address: tixTokenAddress,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [walletAddress, bondingCurveAddress],
-        });
-        if ((lockAllowance as bigint) < amount) {
-          const approveTx = await walletClient.writeContract({
+        if (!isApprovalCached(walletAddress, tixTokenAddress, bondingCurveAddress)) {
+          const lockAllowance = await providerPublicClient.readContract({
             address: tixTokenAddress,
             abi: ERC20_ABI,
-            functionName: "approve",
-            args: [bondingCurveAddress, maxUint256],
-            gas: 100_000n,
+            functionName: "allowance",
+            args: [walletAddress, bondingCurveAddress],
           });
-          await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          if ((lockAllowance as bigint) < amount) {
+            const approveTx = await walletClient.writeContract({
+              address: tixTokenAddress,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [bondingCurveAddress, maxUint256],
+              gas: 100_000n,
+            });
+            await waitForReceiptResilient(approveTx, [providerPublicClient, publicClient]);
+          }
+          cacheApproval(walletAddress, tixTokenAddress, bondingCurveAddress);
         }
         const tx = await walletClient.writeContract({
           address: bondingCurveAddress,
