@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
+
 import { Button } from "@pixsee/ui/components/button";
 import { CircleCheck, ArrowUpRight } from "lucide-react";
 import useScrollAnimation from "@/app/hooks/useScrollAnimation";
@@ -110,8 +110,8 @@ const TurnPassionIntoProfit = React.forwardRef<HTMLElement, Props>(
                   asChild
                   className="bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white rounded-full w-full sm:w-auto sm:min-w-[12rem] lg:w-48 px-6 sm:px-8 py-5 sm:py-6 font-semibold text-sm sm:text-base"
                 >
-                  <Link
-                    href="/dashboard/earn"
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io"}/earn`}
                     className="flex items-center justify-center gap-2"
                   >
                     Start Earning
@@ -119,7 +119,7 @@ const TurnPassionIntoProfit = React.forwardRef<HTMLElement, Props>(
                       size={16}
                       className="sm:w-4.5 sm:h-4.5"
                     />
-                  </Link>
+                  </a>
                 </Button>
               </div>
             </div>

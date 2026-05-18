@@ -7,31 +7,28 @@ import Image from "next/image";
 
 type Props = {};
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.pixsee.io";
+
 interface FooterLink {
   label: string;
-  href: string;
-}
-
-interface FooterSection {
-  title: string;
-  links: FooterLink[];
+  href?: string;
+  comingSoon?: boolean;
 }
 
 const Footer = (props: Props) => {
   const [email, setEmail] = useState("");
 
   const platformLinks: FooterLink[] = [
-    { label: "Watch", href: "/dashboard/watch" },
-    { label: "Create", href: "/dashboard/create" },
-    { label: "Earn", href: "/dashboard/earn" },
-    // { label: "Token", href: "" },
+    { label: "Watch", href: `${APP_URL}/watch` },
+    { label: "Create", href: `${APP_URL}/create` },
+    { label: "Earn", href: `${APP_URL}/earn` },
   ];
 
   const companyLinks: FooterLink[] = [
     { label: "About", href: "/about" },
-    { label: "Career", href: "/career" },
-    { label: "Contact", href: "/contact" },
-    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Career", comingSoon: true },
+    { label: "Contact", comingSoon: true },
+    { label: "Privacy Policy", comingSoon: true },
   ];
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -69,13 +66,13 @@ const Footer = (props: Props) => {
             </p>
             <nav className="flex flex-col space-y-4">
               {platformLinks.map((link) => (
-                <Link
-                  key={link.href}
+                <a
+                  key={link.label}
                   href={link.href}
                   className="text-neutral-secondary-text hover:text-neutral-primary-text transition-colors duration-200 text-base"
                 >
                   {link.label}
-                </Link>
+                </a>
               ))}
             </nav>
           </div>
@@ -85,15 +82,27 @@ const Footer = (props: Props) => {
               Company
             </p>
             <nav className="flex flex-col space-y-4">
-              {companyLinks.map((link) => (
-                <Link
-                  // key={link.href}
-                  href={link.href}
-                  className="text-neutral-secondary-text hover:text-neutral-primary-text transition-colors duration-200 text-base"
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {companyLinks.map((link) =>
+                link.comingSoon ? (
+                  <span
+                    key={link.label}
+                    className="text-neutral-tertiary-text text-base flex items-center gap-2 cursor-default"
+                  >
+                    {link.label}
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-neutral-secondary text-neutral-tertiary-text">
+                      Coming soon
+                    </span>
+                  </span>
+                ) : (
+                  <Link
+                    key={link.label}
+                    href={link.href!}
+                    className="text-neutral-secondary-text hover:text-neutral-primary-text transition-colors duration-200 text-base"
+                  >
+                    {link.label}
+                  </Link>
+                )
+              )}
             </nav>
           </div>
 
