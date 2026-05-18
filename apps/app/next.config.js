@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@pixsee/ui"],
+  serverExternalPackages: [
+    "@privy-io/react-auth",
+    "@privy-io/server-auth",
+    "@farcaster/mini-app-solana",
+    "@farcaster/frame-sdk",
+    "@reown/appkit",
+    "@walletconnect/ethereum-provider",
+  ],
   images: {
     remotePatterns: [
       {

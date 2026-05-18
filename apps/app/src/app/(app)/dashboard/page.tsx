@@ -601,7 +601,7 @@ function MyStudioTab({
         </div>
       ) : error ? (
         <div className="text-center py-10">
-          <p className="text-semantic-error-primary text-sm mb-3">{error}</p>
+          <p className="text-semantic-error-primary text-sm mb-3">Failed to load shows. Please try again.</p>
           <button onClick={() => refetch()} className="text-sm text-brand-pixsee-secondary hover:underline">
             Try again
           </button>

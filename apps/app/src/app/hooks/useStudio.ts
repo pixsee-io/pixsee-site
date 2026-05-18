@@ -33,7 +33,7 @@ export function useStudioShows(getAccessToken: GetAccessToken) {
   const query = useQuery({
     queryKey: queryKeys.shows.studioList(),
     queryFn: async () => {
-      const token = await getAccessToken();
+      const token = await getAccessToken().catch(() => null);
       const json = await apiFetch<{ data?: StudioShow[] }>("/api/v1/my-shows?per_page=50", {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

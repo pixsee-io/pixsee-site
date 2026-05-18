@@ -76,7 +76,6 @@ function HScrollRow({
   );
 }
 
-// Row of portrait cards (tall)
 // ≤ 8 → standard grid; > 8 → two horizontal scroll rows of 10
 function PortraitRow({
   shows,
@@ -280,7 +279,6 @@ const WatchPage = () => {
               toggleWatchlist={toggleWatchlist}
             />
 
-            {/* Landscape shows — wider cards, fewer per row */}
             <LandscapeRow
               shows={landscapeShows}
               label="Movies & Series"

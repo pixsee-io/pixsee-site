@@ -131,7 +131,7 @@ const ShowCard = ({
       <div className="flex items-start justify-between gap-2 p-3 sm:p-4 md:p-5">
         <div className="flex-1 min-w-0">
           <Link href={`/watch/${id}`} className="block">
-            <h3 className="font-semibold text-sm sm:text-base text-neutral-primary-text truncate">
+            <h3 className="min-w-44 font-semibold text-sm sm:text-base text-neutral-primary-text truncate">
               {title}
             </h3>
             <div className="flex items-center gap-1.5 sm:gap-2 mt-1">

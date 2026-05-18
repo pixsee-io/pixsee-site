@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   TrendingUp,
   Wallet,
@@ -222,7 +223,7 @@ function BuyModal({ show, onClose, onSuccess, getAccessToken }: BuyModalProps) {
                   {[
                     { label: "Platform (1%)", val: perCategory },
                     { label: "Voting pool (1%)", val: perCategory },
-                    { label: "Creators (1%)", val: perCategory },
+                    { label: "Creator (1%)", val: perCategory },
                   ].map(({ label, val }) => (
                     <div key={label} className="flex items-center justify-between text-xs text-neutral-tertiary-text">
                       <span>{label}</span>
@@ -705,75 +706,78 @@ export default function TradePage() {
             No shows on the platform yet.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {sortedShows.map((s) => {
               const holding = holdings.find((h) => h.showId === s.showId);
               return (
                 <div
                   key={s.showId}
-                  className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 flex flex-col gap-3"
+                  className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border overflow-hidden flex flex-col"
                 >
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {s.backendShowId ? (
-                        <Link href={`/watch/${s.backendShowId}`} className="font-semibold text-neutral-primary-text hover:text-brand-pixsee-secondary transition-colors">
-                          {s.show.title}
-                        </Link>
-                      ) : (
-                        <p className="font-semibold text-neutral-primary-text">{s.show.title}</p>
-                      )}
-                      <CreatorLockBadge locked={s.creatorTokensLocked} />
-                    </div>
-                    <p className="text-xs text-neutral-tertiary-text">{s.show.tickSymbol}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <p className="text-neutral-tertiary-text">Price/min</p>
-                      <p className="font-medium text-neutral-primary-text">
-                        {fmtUsdc(s.pricePerMinuteDisplay)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-tertiary-text">TIX Volume</p>
-                      <p className="font-medium text-neutral-primary-text">
-                        {fmtUsdc(s.totalVolumeUsdc)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-tertiary-text">TIX Supply</p>
-                      <p className="font-medium text-neutral-primary-text">
-                        {fmtTix(s.tixSupply)}
-                      </p>
-                    </div>
-                    {holding && (
-                      <div>
-                        <p className="text-neutral-tertiary-text">Your balance</p>
-                        <p className="font-medium text-brand-pixsee-secondary">
-                          {fmtTix(holding.tixBalance)} {s.show.tickSymbol}
-                        </p>
+                  {/* Thumbnail — links to detail page */}
+                  <Link href={`/trade/${s.showId}`} className="group relative aspect-3/4 w-full overflow-hidden bg-neutral-secondary block">
+                    {s.thumbnailUrl ? (
+                      <Image
+                        src={s.thumbnailUrl}
+                        alt={s.show.title}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <TrendingUp className="w-8 h-8 text-neutral-tertiary-text" />
                       </div>
                     )}
-                  </div>
-
-                  <div className="flex gap-2 mt-auto">
-                    <Button
-                      onClick={() => setBuyTarget(s)}
-                      className="flex-1 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-xs rounded-xl h-8"
-                    >
-                      <ArrowUpRight className="w-3 h-3 mr-1" />
-                      Buy
-                    </Button>
+                    <div className="absolute top-2 right-2">
+                      <CreatorLockBadge locked={s.creatorTokensLocked} />
+                    </div>
                     {holding && (
-                      <Button
-                        onClick={() => setSellTarget(holding)}
-                        variant="outline"
-                        className="flex-1 border-semantic-error-primary/30 text-semantic-error-primary hover:bg-semantic-error-primary/10 text-xs rounded-xl h-8"
-                      >
-                        <ArrowDownLeft className="w-3 h-3 mr-1" />
-                        Sell
-                      </Button>
+                      <div className="absolute bottom-2 left-2 bg-brand-pixsee-secondary text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+                        Holding
+                      </div>
                     )}
+                  </Link>
+
+                  {/* Card body */}
+                  <div className="p-3 flex flex-col gap-2 flex-1">
+                    <Link href={`/trade/${s.showId}`}>
+                      <p className="font-semibold text-sm text-neutral-primary-text truncate hover:text-brand-pixsee-secondary transition-colors">{s.show.title}</p>
+                    </Link>
+                    <p className="text-xs text-neutral-tertiary-text -mt-1.5">{s.show.tickSymbol}</p>
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                      <div>
+                        <p className="text-neutral-tertiary-text">Price/min</p>
+                        <p className="font-medium text-neutral-primary-text">{fmtUsdc(s.pricePerMinuteDisplay)}</p>
+                      </div>
+                      <div>
+                        <p className="text-neutral-tertiary-text">TIX Volume</p>
+                        <p className="font-medium text-neutral-primary-text">{fmtUsdc(s.totalVolumeUsdc)}</p>
+                      </div>
+                      <div>
+                        <p className="text-neutral-tertiary-text">TIX Supply</p>
+                        <p className="font-medium text-neutral-primary-text">{fmtTix(s.tixSupply)}</p>
+                      </div>
+                    </div>
+                    {/* Buy / Sell buttons */}
+                    <div className="flex gap-2 mt-auto">
+                      <Button
+                        onClick={() => setBuyTarget(s)}
+                        className="flex-1 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-xs rounded-xl h-8"
+                      >
+                        <ArrowUpRight className="w-3 h-3 mr-1" />
+                        Buy
+                      </Button>
+                      {holding && (
+                        <Button
+                          onClick={() => setSellTarget(holding)}
+                          variant="outline"
+                          className="flex-1 border-semantic-error-primary/30 text-semantic-error-primary hover:bg-semantic-error-primary/10 text-xs rounded-xl h-8"
+                        >
+                          <ArrowDownLeft className="w-3 h-3 mr-1" />
+                          Sell
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
