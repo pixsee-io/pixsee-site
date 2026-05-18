@@ -538,7 +538,7 @@ function MyBoxOfficeTab({
             deducted on claim)
           </p>
         </div>
-        <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
+        <BoxOfficeRevenueSection getAccessToken={getAccessToken} />
       </div>
 
       {/* Creator Royalties (1% trade fee) */}
@@ -549,7 +549,7 @@ function MyBoxOfficeTab({
             1% of every TIX trade on your shows — claim as USDC, no platform fee
           </p>
         </div>
-        <BoxOfficeRevenueSection getAccessToken={getAccessToken} />
+        <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
       </div>
     </div>
   );

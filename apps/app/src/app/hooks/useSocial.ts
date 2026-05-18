@@ -343,12 +343,8 @@ export function useMe(getAccessToken: GetAccessToken) {
   const updateProfile = async (
     updates: Partial<Pick<ApiProfile, "name" | "username" | "bio">>
   ): Promise<boolean> => {
-    try {
-      await updateMutation.mutateAsync(updates);
-      return true;
-    } catch {
-      return false;
-    }
+    await updateMutation.mutateAsync(updates);
+    return true;
   };
 
   return {
@@ -387,7 +383,7 @@ export function useTransactions(getAccessToken: GetAccessToken) {
       const token = await getAccessToken();
       if (!token) return [];
       const json = await apiFetch<{ data?: ApiTransaction[] }>(
-        "/api/v1/me/transactions?per_page=20",
+        "/api/v1/me/transactions?per_page=100",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       return json.data ?? [];

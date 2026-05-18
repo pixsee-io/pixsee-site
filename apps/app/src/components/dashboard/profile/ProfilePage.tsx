@@ -1,21 +1,31 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Eye,
   Users,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   Play,
   Plus,
   Calendar,
   ArrowUp,
+  ArrowUpRight,
   EyeOff,
   Verified,
   Edit,
   Loader2,
+  Coins,
+  Gift,
+  Clapperboard,
+  PenLine,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import ShowCard from "@/components/dashboard/watch/ShowCard";
 import EditProfileModal from "./modals/EditProfileModal";
@@ -26,11 +36,77 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useMe, useWatchHistory, useWatchlist, useSeePoints, useTransactions } from "@/app/hooks/useSocial";
 import { formatCount, useMyShows } from "@/app/hooks/useVideo";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-import { CreatorRoyaltiesSection } from "@/components/dashboard/earn/CreatorRoyaltiesSection";
+
 
 // Types
-type ProfileTabId = "overview" | "published" | "watchlist" | "history" | "earnings";
+type ProfileTabId = "overview" | "published" | "watchlist" | "history" | "earnings" | "transactions";
+
+type TxRow = { id: string; type: string; description: string; amount: string; date: string; ledgerType?: string; currency?: string };
+
+function txDisplayLabel(type: string): string {
+  switch (type) {
+    case "royalties_claimed":    return "Box Office Revenue";
+    case "creator_fees_claimed": return "Creator Royalties";
+    case "tix_bought":           return "TIX Bought";
+    case "tix_sold":             return "TIX Sold";
+    case "watch_cashback":
+    case "watch_reward":
+    case "cashback":             return "Watch Cashback";
+    case "episode_purchased":    return "Episode Purchased";
+    default: return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+}
+
+function txDisplayDescription(type: string, description: string): string {
+  if (type === "royalties_claimed" && description.toLowerCase().startsWith("royalties claimed for")) {
+    return description.replace(/^royalties claimed for/i, "Box office revenue claimed for");
+  }
+  return description;
+}
+
+function txIcon(type: string) {
+  switch (type) {
+    case "tix_bought":           return { icon: <TrendingUp className="w-4 h-4 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
+    case "tix_sold":             return { icon: <TrendingDown className="w-4 h-4 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
+    case "royalties_claimed":    return { icon: <Coins className="w-4 h-4 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
+    case "creator_fees_claimed": return { icon: <TrendingUp className="w-4 h-4 text-brand-primary" />, bg: "bg-brand-tertiary" };
+    case "watch_cashback":
+    case "watch_reward":
+    case "cashback":             return { icon: <Gift className="w-4 h-4 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
+    case "show_created":         return { icon: <Clapperboard className="w-4 h-4 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
+    case "show_updated":         return { icon: <PenLine className="w-4 h-4 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
+    case "show_deleted":         return { icon: <Trash2 className="w-4 h-4 text-semantic-error-primary" />, bg: "bg-semantic-error-primary/10" };
+    default:                     return { icon: <ArrowUpRight className="w-4 h-4 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
+  }
+}
+
+const TxRowItem = ({ tx }: { tx: TxRow }) => {
+  const { icon, bg } = txIcon(tx.type);
+  const amountNum = parseFloat(tx.amount);
+  const hasAmount = !isNaN(amountNum) && amountNum > 0;
+  const isDebit = tx.ledgerType === "spend" || tx.ledgerType === "purchase";
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-neutral-primary rounded-xl border border-neutral-tertiary-border">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0", bg)}>{icon}</div>
+        <div className="min-w-0">
+          <p className="font-medium text-sm text-neutral-primary-text truncate">{txDisplayLabel(tx.type)}</p>
+          <p className="text-xs text-neutral-tertiary-text truncate">{txDisplayDescription(tx.type, tx.description)}</p>
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <p className={cn("font-semibold text-sm flex items-center justify-end gap-1", isDebit ? "text-semantic-error-text" : "text-semantic-success-text")}>
+          {hasAmount ? (
+            <>{isDebit ? "−" : "+"} <Coins className="w-3.5 h-3.5" /> ${tx.amount}{tx.currency ? ` ${tx.currency}` : ""}</>
+          ) : (
+            <span className="text-neutral-tertiary-text font-normal">—</span>
+          )}
+        </p>
+        <p className="text-xs text-neutral-tertiary-text">{tx.date}</p>
+      </div>
+    </div>
+  );
+};
 
 type AnalyticsStat = {
   id: string;
@@ -227,8 +303,13 @@ const WatchHistoryCard = ({ item }: { item: WatchHistoryItem }) => (
   </div>
 );
 
+const ITEMS_PER_PAGE = 15;
+
 const ProfilePage = () => {
-  const [activeTab, setActiveTab] = useState<ProfileTabId>("overview");
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams?.get("tab") as ProfileTabId) ?? "overview";
+  const [activeTab, setActiveTab] = useState<ProfileTabId>(initialTab);
+  const [txPage, setTxPage] = useState(1);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
   const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
@@ -263,6 +344,7 @@ const ProfilePage = () => {
     { id: "watchlist", label: "Watchlist" },
     { id: "history", label: "Watch History" },
     { id: "earnings", label: "Earnings" },
+    { id: "transactions", label: "Transactions" },
   ];
 
   const renderTabContent = () => {
@@ -491,17 +573,71 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Creator Royalties */}
+            {/* Creator Earnings — read-only per-show summary, no claim UI (use Earn page for that) */}
             <div className="bg-neutral-primary rounded-2xl p-4 sm:p-6 border border-neutral-tertiary-border">
-              <div className="mb-4">
-                <h3 className="text-lg font-paytone text-neutral-primary-text">Creator Royalties</h3>
-                <p className="text-xs text-neutral-tertiary-text mt-0.5">
-                  90% of TIX spent by viewers accumulates per show. Claim to convert to USDC.
-                </p>
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg font-paytone text-neutral-primary-text">Creator Earnings</h3>
+                  <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                    Revenue earned from your shows — box office (viewer watch payments) and trading fees (1% of every TIX trade).
+                  </p>
+                </div>
+                <Link href="/earn" className="text-xs text-brand-pixsee-secondary hover:underline shrink-0 mt-1">
+                  Claim pending →
+                </Link>
               </div>
-              <ErrorBoundary section="Creator Royalties">
-                <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
-              </ErrorBoundary>
+              {txLoading ? (
+                <div className="flex items-center gap-2 py-4 text-sm text-neutral-tertiary-text">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+                </div>
+              ) : (() => {
+                // Group by show name extracted from description
+                const earnedByShow: Record<string, { boxOffice: number; tradingFees: number }> = {};
+                for (const tx of transactions) {
+                  if (tx.type === "royalties_claimed") {
+                    const showName = tx.description
+                      ? tx.description.replace(/^(box office revenue claimed for|royalties claimed for)\s*/i, "")
+                      : "Unknown Show";
+                    earnedByShow[showName] = earnedByShow[showName] ?? { boxOffice: 0, tradingFees: 0 };
+                    earnedByShow[showName].boxOffice += parseFloat(tx.amount) || 0;
+                  } else if (tx.type === "creator_fees_claimed") {
+                    const showName = tx.description
+                      ? tx.description.replace(/^(creator fees? claimed for)\s*/i, "")
+                      : "Trading Fees";
+                    earnedByShow[showName] = earnedByShow[showName] ?? { boxOffice: 0, tradingFees: 0 };
+                    earnedByShow[showName].tradingFees += parseFloat(tx.amount) || 0;
+                  }
+                }
+                const entries = Object.entries(earnedByShow);
+                if (entries.length === 0) return (
+                  <p className="text-sm text-neutral-tertiary-text italic py-2">
+                    No creator earnings yet. Revenue accumulates once viewers watch your shows or trade your TIX.
+                  </p>
+                );
+                return (
+                  <div className="space-y-3">
+                    {entries.map(([showName, earned]) => (
+                      <div key={showName} className="p-3 sm:p-4 bg-neutral-secondary rounded-xl border border-neutral-tertiary-border">
+                        <p className="font-medium text-sm text-neutral-primary-text mb-2">{showName}</p>
+                        <div className="space-y-1.5">
+                          {earned.boxOffice > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-neutral-tertiary-text">Box Office Revenue</span>
+                              <span className="text-xs font-semibold text-semantic-success-text">${earned.boxOffice.toFixed(4)} USDC</span>
+                            </div>
+                          )}
+                          {earned.tradingFees > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-neutral-tertiary-text">Creator Royalties</span>
+                              <span className="text-xs font-semibold text-semantic-success-text">${earned.tradingFees.toFixed(4)} USDC</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Watch Earnings — cashback history */}
@@ -551,6 +687,63 @@ const ProfilePage = () => {
             </div>
           </div>
         );
+
+      case "transactions": {
+        const totalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE);
+        const paginated = transactions.slice((txPage - 1) * ITEMS_PER_PAGE, txPage * ITEMS_PER_PAGE);
+        return (
+          <div>
+            <h2 className="text-xl font-paytone text-neutral-primary-text mb-4">Transactions</h2>
+            {txLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-5 h-5 animate-spin text-neutral-tertiary-text" />
+              </div>
+            ) : transactions.length === 0 ? (
+              <p className="text-sm text-neutral-tertiary-text text-center py-12 italic">No transactions yet.</p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {paginated.map((tx) => (
+                    <TxRowItem
+                      key={tx.id}
+                      tx={{
+                        id: String(tx.id),
+                        type: tx.type,
+                        description: tx.description ?? "",
+                        amount: tx.amount,
+                        date: new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                        ledgerType: tx.ledger_type,
+                        currency: tx.currency,
+                      }}
+                    />
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-3 mt-6">
+                    <button
+                      onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                      disabled={txPage === 1}
+                      className="p-2 rounded-lg border border-neutral-tertiary-border hover:bg-neutral-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-neutral-primary-text" />
+                    </button>
+                    <span className="text-sm text-neutral-secondary-text">
+                      Page {txPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setTxPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={txPage === totalPages}
+                      className="p-2 rounded-lg border border-neutral-tertiary-border hover:bg-neutral-secondary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4 text-neutral-primary-text" />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      }
 
       case "overview":
       default: {
@@ -607,11 +800,11 @@ const ProfilePage = () => {
             value: followingCount,
           },
           {
-            id: "pix",
+            id: "see",
             icon: <DollarSign className="w-5 h-5 text-brand-pixsee-secondary" />,
             iconBg: "bg-brand-pixsee-tertiary",
-            label: "$PIX Balance",
-            value: tokenBalance ?? "0",
+            label: "SEE Balance",
+            value: seePoints != null ? seePoints.toLocaleString() : "0",
           },
         ];
         return (
