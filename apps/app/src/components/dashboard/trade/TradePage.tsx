@@ -35,6 +35,8 @@ function fmtUsdc(val: string): string {
 function fmtTix(raw: bigint): string {
   const n = parseFloat(formatUnits(raw, 18));
   if (n === 0) return "0";
+  if (n >= 1_000_000_000_000) return (n / 1_000_000_000_000).toFixed(2) + "T";
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(2) + "B";
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(2) + "K";
   return n.toFixed(4);

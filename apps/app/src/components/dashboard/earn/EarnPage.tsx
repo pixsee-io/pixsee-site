@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -14,7 +15,6 @@ import {
   LogIn,
   Flame,
   Gift,
-  HelpCircle,
   ChevronRight,
   ArrowUpRight,
   TrendingUp,
@@ -31,10 +31,7 @@ import {
   Lock,
   X,
 } from "lucide-react";
-import RewardsTab from "./tabs/RewardsTab";
-import QuestTab from "./tabs/QuestTab";
 import LeaderboardTab from "./tabs/LeaderBoardTab";
-import VotingTab from "./tabs/VotingTab";
 import AddFundsModal from "./modals/AddFundsModal";
 import ReferralModal from "./modals/ReferralModal";
 import ClaimRewardModal from "./modals/ClaimRewardModal";
@@ -53,7 +50,7 @@ import { CONTRACT_ADDRESSES, CHAIN_ID, MOCK_USDC_FAUCET_ABI } from "@/app/lib/pi
 import { type Address } from "viem";
 
 // Types
-type TabId = "earn" | "rewards" | "leaderboard" | "quest" | "votes";
+type TabId = "earn" | "rewards" | "leaderboard" | "votes";
 
 type OverviewStat = {
   label: string;
@@ -83,6 +80,8 @@ type EarningStream = {
   buttonColor: string;
   cardBg: string;
   borderColor: string;
+  comingSoon?: boolean;
+  actionHref?: string;
 };
 
 type RecentEarning = {
@@ -160,6 +159,7 @@ const earningStreams: EarningStream[] = [
     buttonColor: "bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover",
     cardBg: "bg-brand-pixsee-secondary/10",
     borderColor: "border-brand-pixsee-secondary/30",
+    actionHref: "/watch",
   },
   {
     id: "voting",
@@ -167,15 +167,12 @@ const earningStreams: EarningStream[] = [
     iconBg: "bg-neutral-primary",
     title: "Voting",
     subtitle: "Vote on shows you believe in",
-    stats: [
-      { label: "Tokens Allocated", value: "2,450" },
-      { label: "Current APR", value: "$24.50" },
-      { label: "Earnings", value: "$122.50" },
-    ],
+    stats: [],
     buttonText: "Manage Votes",
     buttonColor: "bg-[#FF3795] hover:bg-pink-600",
     cardBg: "bg-[#FF3795]/10",
     borderColor: "border-[#FF3795]/30",
+    comingSoon: true,
   },
   {
     id: "referrals",
@@ -185,15 +182,12 @@ const earningStreams: EarningStream[] = [
     iconBg: "bg-neutral-primary",
     title: "Referrals",
     subtitle: "Invite friends and earn together",
-    stats: [
-      { label: "XP Per Referral", value: "500" },
-      { label: "Bonus from Refs", value: "15%" },
-      { label: "Total Referrals", value: "12" },
-    ],
+    stats: [],
     buttonText: "Invite Friends",
     buttonColor: "bg-semantic-success-primary hover:bg-semantic-success-text",
     cardBg: "bg-semantic-success-primary/20",
     borderColor: "border-neutral-tertiary-border",
+    comingSoon: true,
   },
   {
     id: "quests",
@@ -201,15 +195,12 @@ const earningStreams: EarningStream[] = [
     iconBg: "bg-neutral-primary",
     title: "Quests",
     subtitle: "Complete challenges for rewards",
-    stats: [
-      { label: "Active Quests", value: "5" },
-      { label: "XP Available", value: "3,500" },
-      { label: "Completion", value: "60%" },
-    ],
+    stats: [],
     buttonText: "View Quest",
     buttonColor: "bg-brand-primary hover:bg-brand-primary-dark",
     cardBg: "bg-brand-tertiary",
     borderColor: "border-brand-secondary/30",
+    comingSoon: true,
   },
 ];
 
@@ -275,15 +266,10 @@ const RewardProgressCard = ({
     </div>
 
     <Button
-      onClick={() => reward.status === "claimable" && onClaim(reward)}
-      className={cn(
-        "w-full rounded-full text-sm",
-        reward.status === "claimable"
-          ? "bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white"
-          : "bg-brand-pixsee-tertiary text-brand-pixsee-secondary hover:bg-brand-pixsee-secondary/20"
-      )}
+      disabled
+      className="w-full rounded-full text-sm bg-neutral-secondary text-neutral-tertiary-text cursor-not-allowed opacity-60"
     >
-      {reward.status === "claimable" ? "Claim Reward" : "In progress"}
+      Coming soon
     </Button>
   </div>
 );
@@ -297,7 +283,7 @@ const EarningStreamCard = ({
 }) => (
   <div
     className={cn(
-      "rounded-xl p-4 sm:p-5 border",
+      "rounded-xl p-4 sm:p-5 border flex flex-col",
       stream.cardBg,
       stream.borderColor
     )}
@@ -311,37 +297,50 @@ const EarningStreamCard = ({
       >
         {stream.icon}
       </div>
-      <div className="min-w-0">
-        <h3 className="font-semibold text-neutral-primary-text">
-          {stream.title}
-        </h3>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-neutral-primary-text">{stream.title}</h3>
+          {stream.comingSoon && (
+            <span className="text-[10px] font-medium text-neutral-tertiary-text border border-neutral-tertiary-border px-1.5 py-0.5 rounded-full">
+              Coming soon
+            </span>
+          )}
+        </div>
         <p className="text-sm text-neutral-tertiary-text">{stream.subtitle}</p>
       </div>
     </div>
 
-    <div className="space-y-2 mb-4">
+    <div className="space-y-2 mb-4 flex-1">
       {stream.stats.map((stat, index) => (
         <div key={index} className="flex items-center justify-between gap-2">
-          <span className="text-sm text-neutral-secondary-text truncate">
-            {stat.label}
-          </span>
-          <span className="text-sm font-semibold text-neutral-primary-text shrink-0">
+          <span className="text-sm text-neutral-secondary-text truncate">{stat.label}</span>
+          <span className={cn("text-sm font-semibold shrink-0", stat.value === "Coming soon" ? "text-neutral-tertiary-text" : "text-neutral-primary-text")}>
             {stat.value}
           </span>
         </div>
       ))}
     </div>
 
-    <Button
-      onClick={() => onAction(stream.id)}
-      className={cn(
-        "w-full h-10 md:h-11 rounded-full text-sm text-white",
-        stream.buttonColor
-      )}
-    >
-      {stream.buttonText}
-      <ChevronRight className="w-4 h-4 ml-1" />
-    </Button>
+    {stream.comingSoon ? null : stream.actionHref ? (
+      <Link
+        href={stream.actionHref}
+        className={cn(
+          "w-full h-10 md:h-11 rounded-full text-sm text-white flex items-center justify-center gap-1.5 font-medium transition-colors",
+          stream.buttonColor
+        )}
+      >
+        {stream.buttonText}
+        <ChevronRight className="w-4 h-4" />
+      </Link>
+    ) : (
+      <Button
+        onClick={() => onAction(stream.id)}
+        className={cn("w-full h-10 md:h-11 rounded-full text-sm text-white", stream.buttonColor)}
+      >
+        {stream.buttonText}
+        <ChevronRight className="w-4 h-4 ml-1" />
+      </Button>
+    )}
   </div>
 );
 
@@ -478,7 +477,7 @@ function ClaimRoyaltiesModal({
         </p>
 
         <div className="max-h-72 overflow-y-auto pr-1">
-          <CreatorRoyaltiesSection
+          <BoxOfficeRevenueSection
             getAccessToken={getAccessToken}
             onTotalsLoaded={(pending) => onTotalsLoaded(pending)}
             claimedByShowId={claimedByShowId}
@@ -534,7 +533,7 @@ function ClaimBoxOfficeModal({
           1% of every TIX trade on your show accumulates here as USDC. Claim anytime — no platform fee deducted at this step.
         </p>
         <div className="max-h-72 overflow-y-auto pr-1">
-          <BoxOfficeRevenueSection
+          <CreatorRoyaltiesSection
             getAccessToken={getAccessToken}
             onTotalLoaded={onTotalLoaded}
             claimedByShowId={claimedByShowId}
@@ -771,12 +770,11 @@ const EarnPage = () => {
   const [creatorRoyaltiesPending, setCreatorRoyaltiesPending] = useState<string | null>(null);
 
   // Leaderboard placed next to Rewards per product direction
-  const tabs: { id: TabId; label: string; icon?: React.ReactNode }[] = [
+  const tabs: { id: TabId; label: string; icon?: React.ReactNode; comingSoon?: boolean }[] = [
     { id: "earn", label: "Earn", icon: <Coins className="w-4 h-4" /> },
-    { id: "rewards", label: "Rewards", icon: <Gift className="w-4 h-4" /> },
+    { id: "rewards", label: "Rewards", icon: <Gift className="w-4 h-4" />, comingSoon: true },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
-    { id: "votes", label: "Voting", icon: <ThumbsUp className="w-4 h-4" /> },
-    { id: "quest", label: "Quest", icon: <HelpCircle className="w-4 h-4" /> },
+    { id: "votes", label: "Voting", icon: <ThumbsUp className="w-4 h-4" />, comingSoon: true },
   ];
 
   const handleAddFundsSuccess = () => {
@@ -813,11 +811,14 @@ const EarnPage = () => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "rewards":
-        return <RewardsTab onClaimReward={handleClaimReward as any} />;
       case "votes":
-        return <VotingTab />;
-      case "quest":
-        return <QuestTab />;
+        return (
+          <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
+            <span className="text-4xl">🚧</span>
+            <p className="text-lg font-semibold text-neutral-primary-text">Coming soon</p>
+            <p className="text-sm text-neutral-tertiary-text max-w-xs">This feature is under construction. Check back soon!</p>
+          </div>
+        );
       case "leaderboard":
         return <LeaderboardTab onUserClick={handleUserClick} />;
       case "earn":
@@ -1001,27 +1002,19 @@ const EarnPage = () => {
                   {
                     ...earningStreams[0],
                     stats: [
-                      { label: "$PIX Earned", value: profile?.token_balance ?? "—" },
-                      { label: "Cashback(10%)", value: usdcBalance != null ? `$${(parseFloat(usdcBalance) * 0.1).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—" },
-                      { label: "Videos Watched", value: String(watchHistory.length) },
+                      { label: "$PIX Earned", value: "Coming soon" },
+                      { label: "Cashback (10%)", value: (() => {
+                        const cashbackTxs = transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback");
+                        if (txLoading) return "…";
+                        if (cashbackTxs.length === 0) return "—";
+                        const total = cashbackTxs.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+                        return `${total.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} TIX`;
+                      })() },
+                      { label: "Videos Watched", value: txLoading ? "…" : String(watchHistory.length) },
                     ],
                   },
-                  {
-                    ...earningStreams[1],
-                    stats: [
-                      { label: "Tokens Allocated", value: profile?.token_balance ?? "—" },
-                      { label: "Current APR", value: VOTING_APR },
-                      { label: "Earnings", value: "—" },
-                    ],
-                  },
-                  {
-                    ...earningStreams[2],
-                    stats: [
-                      { label: "XP Per Referral", value: "500" },
-                      { label: "Bonus from Refs", value: "15%" },
-                      { label: "Total Referrals", value: String(profile?.following_count ?? "—") },
-                    ],
-                  },
+                  earningStreams[1],
+                  earningStreams[2],
                   earningStreams[3],
                 ].map((stream) => (
                   <EarningStreamCard
@@ -1048,9 +1041,9 @@ const EarnPage = () => {
                   >
                     <RefreshCw className={cn("w-4 h-4 text-neutral-tertiary-text", txLoading && "animate-spin")} />
                   </button>
-                  <button className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap">
+                  <Link href="/profile?tab=transactions" className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap">
                     View all Activity
-                  </button>
+                  </Link>
                 </div>
               </div>
               {txLoading ? (
@@ -1181,29 +1174,22 @@ const EarnPage = () => {
         {/* Tab Navigation — edge-bleed scroll on mobile */}
         <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 mb-8">
           <div className="flex gap-2 md:gap-3 pb-1 w-max md:w-auto">
-            {tabs.map((tab) => {
-              const isVoting = tab.id === "votes";
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => !isVoting && setActiveTab(tab.id)}
-                  disabled={isVoting}
-                  title={isVoting ? "Voting is not yet available" : undefined}
-                  className={cn(
-                    "px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 border",
-                    isVoting
-                      ? "opacity-40 cursor-not-allowed bg-neutral-primary text-neutral-tertiary-text border-neutral-tertiary-border"
-                      : activeTab === tab.id
-                        ? "bg-brand-primary text-white border-brand-primary"
-                        : "bg-neutral-primary text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
-                  )}
-                >
-                  {tab.icon}
-                  {tab.label}
-                  {isVoting && <span className="text-xs opacity-70 ml-0.5">(soon)</span>}
-                </button>
-              );
-            })}
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 border",
+                  activeTab === tab.id
+                    ? "bg-brand-primary text-white border-brand-primary"
+                    : "bg-neutral-primary text-neutral-secondary-text border-neutral-tertiary-border hover:border-neutral-secondary-border"
+                )}
+              >
+                {tab.icon}
+                {tab.label}
+                {tab.comingSoon && <span className="text-xs opacity-70 ml-0.5">(soon)</span>}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -1266,13 +1252,13 @@ const EarnPage = () => {
 
       {/* Always-mounted: populate on-chain pending amounts before modals are opened */}
       <div className="hidden">
-        <BoxOfficeRevenueSection
+        <CreatorRoyaltiesSection
           getAccessToken={getAccessToken}
           claimedByShowId={feesClaimedByShowId}
           onTotalLoaded={setCreatorRoyaltiesPending}
           onClaimed={refetchTx}
         />
-        <CreatorRoyaltiesSection
+        <BoxOfficeRevenueSection
           getAccessToken={getAccessToken}
           claimedByShowId={royaltiesClaimedByShowId}
           onTotalsLoaded={(pending) => setBoxOfficePendingGross(pending)}

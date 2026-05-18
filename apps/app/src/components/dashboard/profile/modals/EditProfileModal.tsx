@@ -45,19 +45,15 @@ const EditProfileModal = ({ isOpen, onClose, profile, updateProfile }: EditProfi
     setIsSaving(true);
     setError(null);
     try {
-      const ok = await updateProfile({
+      await updateProfile({
         name: formData.name.trim() || undefined,
         username: formData.username.trim() || undefined,
         bio: formData.bio.trim() || undefined,
       });
-      if (ok) {
-        setSaved(true);
-        setTimeout(() => onClose(), 800);
-      } else {
-        setError("Failed to update profile. Please try again.");
-      }
-    } catch {
-      setError("Something went wrong.");
+      setSaved(true);
+      setTimeout(() => onClose(), 800);
+    } catch (err) {
+      setError((err as Error).message ?? "Failed to update profile. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -134,7 +130,7 @@ const EditProfileModal = ({ isOpen, onClose, profile, updateProfile }: EditProfi
               name="username"
               value={formData.username}
               onChange={handleChange}
-              placeholder="@username"
+              placeholder="username"
               className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary bg-neutral-primary text-neutral-primary-text text-base"
             />
           </div>
