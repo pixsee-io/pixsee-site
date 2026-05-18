@@ -264,15 +264,6 @@ const BuyAndWatchButton = ({
 
   return (
     <div className={bare ? "" : "mt-4 p-4 rounded-xl bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20"}>
-      {!bare && (
-        <div className="flex items-center gap-2 mb-3">
-          <Lock className="w-4 h-4 text-brand-pixsee-secondary" />
-          <p className="text-sm font-medium text-brand-pixsee-secondary">
-            This episode requires {tickSymbol} tix to unlock
-          </p>
-        </div>
-      )}
-
       {/* Episode info row */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs text-neutral-tertiary-text">
         {fullDuration > 0 && (
@@ -1141,25 +1132,6 @@ const ShowDetails = ({ id }: { id: string }) => {
                 )}
 
                 {/* Show buy+unlock below player for non-series paid episodes */}
-                {!isSeries &&
-                  activeEpisode &&
-                  !activeEpisode.is_free &&
-                  !activeEpisodeHasAccess &&
-                  !creatorPhaseActive &&
-                  showContractAddress &&
-                  bondingCurveAddress && (
-                    <BuyAndWatchButton
-                      episode={activeEpisode}
-                      showContractAddress={showContractAddress}
-                      bondingCurveAddress={bondingCurveAddress}
-                      tickSymbol={resolvedTickSymbol}
-                      getAccessToken={getAccessToken}
-                      onSuccess={() => {
-                        checkAllAccess();
-                        setPlaybackRefreshKey((k) => k + 1);
-                      }}
-                    />
-                  )}
               </div>
 
               {isSeries && episodes.length > 1 && (
