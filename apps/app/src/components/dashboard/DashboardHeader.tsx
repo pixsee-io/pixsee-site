@@ -104,12 +104,14 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [usdcBalance, setUsdcBalance] = useState<string>("0.00");
+  const [ethBalance, setEthBalance] = useState<string>("0.0000");
+  const [ethUsd, setEthUsd] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [showFundModal, setShowFundModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
-  const { getUsdcBalance, walletAddress } = usePixseeContract();
+  const { getUsdcBalance, getEthBalance, walletAddress } = usePixseeContract();
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications(getAccessToken);
 
   useEffect(() => {
@@ -141,7 +143,20 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
         );
       })
       .catch(() => {});
-  }, [user, getUsdcBalance]);
+    getEthBalance()
+      .then((raw) => {
+        const num = parseFloat(raw);
+        setEthBalance(num.toFixed(4));
+      })
+      .catch(() => {});
+  }, [user, getUsdcBalance, getEthBalance]);
+
+  useEffect(() => {
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+      .then((r) => r.json())
+      .then((d) => setEthUsd(d?.ethereum?.usd ?? null))
+      .catch(() => {});
+  }, []);
 
   const getUserDisplay = () => {
     if (!user) return "User";
@@ -239,10 +254,21 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="text-xs text-neutral-tertiary-text font-normal">
                 ${usdcBalance} USDC
               </DropdownMenuLabel>
+              <div className="px-2 pb-2 flex gap-1">
+                <span className="text-xs text-neutral-tertiary-text">
+                  {ethBalance} ETH
+                  {ethUsd !== null && (
+                    <span className="ml-1 text-neutral-tertiary-text/60">
+                      (≈${(parseFloat(ethBalance) * ethUsd).toFixed(2)})
+                    </span>
+                  )}
+                </span>
+                <span className="text-[10px] text-neutral-tertiary-text/70 italic shrink-0">used for gas</span>
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setShowFundModal(true)}

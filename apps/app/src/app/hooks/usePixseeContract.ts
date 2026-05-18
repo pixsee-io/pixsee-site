@@ -747,6 +747,14 @@ export function usePixseeContract() {
     return balance as bigint;
   }, [walletAddress]);
 
+  //  READ: Get ETH balance (used for gas) ─
+
+  const getEthBalance = useCallback(async (): Promise<string> => {
+    if (!walletAddress) return "0";
+    const balance = await publicClient.getBalance({ address: walletAddress as Address });
+    return formatUnits(balance, 18);
+  }, [walletAddress]);
+
   //  READ: Total show count from factory ─
 
   const getShowCount = useCallback(async (): Promise<number> => {
@@ -1165,6 +1173,7 @@ export function usePixseeContract() {
     getCurveState,
     getUsdcBalance,
     getUsdcBalanceRaw,
+    getEthBalance,
     getShowCount,
     getTixBalance,
     getTixAddress,
