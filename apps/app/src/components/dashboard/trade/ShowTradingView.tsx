@@ -154,8 +154,8 @@ function BondingCurveChart({
               borderRadius: "8px",
               fontSize: 11,
             }}
-            formatter={(v: number) => [fmtUsdc(v * 60) + "/min", "Price/min"]}
-            labelFormatter={(label: number) => `Supply: ${fmtSupply(label)}`}
+            formatter={(v) => [fmtUsdc((Number(v) ?? 0) * 60) + "/min", "Price/min"]}
+            labelFormatter={(label) => `Supply: ${fmtSupply(Number(label))}`}
           />
 
           {/* Past region (filled, solid line) */}
