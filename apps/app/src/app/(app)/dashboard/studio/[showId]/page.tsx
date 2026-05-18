@@ -280,7 +280,9 @@ export default function StudioShowPage() {
   const [lockedAmount, setLockedAmount] = useState<bigint | null>(null);
   const [lockAmountInput, setLockAmountInput] = useState("");
   const [lockDurationSecs, setLockDurationSecs] = useState("2592000"); // 30 days default
-  const [lockDurationMode, setLockDurationMode] = useState<"preset" | "custom">("preset");
+  const [lockDurationMode, setLockDurationMode] = useState<"preset" | "custom">(
+    "preset"
+  );
   const [customLockDate, setCustomLockDate] = useState("");
   const [lockStatus, setLockStatus] = useState<"idle" | "locking">("idle");
 
@@ -492,7 +494,8 @@ export default function StudioShowPage() {
         type: "royalties_claimed",
         show_id: show?.id,
         tx_hash: tx,
-        tix_amount: pendingRoyaltyTix !== null ? formatUnits(pendingRoyaltyTix, 18) : "0",
+        tix_amount:
+          pendingRoyaltyTix !== null ? formatUnits(pendingRoyaltyTix, 18) : "0",
         show_contract_address: show?.show_contract,
       });
       setPendingRoyaltyTix(0n);
@@ -520,10 +523,21 @@ export default function StudioShowPage() {
         try {
           const { createPublicClient, http } = await import("viem");
           const { baseSepolia } = await import("viem/chains");
-          const c = createPublicClient({ chain: baseSepolia, transport: http("https://base-sepolia-rpc.publicnode.com") });
+          const c = createPublicClient({
+            chain: baseSepolia,
+            transport: http("https://base-sepolia-rpc.publicnode.com"),
+          });
           const newBal = await c.readContract({
             address: show.tix_token as Address,
-            abi: [{ name: "balanceOf", type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }] }] as const,
+            abi: [
+              {
+                name: "balanceOf",
+                type: "function",
+                stateMutability: "view",
+                inputs: [{ name: "account", type: "address" }],
+                outputs: [{ name: "", type: "uint256" }],
+              },
+            ] as const,
             functionName: "balanceOf",
             args: [walletAddress as Address],
           });
@@ -567,6 +581,7 @@ export default function StudioShowPage() {
         tx_hash: tx,
         bonding_curve_address: bondingCurveAddress,
       });
+      if (show?.id) router.push(`/watch/${show.id}`);
     } else {
       showToast("error", "Failed to end creator phase.");
     }
@@ -1006,6 +1021,187 @@ export default function StudioShowPage() {
                 </div>
               )}
 
+            {/* Lock TIX card — only shown after creator has TIX to lock (or is already locked) */}
+            {bondingCurveAddress &&
+              show.tix_token &&
+              isLocked !== null &&
+              (isLocked ||
+                (creatorTixBalance !== null && creatorTixBalance > 0n)) && (
+                <div
+                  className={`rounded-2xl p-4 sm:p-5 border-2 ${
+                    isLocked
+                      ? "bg-semantic-success-subtle border-semantic-success-primary/40"
+                      : "bg-neutral-primary border-neutral-tertiary-border"
+                  }`}
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                        isLocked
+                          ? "bg-semantic-success-primary/20"
+                          : "bg-neutral-tertiary"
+                      }`}
+                    >
+                      {isLocked ? (
+                        <Lock className="w-4 h-4 text-semantic-success-text" />
+                      ) : (
+                        <LockOpen className="w-4 h-4 text-neutral-tertiary-text" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-neutral-primary-text text-sm">
+                        {isLocked ? "TIX Locked" : "Lock Your TIX"}
+                      </h2>
+                      <p className="text-xs text-neutral-tertiary-text mt-0.5">
+                        {isLocked
+                          ? "Your committed TIX show viewers you're in it for the long term — displayed as a green lock badge on the Trade page."
+                          : "Lock TIX to signal long-term commitment. Shows a green lock badge on the Trade page, building viewer trust."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {isLocked && lockedAmount !== null && lockExpiry !== null ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center py-2 border-t border-neutral-tertiary-border">
+                        <span className="text-neutral-tertiary-text text-xs">
+                          Locked amount
+                        </span>
+                        <span className="font-semibold text-semantic-success-text">
+                          {parseFloat(
+                            formatUnits(lockedAmount, 18)
+                          ).toLocaleString("en-US", {
+                            maximumFractionDigits: 4,
+                          })}{" "}
+                          TIX
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pb-1">
+                        <span className="text-neutral-tertiary-text text-xs">
+                          Lock expires
+                        </span>
+                        <span className="text-xs font-medium text-neutral-secondary-text">
+                          {lockExpiry > 0n
+                            ? new Date(
+                                Number(lockExpiry) * 1000
+                              ).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
+                            : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : isLocked === false ? (
+                    <div className="space-y-3 pt-1 border-t border-neutral-tertiary-border">
+                      {creatorTixBalance !== null && (
+                        <p className="text-xs text-neutral-tertiary-text">
+                          Available:{" "}
+                          <span className="font-medium text-neutral-secondary-text">
+                            {parseFloat(
+                              formatUnits(creatorTixBalance, 18)
+                            ).toLocaleString("en-US", {
+                              maximumFractionDigits: 4,
+                            })}{" "}
+                            TIX
+                          </span>
+                        </p>
+                      )}
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                          Amount to lock (TIX)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          placeholder="0.00"
+                          value={lockAmountInput}
+                          onChange={(e) => setLockAmountInput(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                          Lock duration
+                        </label>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {[
+                            { label: "7d", value: "604800" },
+                            { label: "30d", value: "2592000" },
+                            { label: "90d", value: "7776000" },
+                            { label: "180d", value: "15552000" },
+                            { label: "1yr", value: "31536000" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setLockDurationMode("preset");
+                                setLockDurationSecs(opt.value);
+                              }}
+                              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                                lockDurationMode === "preset" &&
+                                lockDurationSecs === opt.value
+                                  ? "bg-brand-pixsee-secondary text-white border-brand-pixsee-secondary"
+                                  : "bg-neutral-secondary text-neutral-secondary-text border-neutral-tertiary-border hover:border-brand-pixsee-secondary"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setLockDurationMode("custom")}
+                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                              lockDurationMode === "custom"
+                                ? "bg-brand-pixsee-secondary text-white border-brand-pixsee-secondary"
+                                : "bg-neutral-secondary text-neutral-secondary-text border-neutral-tertiary-border hover:border-brand-pixsee-secondary"
+                            }`}
+                          >
+                            Custom
+                          </button>
+                        </div>
+                        {lockDurationMode === "custom" && (
+                          <input
+                            type="date"
+                            value={customLockDate}
+                            min={
+                              new Date(Date.now() + 86400000)
+                                .toISOString()
+                                .split("T")[0]
+                            }
+                            onChange={(e) => setCustomLockDate(e.target.value)}
+                            className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
+                          />
+                        )}
+                      </div>
+                      <button
+                        onClick={handleLockTix}
+                        disabled={
+                          lockStatus !== "idle" ||
+                          !lockAmountInput ||
+                          parseFloat(lockAmountInput) <= 0 ||
+                          (lockDurationMode === "custom" && !customLockDate)
+                        }
+                        className="w-full py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        {lockStatus === "locking" ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                            Locking…
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="w-3.5 h-3.5" /> Lock TIX
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
             {/* Creator Phase card — only shown while phase is active */}
             {bondingCurveAddress && creatorPhaseActive && (
               <div className="bg-brand-pixsee-tertiary border-2 border-brand-pixsee-secondary/40 rounded-2xl p-4 sm:p-5">
@@ -1091,175 +1287,6 @@ export default function StudioShowPage() {
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Lock TIX card — only shown after creator has TIX to lock (or is already locked) */}
-            {bondingCurveAddress && show.tix_token && isLocked !== null && (isLocked || (creatorTixBalance !== null && creatorTixBalance > 0n)) && (
-              <div
-                className={`rounded-2xl p-4 sm:p-5 border-2 ${
-                  isLocked
-                    ? "bg-semantic-success-subtle border-semantic-success-primary/40"
-                    : "bg-neutral-primary border-neutral-tertiary-border"
-                }`}
-              >
-                <div className="flex items-start gap-3 mb-3">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      isLocked
-                        ? "bg-semantic-success-primary/20"
-                        : "bg-neutral-tertiary"
-                    }`}
-                  >
-                    {isLocked ? (
-                      <Lock className="w-4 h-4 text-semantic-success-text" />
-                    ) : (
-                      <LockOpen className="w-4 h-4 text-neutral-tertiary-text" />
-                    )}
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-neutral-primary-text text-sm">
-                      {isLocked ? "TIX Locked" : "Lock Your TIX"}
-                    </h2>
-                    <p className="text-xs text-neutral-tertiary-text mt-0.5">
-                      {isLocked
-                        ? "Your committed TIX show viewers you're in it for the long term — displayed as a green lock badge on the Trade page."
-                        : "Lock TIX to signal long-term commitment. Shows a green lock badge on the Trade page, building viewer trust."}
-                    </p>
-                  </div>
-                </div>
-
-                {isLocked && lockedAmount !== null && lockExpiry !== null ? (
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center py-2 border-t border-neutral-tertiary-border">
-                      <span className="text-neutral-tertiary-text text-xs">
-                        Locked amount
-                      </span>
-                      <span className="font-semibold text-semantic-success-text">
-                        {parseFloat(
-                          formatUnits(lockedAmount, 18)
-                        ).toLocaleString("en-US", {
-                          maximumFractionDigits: 4,
-                        })}{" "}
-                        TIX
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center pb-1">
-                      <span className="text-neutral-tertiary-text text-xs">
-                        Lock expires
-                      </span>
-                      <span className="text-xs font-medium text-neutral-secondary-text">
-                        {lockExpiry > 0n
-                          ? new Date(
-                              Number(lockExpiry) * 1000
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </span>
-                    </div>
-                  </div>
-                ) : isLocked === false ? (
-                  <div className="space-y-3 pt-1 border-t border-neutral-tertiary-border">
-                    {creatorTixBalance !== null && (
-                      <p className="text-xs text-neutral-tertiary-text">
-                        Available:{" "}
-                        <span className="font-medium text-neutral-secondary-text">
-                          {parseFloat(
-                            formatUnits(creatorTixBalance, 18)
-                          ).toLocaleString("en-US", {
-                            maximumFractionDigits: 4,
-                          })}{" "}
-                          TIX
-                        </span>
-                      </p>
-                    )}
-                    <div>
-                      <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
-                        Amount to lock (TIX)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="any"
-                        placeholder="0.00"
-                        value={lockAmountInput}
-                        onChange={(e) => setLockAmountInput(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
-                        Lock duration
-                      </label>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {[
-                          { label: "7d", value: "604800" },
-                          { label: "30d", value: "2592000" },
-                          { label: "90d", value: "7776000" },
-                          { label: "180d", value: "15552000" },
-                          { label: "1yr", value: "31536000" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => { setLockDurationMode("preset"); setLockDurationSecs(opt.value); }}
-                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                              lockDurationMode === "preset" && lockDurationSecs === opt.value
-                                ? "bg-brand-pixsee-secondary text-white border-brand-pixsee-secondary"
-                                : "bg-neutral-secondary text-neutral-secondary-text border-neutral-tertiary-border hover:border-brand-pixsee-secondary"
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setLockDurationMode("custom")}
-                          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                            lockDurationMode === "custom"
-                              ? "bg-brand-pixsee-secondary text-white border-brand-pixsee-secondary"
-                              : "bg-neutral-secondary text-neutral-secondary-text border-neutral-tertiary-border hover:border-brand-pixsee-secondary"
-                          }`}
-                        >
-                          Custom
-                        </button>
-                      </div>
-                      {lockDurationMode === "custom" && (
-                        <input
-                          type="date"
-                          value={customLockDate}
-                          min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
-                          onChange={(e) => setCustomLockDate(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
-                        />
-                      )}
-                    </div>
-                    <button
-                      onClick={handleLockTix}
-                      disabled={
-                        lockStatus !== "idle" ||
-                        !lockAmountInput ||
-                        parseFloat(lockAmountInput) <= 0 ||
-                        (lockDurationMode === "custom" && !customLockDate)
-                      }
-                      className="w-full py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      {lockStatus === "locking" ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
-                          Locking…
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="w-3.5 h-3.5" /> Lock TIX
-                        </>
-                      )}
-                    </button>
-                  </div>
-                ) : null}
               </div>
             )}
           </div>
