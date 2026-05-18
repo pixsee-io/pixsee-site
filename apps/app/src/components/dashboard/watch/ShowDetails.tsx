@@ -58,6 +58,26 @@ function formatDuration(seconds?: number | null): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function friendlyTxError(raw: string | null): string | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes("user rejected") ||
+    lower.includes("rejected the request") ||
+    lower.includes("user denied") ||
+    lower.includes("cancelled")
+  ) {
+    return "Transaction cancelled.";
+  }
+  if (lower.includes("insufficient funds") || lower.includes("insufficient balance")) {
+    return "Insufficient funds for this transaction.";
+  }
+  if (lower.includes("insufficient allowance")) {
+    return "USDC allowance too low. Please try again.";
+  }
+  return "Transaction failed. Please try again.";
+}
+
 //  BuyAndWatchButton ─
 // Shows cost, handles approve + buy + unlock flow
 
@@ -98,9 +118,9 @@ const BuyAndWatchButton = ({
   const tickSymbol = tickSymbolProp ?? "Tix";
 
   const fullDuration = episode.duration ?? 600;
-  // Subtract preview seconds already watched for free so the user only pays for the remaining content
-  const previewSeconds = episode.preview_end_seconds ?? 0;
-  const durationSeconds = Math.max(0, fullDuration - previewSeconds);
+  // Payment always covers the full episode duration — the preview is a free teaser,
+  // not a discount on the purchase price. The ShowContract was registered with fullDuration.
+  const durationSeconds = fullDuration;
   // Amount of tix-wei needed for this episode
   const tixNeeded = BigInt(durationSeconds) * BigInt("1000000000000000000");
   const hasEnoughTix = userTixBalance >= tixNeeded;
@@ -159,12 +179,17 @@ const BuyAndWatchButton = ({
         ? Number(episode.on_chain_episode_id)
         : episode.episode_number ?? episode.id;
     const tixAmount = formatUnits(BigInt(durationSeconds) * BigInt("1000000000000000000"), 18);
-    const tx = await unlockWithTix({
-      showContractAddress,
-      tixAddress,
-      episodeId: onChainEpisodeId,
-      durationSeconds,
-    });
+    let tx: string | null = null;
+    try {
+      tx = await unlockWithTix({
+        showContractAddress,
+        tixAddress,
+        episodeId: onChainEpisodeId,
+        durationSeconds,
+      });
+    } catch {
+      // error is set inside unlockWithTix; step resets below
+    }
     setStep("idle");
     if (tx) {
       await notifyBackend(tx, { tix_amount: tixAmount });
@@ -192,15 +217,21 @@ const BuyAndWatchButton = ({
         ? Number(episode.on_chain_episode_id)
         : episode.episode_number ?? episode.id;
     const usdcAmount = cost ?? "0";
-    const tx = await buyAndUnlock({
-      showContractAddress,
-      bondingCurveAddress,
-      episodeId: onChainEpisodeId,
-      durationSeconds,
-    });
+    const tixAmount = formatUnits(tixNeeded, 18);
+    let tx: string | null = null;
+    try {
+      tx = await buyAndUnlock({
+        showContractAddress,
+        bondingCurveAddress,
+        episodeId: onChainEpisodeId,
+        durationSeconds,
+      });
+    } catch {
+      // error is set inside buyAndUnlock; step resets below
+    }
     setStep("idle");
     if (tx) {
-      await notifyBackend(tx, { usdc_amount: usdcAmount });
+      await notifyBackend(tx, { usdc_amount: usdcAmount, tix_amount: tixAmount });
       const token = await getAccessToken().catch(() => null);
       recordTransaction(token, {
         type: "episode_purchased",
@@ -210,6 +241,7 @@ const BuyAndWatchButton = ({
         show_contract_address: showContractAddress,
         tx_hash: tx,
         usdc_amount: usdcAmount,
+        tix_amount: tixAmount,
         duration_seconds: durationSeconds,
         wallet_address: walletAddress,
       });
@@ -283,7 +315,7 @@ const BuyAndWatchButton = ({
       {error && (
         <div className="flex items-center gap-2 text-semantic-error-primary text-sm mb-3">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
+          <span>{friendlyTxError(error)}</span>
         </div>
       )}
 
@@ -903,6 +935,7 @@ const ShowDetails = ({ id }: { id: string }) => {
       setBingeSuccess(true);
       const token = await getAccessToken().catch(() => null);
       // Notify backend via batch endpoint — single call unlocks all episodes
+      const bingeTixAmount = formatUnits(BigInt(totalDuration) * BigInt("1000000000000000000"), 18);
       await fetch(`${BASE_URL}/api/v1/shows/${apiShow?.id}/episodes/grant-access-batch`, {
         method: "POST",
         headers: {
@@ -914,6 +947,7 @@ const ShowDetails = ({ id }: { id: string }) => {
           episode_ids: locked.map((ep) => ep.id),
           wallet_address: walletAddress,
           usdc_amount: bingeQuote ?? "0",
+          tix_amount: bingeTixAmount,
         }),
       }).catch(() => {});
       recordTransaction(token, {
@@ -924,6 +958,7 @@ const ShowDetails = ({ id }: { id: string }) => {
         on_chain_episode_ids: episodeIds.map(String),
         tx_hash: tx,
         usdc_amount: bingeQuote ?? "0",
+        tix_amount: bingeTixAmount,
         total_duration_seconds: totalDuration,
         wallet_address: walletAddress,
       });

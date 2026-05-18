@@ -50,6 +50,10 @@ export type ShowListing = {
   totalVolumeUsdc: string;
   tixSupply: bigint;
   creatorTokensLocked?: boolean;
+  thumbnailUrl?: string;
+  description?: string;
+  creatorName?: string;
+  creatorAvatar?: string;
 };
 
 export type TixPortfolio = {
@@ -71,7 +75,15 @@ type BackendShow = {
   show_contract: string;
   fee_distributor: string | null;
   tick_symbol: string | null;
-  creator?: { wallet_address?: string };
+  description?: string | null;
+  cover_image_url?: string | null;
+  thumbnail_url?: string | null;
+  creator?: {
+    wallet_address?: string;
+    name?: string;
+    username?: string;
+    avatar_url?: string | null;
+  };
 };
 
 // ─── Core async fetch (extracted for testability and clarity) ─────────────────
@@ -174,6 +186,10 @@ async function fetchPortfolioData(walletAddress: Address | undefined) {
       totalVolumeUsdc: formatUnits(totalVolumeUsdc, 6),
       tixSupply,
       creatorTokensLocked,
+      thumbnailUrl: s.cover_image_url ?? s.thumbnail_url ?? undefined,
+      description: s.description ?? undefined,
+      creatorName: s.creator?.name ?? s.creator?.username ?? undefined,
+      creatorAvatar: s.creator?.avatar_url ?? undefined,
     });
 
     // Include in holdings if wallet balance OR locked tokens exist

@@ -312,14 +312,16 @@ export function usePixseeContract() {
         );
         const usdcWithSlippage = (usdcCost * BigInt(102)) / BigInt(100);
 
-        const currentAllowance = await publicClient.readContract({
+        // Use providerPublicClient (wallet's own RPC node) so we read the latest
+        // on-chain allowance — the global publicClient may lag behind after a recent approve.
+        const currentAllowance = await providerPublicClient.readContract({
           address: CONTRACT_ADDRESSES.usdc as Address,
           abi: ERC20_ABI,
           functionName: "allowance",
           args: [walletAddress, CONTRACT_ADDRESSES.router as Address],
         });
 
-        if (currentAllowance < usdcWithSlippage) {
+        if ((currentAllowance as bigint) < usdcWithSlippage) {
           const approveTx = await walletClient.writeContract({
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
@@ -380,14 +382,14 @@ export function usePixseeContract() {
         );
         const usdcWithSlippage = (usdcCost * BigInt(102)) / BigInt(100);
 
-        const currentAllowance = await publicClient.readContract({
+        const currentAllowance = await providerPublicClient.readContract({
           address: CONTRACT_ADDRESSES.usdc as Address,
           abi: ERC20_ABI,
           functionName: "allowance",
           args: [walletAddress, CONTRACT_ADDRESSES.router as Address],
         });
 
-        if (currentAllowance < usdcWithSlippage) {
+        if ((currentAllowance as bigint) < usdcWithSlippage) {
           const approveTx = await walletClient.writeContract({
             address: CONTRACT_ADDRESSES.usdc as Address,
             abi: ERC20_ABI,
@@ -680,7 +682,7 @@ export function usePixseeContract() {
         // Amount = durationSeconds × 1e18 tix-wei
         const tixAmount = BigInt(durationSeconds) * BigInt("1000000000000000000");
 
-        const currentAllowance = await publicClient.readContract({
+        const currentAllowance = await providerPublicClient.readContract({
           address: tixAddress,
           abi: ERC20_ABI,
           functionName: "allowance",
@@ -837,7 +839,7 @@ export function usePixseeContract() {
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
 
-        const currentAllowance = await publicClient.readContract({
+        const currentAllowance = await providerPublicClient.readContract({
           address: CONTRACT_ADDRESSES.usdc as Address,
           abi: ERC20_ABI,
           functionName: "allowance",
@@ -939,7 +941,7 @@ export function usePixseeContract() {
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
 
-        const creatorBuyAllowance = await publicClient.readContract({
+        const creatorBuyAllowance = await providerPublicClient.readContract({
           address: CONTRACT_ADDRESSES.usdc as Address,
           abi: ERC20_ABI,
           functionName: "allowance",
@@ -1023,7 +1025,7 @@ export function usePixseeContract() {
       setError(null);
       try {
         const { walletClient, providerPublicClient } = await getWalletClient();
-        const lockAllowance = await publicClient.readContract({
+        const lockAllowance = await providerPublicClient.readContract({
           address: tixTokenAddress,
           abi: ERC20_ABI,
           functionName: "allowance",
