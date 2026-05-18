@@ -39,7 +39,8 @@ import {
   useEpisodePlayback,
 } from "@/app/hooks/useVideo";
 import { ApiEpisode, ApiShow } from "@/app/types/pixsee-api";
-import { usePixseeContract } from "@/app/hooks/usePixseeContract";
+import { usePixseeContract, isApprovalCached } from "@/app/hooks/usePixseeContract";
+import { CONTRACT_ADDRESSES } from "@/app/lib/pixsee-contracts";
 import {
   useLike,
   useComments,
@@ -173,7 +174,10 @@ const BuyAndWatchButton = ({
   // Path A: user already has enough tix — unlock directly, no USDC
   const handleUnlockWithTix = async () => {
     if (!tixAddress) return;
-    setStep("approving");
+    const needsApproval = walletAddress
+      ? !isApprovalCached(walletAddress, tixAddress, showContractAddress)
+      : false;
+    setStep(needsApproval ? "approving" : "unlocking");
     const onChainEpisodeId =
       episode.on_chain_episode_id != null
         ? Number(episode.on_chain_episode_id)
@@ -211,7 +215,10 @@ const BuyAndWatchButton = ({
 
   // Path B: user doesn't have enough tix — buy with USDC + unlock via router
   const handleBuyAndUnlock = async () => {
-    setStep("approving");
+    const needsApproval = walletAddress
+      ? !isApprovalCached(walletAddress, CONTRACT_ADDRESSES.usdc, CONTRACT_ADDRESSES.router)
+      : false;
+    setStep(needsApproval ? "approving" : "unlocking");
     const onChainEpisodeId =
       episode.on_chain_episode_id != null
         ? Number(episode.on_chain_episode_id)
