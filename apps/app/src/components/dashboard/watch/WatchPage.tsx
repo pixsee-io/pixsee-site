@@ -105,7 +105,7 @@ function PortraitRow({
         <div className="space-y-4">
           <HScrollRow
             shows={row1}
-            cardClassName="w-48 sm:w-52 md:w-60"
+           cardClassName="w-52 sm:w-60 md:w-72"
             getAccessToken={getAccessToken}
             isInWatchlist={isInWatchlist}
             toggleWatchlist={toggleWatchlist}
@@ -113,7 +113,7 @@ function PortraitRow({
           {row2.length > 0 && (
             <HScrollRow
               shows={row2}
-              cardClassName="w-48 sm:w-52 md:w-60"
+              cardClassName="w-52 sm:w-60 md:w-72"
               getAccessToken={getAccessToken}
               isInWatchlist={isInWatchlist}
               toggleWatchlist={toggleWatchlist}

@@ -13,6 +13,8 @@ export type ShowCardProps = {
   isLiked?: boolean;
   videoFormat?: "landscape" | "portrait";
   className?: string;
+  createdAt?: string;
+  previewPlaybackId?: string;
 };
 
 export type FeaturedShowData = {
