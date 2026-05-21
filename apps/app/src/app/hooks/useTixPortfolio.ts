@@ -50,6 +50,7 @@ export type ShowListing = {
   totalVolumeUsdc: string;
   tixSupply: bigint;
   creatorTokensLocked?: boolean;
+  creatorPhaseActive?: boolean;
   thumbnailUrl?: string;
   description?: string;
   creatorName?: string;
@@ -112,14 +113,15 @@ async function fetchPortfolioData(walletAddress: Address | undefined) {
   }
 
   // Batch multicall per show
-  // Stride 3 (no wallet): getCurveState, isCreatorLocked, getCreatorLockInfo
-  // Stride 4 (with wallet): + balanceOf
-  const stride = walletAddress ? 4 : 3;
+  // Stride 4 (no wallet): getCurveState, isCreatorLocked, getCreatorLockInfo, creatorPhaseActive
+  // Stride 5 (with wallet): + balanceOf
+  const stride = walletAddress ? 5 : 4;
   const perShowContracts = backendShows.flatMap((s) => {
     const base = [
       { address: s.bonding_curve as Address, abi: CURVE_ABI, functionName: "getCurveState" },
       { address: s.bonding_curve as Address, abi: CURVE_ABI, functionName: "isCreatorLocked" },
       { address: s.bonding_curve as Address, abi: CURVE_ABI, functionName: "getCreatorLockInfo" },
+      { address: s.bonding_curve as Address, abi: CURVE_ABI, functionName: "creatorPhaseActive" },
     ];
     if (!walletAddress) return base;
     return [...base, { address: s.tix_token as Address, abi: ERC20, functionName: "balanceOf", args: [walletAddress] }];
@@ -143,7 +145,11 @@ async function fetchPortfolioData(walletAddress: Address | undefined) {
       ? (lockInfoEntry.result as readonly [bigint, bigint])
       : null;
 
-    const tixBalEntry = walletAddress ? results[i * stride + 3] : undefined;
+    const phaseEntry = results[i * stride + 3];
+    const creatorPhaseActive: boolean =
+      phaseEntry?.status === "success" ? (phaseEntry.result as boolean) : false;
+
+    const tixBalEntry = walletAddress ? results[i * stride + 4] : undefined;
     const tixBalance: bigint =
       tixBalEntry?.status === "success" ? (tixBalEntry.result as bigint) : 0n;
 
@@ -176,21 +182,25 @@ async function fetchPortfolioData(walletAddress: Address | undefined) {
       createdAt: 0n,
     };
 
-    listings.push({
-      showId: s.id,
-      backendShowId: s.id,
-      show: showInfo,
-      spotPricePerToken,
-      spotPricePerMinute,
-      pricePerMinuteDisplay: formatUnits(spotPricePerMinute, 6),
-      totalVolumeUsdc: formatUnits(totalVolumeUsdc, 6),
-      tixSupply,
-      creatorTokensLocked,
-      thumbnailUrl: s.cover_image_url ?? s.thumbnail_url ?? undefined,
-      description: s.description ?? undefined,
-      creatorName: s.creator?.name ?? s.creator?.username ?? undefined,
-      creatorAvatar: s.creator?.avatar_url ?? undefined,
-    });
+    // Don't show in public trade listings until creator has opened trading
+    if (!creatorPhaseActive) {
+      listings.push({
+        showId: s.id,
+        backendShowId: s.id,
+        show: showInfo,
+        spotPricePerToken,
+        spotPricePerMinute,
+        pricePerMinuteDisplay: formatUnits(spotPricePerMinute, 6),
+        totalVolumeUsdc: formatUnits(totalVolumeUsdc, 6),
+        tixSupply,
+        creatorTokensLocked,
+        creatorPhaseActive: false,
+        thumbnailUrl: s.cover_image_url ?? s.thumbnail_url ?? undefined,
+        description: s.description ?? undefined,
+        creatorName: s.creator?.name ?? s.creator?.username ?? undefined,
+        creatorAvatar: s.creator?.avatar_url ?? undefined,
+      });
+    }
 
     // Include in holdings if wallet balance OR locked tokens exist
     if (tixBalance > 0n || lockedTix > 0n) {
