@@ -776,6 +776,8 @@ const ShowDetails = ({ id }: { id: string }) => {
     getShowInfo,
     buyAndUnlockBatch,
     quoteCostToWatch,
+    setBingeModeApproval,
+    getRouterUsdcAllowance,
   } = usePixseeContract();
 
   const apiShow = show as unknown as ApiShow;
@@ -790,6 +792,10 @@ const ShowDetails = ({ id }: { id: string }) => {
   const [bingeQuote, setBingeQuote] = useState<string | null>(null);
   const [bingeLoading, setBingeLoading] = useState(false);
   const [bingeSuccess, setBingeSuccess] = useState(false);
+  // Keeper binge mode: viewer pre-approves USDC to router so backend auto-buys next segment
+  const [keeperBingeMode, setKeeperBingeMode] = useState(false);
+  const [keeperBingeModeLoading, setKeeperBingeModeLoading] = useState(false);
+  const [keeperBingeModeChecked, setKeeperBingeModeChecked] = useState(false);
   const [showContractAddress, setShowContractAddress] = useState<
     Address | undefined
   >();
@@ -879,7 +885,25 @@ const ShowDetails = ({ id }: { id: string }) => {
     checkAllAccess();
   }, [checkAllAccess]);
 
-  // Binge mode: quote cost for all locked episodes
+  // Keeper binge mode: check if viewer has already pre-approved USDC to router
+  useEffect(() => {
+    if (!walletAddress) return;
+    setKeeperBingeModeChecked(false);
+    getRouterUsdcAllowance().then((allowance) => {
+      setKeeperBingeMode(allowance > 0n);
+      setKeeperBingeModeChecked(true);
+    });
+  }, [walletAddress, getRouterUsdcAllowance]);
+
+  const handleKeeperBingeModeToggle = useCallback(async () => {
+    if (!walletAddress) return;
+    setKeeperBingeModeLoading(true);
+    const tx = await setBingeModeApproval(!keeperBingeMode);
+    setKeeperBingeModeLoading(false);
+    if (tx) setKeeperBingeMode((prev) => !prev);
+  }, [walletAddress, keeperBingeMode, setBingeModeApproval]);
+
+  // Batch binge mode: quote cost for all locked episodes
   useEffect(() => {
     if (!bondingCurveAddress) {
       setBingeQuote(null);
@@ -1176,6 +1200,46 @@ const ShowDetails = ({ id }: { id: string }) => {
                       />
                     ))}
                   </div>
+
+                  {/* Keeper binge mode toggle — viewer pre-approves USDC so backend auto-buys next segment */}
+                  {walletAddress && !creatorPhaseActive && keeperBingeModeChecked && (
+                    <div className="mt-3 pt-3 border-t border-neutral-tertiary-border">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-neutral-primary-text">
+                            Auto-play next segment
+                          </p>
+                          <p className="text-xs text-neutral-tertiary-text mt-0.5 leading-relaxed">
+                            {keeperBingeMode
+                              ? "On — we'll automatically unlock the next segment so playback is seamless. Revoke anytime."
+                              : "Authorise Pixsee to automatically purchase the next segment for you. You can revoke this at any time."}
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleKeeperBingeModeToggle}
+                          disabled={keeperBingeModeLoading}
+                          className={cn(
+                            "shrink-0 relative w-11 h-6 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed",
+                            keeperBingeMode
+                              ? "bg-brand-pixsee-secondary"
+                              : "bg-neutral-tertiary"
+                          )}
+                          aria-label={keeperBingeMode ? "Disable auto-play" : "Enable auto-play"}
+                        >
+                          {keeperBingeModeLoading ? (
+                            <Loader2 className="absolute inset-0 m-auto w-3.5 h-3.5 animate-spin text-white" />
+                          ) : (
+                            <span
+                              className={cn(
+                                "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200",
+                                keeperBingeMode ? "translate-x-5" : "translate-x-0.5"
+                              )}
+                            />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

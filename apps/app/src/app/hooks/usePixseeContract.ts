@@ -1181,6 +1181,80 @@ export function usePixseeContract() {
     [walletAddress, getWalletClient]
   );
 
+  // ── setBingeModeApproval ──────────────────────────────────────────────────
+  // Approves (enable) or revokes (disable) the router's USDC allowance for keeper binge mode.
+  const setBingeModeApproval = useCallback(
+    async (enable: boolean): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+        const tx = await walletClient.writeContract({
+          address: CONTRACT_ADDRESSES.usdc as Address,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [CONTRACT_ADDRESSES.router as Address, enable ? maxUint256 : 0n],
+        });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Approval failed");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
+  // ── getRouterUsdcAllowance ────────────────────────────────────────────────
+  // Reads how much USDC the router is allowed to spend on behalf of the viewer.
+  const getRouterUsdcAllowance = useCallback(
+    async (): Promise<bigint> => {
+      if (!walletAddress) return 0n;
+      try {
+        return await publicClient.readContract({
+          address: CONTRACT_ADDRESSES.usdc as Address,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [walletAddress, CONTRACT_ADDRESSES.router as Address],
+        }) as bigint;
+      } catch {
+        return 0n;
+      }
+    },
+    [walletAddress]
+  );
+
+  // ── setMinRoyaltyClaim ────────────────────────────────────────────────────
+  // Sets the minimum USDC amount below which auto-claim will be skipped (creator-only).
+  const setMinRoyaltyClaim = useCallback(
+    async (showContractAddress: Address, minUsdc: bigint): Promise<Hash | null> => {
+      if (!walletAddress) { setError("No wallet connected"); return null; }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const { walletClient, providerPublicClient } = await getWalletClient();
+        const tx = await walletClient.writeContract({
+          address: showContractAddress,
+          abi: SHOW_CONTRACT_ABI,
+          functionName: "setMinRoyaltyClaimUsdc",
+          args: [minUsdc],
+          gas: 80_000n,
+        });
+        await waitForReceiptResilient(tx, [providerPublicClient, publicClient]);
+        return tx;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to set minimum claim");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [walletAddress, getWalletClient]
+  );
+
   // ── claimCreatorFees ──────────────────────────────────────────────────────
   // Transfers the full creatorFeeBalance from ShowFeeDistributor to the creator's wallet as USDC.
   // No platform fee — the 1/1/1 split already happened when fees were received.
@@ -1241,5 +1315,8 @@ export function usePixseeContract() {
     unlockCreatorTokens,
     claimRoyalties,
     claimCreatorFees,
+    setBingeModeApproval,
+    getRouterUsdcAllowance,
+    setMinRoyaltyClaim,
   };
 }

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { ShowCardProps, FeaturedShowData } from "@/app/utils";
-import type { ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
+import type { ApiShow, ApiShowsResponse, ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
 import { apiFetch } from "../lib/apiClient";
 import { queryKeys } from "../lib/queryKeys";
 
@@ -28,6 +28,37 @@ export function getCreator(video: ApiVideo) {
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
+function mapShowToShowCard(show: ApiShow): ShowCardProps {
+  return {
+    id: String(show.id),
+    title: show.title,
+    thumbnailUrl: show.cover_image_url ?? "/images/movie1.png",
+    creatorName: show.creator?.name ?? show.creator?.username ?? "Unknown",
+    creatorAvatar: show.creator?.avatar_url,
+    views: formatCount(show.view_count),
+    likes: "0",
+    description: show.description,
+    videoFormat: show.video_format === "landscape" ? "landscape" : "portrait",
+    createdAt: show.created_at,
+    // Backend does not yet return a preview playback ID on the list endpoint
+    previewPlaybackId: undefined,
+  };
+}
+
+function mapShowToFeatured(show: ApiShow): FeaturedShowData {
+  return {
+    id: String(show.id),
+    title: show.title,
+    description: show.description ?? "",
+    thumbnailUrl: show.cover_image_url ?? "/images/featured-movie1.png",
+    creatorName: show.creator?.name ?? show.creator?.username ?? "Unknown",
+    creatorAvatar: show.creator?.avatar_url,
+    views: formatCount(show.view_count),
+    likes: "0",
+  };
+}
+
+// Mapper for legacy /api/v1/my-shows endpoint which returns ApiVideo (episode-shaped) objects
 function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
   const creator = video.creator ?? video.user;
   const isLandscape =
@@ -49,24 +80,8 @@ function mapVideoToShowCard(video: ApiVideo): ShowCardProps {
     description: video.description,
     isLiked: video.is_liked,
     videoFormat: isLandscape ? "landscape" : "portrait",
-  };
-}
-
-function mapVideoToFeatured(video: ApiVideo): FeaturedShowData {
-  const creator = video.creator ?? video.user;
-  return {
-    id: String(video.id),
-    title: video.title,
-    description: video.description ?? "",
-    thumbnailUrl:
-      video.cover_image_url ??
-      video.thumbnail_url ??
-      video.cover_url ??
-      "/images/featured-movie1.png",
-    creatorName: creator?.name ?? creator?.username ?? "Unknown",
-    creatorAvatar: creator?.avatar_url,
-    views: formatCount(video.views_count ?? video.view_count),
-    likes: formatCount(video.likes_count),
+    createdAt: video.created_at,
+    previewPlaybackId: video.mux_playback_id ?? undefined,
   };
 }
 
@@ -102,20 +117,20 @@ export function useVideos({
       if (filterTitle) qs.set("filter[title]", filterTitle);
 
       const token = getAccessToken ? await getAccessToken() : null;
-      const json = await apiFetch<ApiVideosResponse>(`/api/v1/shows?${qs}`, {
+      const json = await apiFetch<ApiShowsResponse>(`/api/v1/shows?${qs}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       // Only show videos whose parent show is registered on-chain
-      const filtered = (json.data ?? []).filter((item: any) => item.bonding_curve != null);
+      const filtered = (json.data ?? []).filter((item) => item.bonding_curve != null);
       return { data: filtered, meta: json.meta ?? null };
     },
     staleTime: 2 * 60 * 1000,
   });
 
   return {
-    shows: (query.data?.data ?? []).map(mapVideoToShowCard),
-    featuredShows: (query.data?.data ?? []).slice(0, 5).map(mapVideoToFeatured),
+    shows: (query.data?.data ?? []).map(mapShowToShowCard),
+    featuredShows: (query.data?.data ?? []).slice(0, 5).map(mapShowToFeatured),
     isLoading: query.isLoading,
     error: query.error ? String(query.error) : null,
     meta: query.data?.meta ?? null,

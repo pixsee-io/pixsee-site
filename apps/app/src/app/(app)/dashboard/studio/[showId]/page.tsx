@@ -254,6 +254,7 @@ export default function StudioShowPage() {
     endCreatorPhase,
     lockCreatorTokens,
     claimRoyalties,
+    setMinRoyaltyClaim,
     walletAddress,
     isLoading: contractLoading,
   } = usePixseeContract();
@@ -270,6 +271,8 @@ export default function StudioShowPage() {
     null
   );
   const [isClaiming, setIsClaiming] = useState(false);
+  const [minRoyaltyUsdc, setMinRoyaltyUsdc] = useState<string>("");
+  const [isSettingMinRoyalty, setIsSettingMinRoyalty] = useState(false);
 
   // Creator lock state
   const [creatorTixBalance, setCreatorTixBalance] = useState<bigint | null>(
@@ -453,10 +456,10 @@ export default function StudioShowPage() {
     refreshCreatorOnChainState();
   }, [refreshCreatorOnChainState]);
 
-  // Read pending royalty tix from the ShowContract
+  // Read pending royalty tix + min claim floor from the ShowContract
   useEffect(() => {
     if (!show?.show_contract) return;
-    import("viem").then(({ createPublicClient, http }) =>
+    import("viem").then(({ createPublicClient, http, formatUnits: fu }) =>
       import("viem/chains").then(({ baseSepolia }) => {
         const client = createPublicClient({
           chain: baseSepolia,
@@ -477,6 +480,25 @@ export default function StudioShowPage() {
             functionName: "getPendingRoyaltyTix",
           })
           .then((v) => setPendingRoyaltyTix(v as bigint))
+          .catch(() => {});
+        client
+          .readContract({
+            address: show.show_contract as Address,
+            abi: [
+              {
+                name: "minRoyaltyClaimUsdc",
+                type: "function",
+                stateMutability: "view",
+                inputs: [],
+                outputs: [{ name: "", type: "uint256" }],
+              },
+            ],
+            functionName: "minRoyaltyClaimUsdc",
+          })
+          .then((v) => {
+            const n = v as bigint;
+            if (n > 0n) setMinRoyaltyUsdc(fu(n, 6));
+          })
           .catch(() => {});
       })
     );
@@ -501,6 +523,21 @@ export default function StudioShowPage() {
       setPendingRoyaltyTix(0n);
     } else {
       showToast("error", "Claim failed. Check your wallet and try again.");
+    }
+  };
+
+  const handleSetMinRoyalty = async () => {
+    if (!show?.show_contract) return;
+    const parsed = parseFloat(minRoyaltyUsdc);
+    if (isNaN(parsed) || parsed < 0) return;
+    setIsSettingMinRoyalty(true);
+    const raw = BigInt(Math.round(parsed * 1_000_000));
+    const tx = await setMinRoyaltyClaim(show.show_contract as Address, raw);
+    setIsSettingMinRoyalty(false);
+    if (tx) {
+      showToast("success", `Min claim floor set to $${parsed.toFixed(2)} USDC`);
+    } else {
+      showToast("error", "Failed to update min claim floor.");
     }
   };
 
@@ -1018,6 +1055,38 @@ export default function StudioShowPage() {
                       "Claim Royalties as USDC"
                     )}
                   </button>
+
+                  {/* Min auto-claim floor */}
+                  <div className="mt-4 pt-4 border-t border-neutral-tertiary-border">
+                    <label className="block text-xs font-medium text-neutral-tertiary-text mb-1">
+                      Min auto-claim amount (USDC)
+                    </label>
+                    <p className="text-xs text-neutral-tertiary-text mb-2">
+                      Auto-claims below this amount will be skipped until market conditions improve. Set to 0 to always auto-claim.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={minRoyaltyUsdc}
+                        onChange={(e) => setMinRoyaltyUsdc(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors"
+                      />
+                      <button
+                        onClick={handleSetMinRoyalty}
+                        disabled={isSettingMinRoyalty || contractLoading}
+                        className="px-4 py-2 bg-neutral-secondary border border-neutral-tertiary-border hover:border-brand-pixsee-secondary text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                      >
+                        {isSettingMinRoyalty ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          "Save"
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
