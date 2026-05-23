@@ -351,8 +351,9 @@ type EarningsBreakdownCardProps = {
   iconBg: string;
   title: string;
   subtitle: string;
-  amount?: string;
-  currency?: string;
+  claimedTotal?: string;
+  pendingAmount?: string;
+  valueNote?: string; // overrides "You've claimed a total of…" label
   actionLabel: string;
   onAction?: () => void;
   actionHref?: string;
@@ -366,8 +367,9 @@ const EarningsBreakdownCard = ({
   iconBg,
   title,
   subtitle,
-  amount,
-  currency,
+  claimedTotal,
+  pendingAmount,
+  valueNote,
   actionLabel,
   onAction,
   actionHref,
@@ -393,19 +395,24 @@ const EarningsBreakdownCard = ({
       </div>
     </div>
 
-    <div className="flex-1">
+    <div className="flex-1 space-y-1.5">
       {comingSoon ? (
         <span className="inline-flex items-center text-xs font-medium text-neutral-tertiary-text bg-neutral-secondary px-2.5 py-1 rounded-full">
           Coming soon
         </span>
       ) : (
         <>
-          <p className={cn("text-2xl font-bold", amountColor)}>
-            {amount ?? "—"}
-          </p>
-          {currency && (
+          <div>
+            <p className={cn("text-2xl font-bold", amountColor)}>
+              {claimedTotal ?? "—"}
+            </p>
             <p className="text-xs text-neutral-tertiary-text mt-0.5">
-              {currency}
+              {valueNote ?? `You've claimed a total of ${claimedTotal ?? "—"} USDC`}
+            </p>
+          </div>
+          {pendingAmount && parseFloat(pendingAmount) > 0 && (
+            <p className="text-xs font-medium text-semantic-warning-primary">
+              You have ${parseFloat(pendingAmount).toFixed(4)} USDC pending to claim
             </p>
           )}
         </>
@@ -447,14 +454,12 @@ function ClaimRoyaltiesModal({
   onClose,
   getAccessToken,
   onTotalsLoaded,
-  claimedByShowId,
   onClaimed,
 }: {
   isOpen: boolean;
   onClose: () => void;
   getAccessToken: () => Promise<string | null>;
   onTotalsLoaded: (pendingGross: string) => void;
-  claimedByShowId?: Record<number, number>;
   onClaimed?: () => void;
 }) {
   if (!isOpen) return null;
@@ -480,7 +485,6 @@ function ClaimRoyaltiesModal({
           <BoxOfficeRevenueSection
             getAccessToken={getAccessToken}
             onTotalsLoaded={(pending) => onTotalsLoaded(pending)}
-            claimedByShowId={claimedByShowId}
             onClaimed={onClaimed}
           />
         </div>
@@ -509,14 +513,12 @@ function ClaimBoxOfficeModal({
   onClose,
   getAccessToken,
   onTotalLoaded,
-  claimedByShowId,
   onClaimed,
 }: {
   isOpen: boolean;
   onClose: () => void;
   getAccessToken: () => Promise<string | null>;
   onTotalLoaded: (total: string) => void;
-  claimedByShowId?: Record<number, number>;
   onClaimed?: () => void;
 }) {
   if (!isOpen) return null;
@@ -536,7 +538,6 @@ function ClaimBoxOfficeModal({
           <CreatorRoyaltiesSection
             getAccessToken={getAccessToken}
             onTotalLoaded={onTotalLoaded}
-            claimedByShowId={claimedByShowId}
             onClaimed={onClaimed}
           />
         </div>
@@ -661,50 +662,24 @@ const EarnPage = () => {
     if (usdcBalance != null) setCurrentBalance(parseFloat(usdcBalance));
   }, [usdcBalance]);
 
-  // ── Per-show claimed totals derived from transactions (most reliable source) ──
-  // Both royalties-claims and fee-claims per-show APIs return empty; transaction-analytics
-  // is static. The transactions list is the only ground truth.
+  // Card totals from transaction-analytics (backend now aggregates correctly)
+  const boxOfficeClaimedTotal = txAnalytics
+    ? parseFloat(txAnalytics.total_royalties_claimed_usdc).toFixed(4)
+    : null;
 
-  const royaltiesClaimedByShowId = React.useMemo(() => {
-    const map: Record<number, number> = {};
-    transactions
-      .filter((t) => t.type === "royalties_claimed")
-      .forEach((t) => {
-        const showId = (t.metadata as { show_id?: number } | undefined)?.show_id;
-        if (showId != null) map[showId] = (map[showId] ?? 0) + (parseFloat(t.amount) || 0);
-      });
-    return map;
-  }, [transactions]);
-
-  const feesClaimedByShowId = React.useMemo(() => {
-    const map: Record<number, number> = {};
-    transactions
-      .filter((t) => t.type === "creator_fees_claimed")
-      .forEach((t) => {
-        const showId = (t.metadata as { show_id?: number } | undefined)?.show_id;
-        if (showId != null) map[showId] = (map[showId] ?? 0) + (parseFloat(t.amount) || 0);
-      });
-    return map;
-  }, [transactions]);
-
-  // Card totals — computed from transactions; fall back to analytics for creator royalties
-  // in case analytics ever returns a real non-zero value higher than the tx sum.
-  const boxOfficeClaimedTotal = React.useMemo(() => {
-    if (txLoading) return null;
-    const total = Object.values(royaltiesClaimedByShowId).reduce((a, b) => a + b, 0);
-    return total.toFixed(4);
-  }, [royaltiesClaimedByShowId, txLoading]);
-
-  const creatorRoyaltiesClaimedTotal = React.useMemo(() => {
-    if (txLoading) return null;
-    const txTotal = Object.values(feesClaimedByShowId).reduce((a, b) => a + b, 0);
-    const analyticsVal = txAnalytics ? parseFloat(txAnalytics.total_box_office_revenue_usdc) : 0;
-    return Math.max(txTotal, analyticsVal).toFixed(4);
-  }, [feesClaimedByShowId, txAnalytics, txLoading]);
+  const creatorRoyaltiesClaimedTotal = txAnalytics
+    ? parseFloat(txAnalytics.total_box_office_revenue_usdc).toFixed(4)
+    : null;
 
   // Refetch balance from chain after fund/withdraw completes
   const refetchBalance = () => {
     getUsdcBalance().then(setUsdcBalance).catch(() => {});
+  };
+
+  // Combined callback: refresh both transactions and USDC balance after any claim
+  const handleClaimed = () => {
+    refetchTx();
+    refetchBalance();
   };
 
   // Testnet faucet — only shown when CHAIN_ID === 84532 (Base Sepolia)
@@ -853,12 +828,12 @@ const EarnPage = () => {
                   iconBg="bg-brand-tertiary"
                   title="Your Holdings"
                   subtitle="TIX portfolio value (mark)"
-                  amount={
+                  claimedTotal={
                     portfolio.isLoading
                       ? "…"
                       : `$${tixPortfolioValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   }
-                  currency="USDC · spot price × balance"
+                  valueNote="Current portfolio value (spot price × balance)"
                   actionLabel="Go to Trade"
                   actionHref="/trade"
                   amountColor="text-brand-primary"
@@ -870,16 +845,12 @@ const EarnPage = () => {
                   iconBg="bg-semantic-success-primary/10"
                   title="Box Office Revenue"
                   subtitle="90% of TIX viewers pay to unlock your videos"
-                  amount={
+                  claimedTotal={
                     boxOfficeClaimedTotal != null
                       ? `$${parseFloat(boxOfficeClaimedTotal).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
                       : txLoading ? "…" : undefined
                   }
-                  currency={
-                    boxOfficePendingGross && parseFloat(boxOfficePendingGross) > 0
-                      ? `USDC · total claimed · $${parseFloat(boxOfficePendingGross).toFixed(4)} pending`
-                      : "USDC · total claimed to date"
-                  }
+                  pendingAmount={boxOfficePendingGross ?? undefined}
                   actionLabel="Claim Revenue"
                   onAction={() => setShowClaimRoyaltiesModal(true)}
                   note="7% platform fee is deducted automatically by the contract on each claim"
@@ -892,16 +863,12 @@ const EarnPage = () => {
                   iconBg="bg-brand-tertiary"
                   title="Creator Royalties"
                   subtitle="1% of every TIX trade on your shows"
-                  amount={
+                  claimedTotal={
                     creatorRoyaltiesClaimedTotal != null
                       ? `$${parseFloat(creatorRoyaltiesClaimedTotal).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
                       : txLoading ? "…" : undefined
                   }
-                  currency={
-                    creatorRoyaltiesPending && parseFloat(creatorRoyaltiesPending) > 0
-                      ? `USDC · total claimed · $${parseFloat(creatorRoyaltiesPending).toFixed(4)} pending`
-                      : "USDC · total claimed to date"
-                  }
+                  pendingAmount={creatorRoyaltiesPending ?? undefined}
                   actionLabel="Claim Royalties"
                   onAction={() => setShowClaimBoxOfficeModal(true)}
                   note="Paid as USDC directly to your wallet. No platform fee on claim."
@@ -1254,15 +1221,13 @@ const EarnPage = () => {
       <div className="hidden">
         <CreatorRoyaltiesSection
           getAccessToken={getAccessToken}
-          claimedByShowId={feesClaimedByShowId}
           onTotalLoaded={setCreatorRoyaltiesPending}
-          onClaimed={refetchTx}
+          onClaimed={handleClaimed}
         />
         <BoxOfficeRevenueSection
           getAccessToken={getAccessToken}
-          claimedByShowId={royaltiesClaimedByShowId}
           onTotalsLoaded={(pending) => setBoxOfficePendingGross(pending)}
-          onClaimed={refetchTx}
+          onClaimed={handleClaimed}
         />
       </div>
 
@@ -1271,8 +1236,7 @@ const EarnPage = () => {
         onClose={() => setShowClaimRoyaltiesModal(false)}
         getAccessToken={getAccessToken}
         onTotalsLoaded={(pending) => setBoxOfficePendingGross(pending)}
-        claimedByShowId={royaltiesClaimedByShowId}
-        onClaimed={refetchTx}
+        onClaimed={handleClaimed}
       />
 
       <ClaimBoxOfficeModal
@@ -1280,8 +1244,7 @@ const EarnPage = () => {
         onClose={() => setShowClaimBoxOfficeModal(false)}
         getAccessToken={getAccessToken}
         onTotalLoaded={setCreatorRoyaltiesPending}
-        claimedByShowId={feesClaimedByShowId}
-        onClaimed={refetchTx}
+        onClaimed={handleClaimed}
       />
     </div>
   );

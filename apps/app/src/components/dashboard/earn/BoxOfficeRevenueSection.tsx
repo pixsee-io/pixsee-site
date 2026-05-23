@@ -19,7 +19,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
 const royaltyClient = createPublicClient({
   chain: baseSepolia,
-  transport: http(BASE_SEPOLIA_RPC),
+  transport: http(BASE_SEPOLIA_RPC, { batch: true }),
 });
 
 const GET_PENDING_ROYALTY_ABI = [
@@ -59,14 +59,10 @@ type ShowRoyalty = {
 export function BoxOfficeRevenueSection({
   getAccessToken,
   onTotalsLoaded,
-  claimedByShowId,
   onClaimed,
 }: {
   getAccessToken: () => Promise<string | null>;
   onTotalsLoaded?: (pendingGrossUsdc: string, totalClaimedUsdc: string) => void;
-  /** Per-show total claimed USDC derived from the transactions list (more reliable than royalties-claims API) */
-  claimedByShowId?: Record<number, number>;
-  /** Called after a successful claim so the parent can refetch transactions */
   onClaimed?: () => void;
 }) {
   const { claimRoyalties, walletAddress } = usePixseeContract();
@@ -109,16 +105,11 @@ export function BoxOfficeRevenueSection({
                   : Promise.resolve(null),
               ]);
 
-              // royalties-claims API currently returns empty; use the transactions-derived total if available
               const claimsData: { amount_usdc: string }[] = claimsRes?.data ?? [];
-              const apiClaimedUsdc = claimsData.reduce(
+              const totalClaimedUsdc = claimsData.reduce(
                 (sum, c) => sum + BigInt(Math.round(parseFloat(c.amount_usdc) * 1_000_000)),
                 0n
               );
-              const txClaimedUsdc = claimedByShowId?.[show.id] != null
-                ? BigInt(Math.round(claimedByShowId[show.id] * 1_000_000))
-                : 0n;
-              const totalClaimedUsdc = txClaimedUsdc > apiClaimedUsdc ? txClaimedUsdc : apiClaimedUsdc;
 
               return {
                 show,
