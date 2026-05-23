@@ -209,6 +209,16 @@ const BuyAndWatchButton = ({
         duration_seconds: durationSeconds,
         wallet_address: walletAddress,
       });
+      // 10% of the TIX paid is automatically rebated on-chain — record it for Watch Rewards display
+      recordTransaction(token, {
+        type: "watch_cashback",
+        show_id: episode.show_id,
+        episode_id: episode.id,
+        tx_hash: `${tx}_cashback`,
+        tix_amount: (parseFloat(tixAmount) * 0.1).toFixed(6),
+        wallet_address: walletAddress,
+        description: `10% TIX cashback for unlocking episode ${episode.episode_number ?? episode.id} of show ${episode.show_id}`,
+      });
       onSuccess();
     }
   };
@@ -251,6 +261,16 @@ const BuyAndWatchButton = ({
         tix_amount: tixAmount,
         duration_seconds: durationSeconds,
         wallet_address: walletAddress,
+      });
+      // 10% of the TIX bought is automatically rebated on-chain — record it for Watch Rewards display
+      recordTransaction(token, {
+        type: "watch_cashback",
+        show_id: episode.show_id,
+        episode_id: episode.id,
+        tx_hash: `${tx}_cashback`,
+        tix_amount: (parseFloat(tixAmount) * 0.1).toFixed(6),
+        wallet_address: walletAddress,
+        description: `10% TIX cashback for purchasing episode ${episode.episode_number ?? episode.id} of show ${episode.show_id}`,
       });
       onSuccess();
     }
@@ -983,6 +1003,15 @@ const ShowDetails = ({ id }: { id: string }) => {
         tix_amount: bingeTixAmount,
         total_duration_seconds: totalDuration,
         wallet_address: walletAddress,
+      });
+      // 10% of TIX bought is rebated on-chain for batch unlocks too
+      recordTransaction(token, {
+        type: "watch_cashback",
+        show_id: apiShow?.id,
+        tx_hash: `${tx}_cashback`,
+        tix_amount: (parseFloat(bingeTixAmount) * 0.1).toFixed(6),
+        wallet_address: walletAddress,
+        description: `10% TIX cashback for binge unlocking ${locked.length} episodes`,
       });
       // Await access re-check before triggering playback refetch,
       // otherwise the playback request fires before episodeAccess is updated.

@@ -17,7 +17,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
 const feeClient = createPublicClient({
   chain: baseSepolia,
-  transport: http(BASE_SEPOLIA_RPC),
+  transport: http(BASE_SEPOLIA_RPC, { batch: true }),
 });
 
 type CreatorShow = { id: number; title: string; fee_distributor: string | null; deployment_block?: number | null };
@@ -31,14 +31,10 @@ type ShowFeeEntry = {
 export function CreatorRoyaltiesSection({
   getAccessToken,
   onTotalLoaded,
-  claimedByShowId,
   onClaimed,
 }: {
   getAccessToken: () => Promise<string | null>;
   onTotalLoaded?: (totalUsdc: string) => void;
-  /** Per-show total claimed USDC derived from the transactions list (more reliable than fee-claims API) */
-  claimedByShowId?: Record<number, number>;
-  /** Called after a successful claim so the parent can refetch transactions */
   onClaimed?: () => void;
 }) {
   const { claimCreatorFees, walletAddress } = usePixseeContract();
@@ -74,16 +70,11 @@ export function CreatorRoyaltiesSection({
                 }).then((r) => r.ok ? r.json() : { data: [] }).catch(() => ({ data: [] })),
               ]);
 
-              // fee-claims API currently returns empty; use the transactions-derived total if available
               const claimsData: { amount_usdc: string }[] = claimsRes?.data ?? [];
-              const apiClaimedUsdc = claimsData.reduce(
+              const totalClaimedUsdc = claimsData.reduce(
                 (sum, c) => sum + BigInt(Math.round(parseFloat(c.amount_usdc) * 1_000_000)),
                 0n
               );
-              const txClaimedUsdc = claimedByShowId?.[show.id] != null
-                ? BigInt(Math.round(claimedByShowId[show.id] * 1_000_000))
-                : 0n;
-              const totalClaimedUsdc = txClaimedUsdc > apiClaimedUsdc ? txClaimedUsdc : apiClaimedUsdc;
 
               return {
                 show,
