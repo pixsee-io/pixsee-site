@@ -48,6 +48,8 @@ type Show = {
   type: string;
   cover_image_url: string | null;
   status: "draft" | "published";
+  review_status: "pending_review" | "approved" | "rejected" | null;
+  rejection_reason: string | null;
   on_chain_show_id: string | null;
   bonding_curve: string | null;
   tix_token: string | null;
@@ -543,6 +545,7 @@ export default function StudioShowPage() {
 
   const handleCreatorBuy = async () => {
     if (!bondingCurveAddress || !creatorBuyAmount) return;
+    if (show?.review_status === "pending_review" || show?.review_status === "rejected") return;
     setCreatorBuyStatus("buying");
     const usdcRaw = parseUnits(creatorBuyAmount, 6);
     const tx = await creatorBuyTix({
@@ -831,6 +834,21 @@ export default function StudioShowPage() {
               {show.on_chain_show_id && (
                 <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-brand-pixsee-secondary/10 text-brand-pixsee-secondary">
                   On-chain #{show.on_chain_show_id}
+                </span>
+              )}
+              {show.review_status === "pending_review" && (
+                <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-semantic-warning-primary/15 text-semantic-warning-primary">
+                  Under Review
+                </span>
+              )}
+              {show.review_status === "rejected" && (
+                <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-semantic-error-primary/15 text-semantic-error-primary">
+                  Not Approved
+                </span>
+              )}
+              {show.review_status === "approved" && (
+                <span className="text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-semantic-success-subtle text-semantic-success-text">
+                  Approved
                 </span>
               )}
             </div>
@@ -1271,6 +1289,44 @@ export default function StudioShowPage() {
                 </div>
               )}
 
+            {/* Review status banner */}
+            {show.review_status === "pending_review" && (
+              <div className="bg-semantic-warning-primary/10 border border-semantic-warning-primary/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-semantic-warning-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle className="w-4 h-4 text-semantic-warning-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-neutral-primary-text">
+                    Your show is under review
+                  </h3>
+                  <p className="text-xs text-neutral-tertiary-text mt-1 leading-relaxed">
+                    Our team is reviewing your content to make sure everything checks out. This usually takes 24–48 hours. You&apos;ll be notified once it&apos;s approved and you can open to public.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {show.review_status === "rejected" && (
+              <div className="bg-semantic-error-primary/10 border border-semantic-error-primary/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-semantic-error-primary/20 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertTriangle className="w-4 h-4 text-semantic-error-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-neutral-primary-text">
+                    Your show was not approved
+                  </h3>
+                  {show.rejection_reason && (
+                    <p className="text-xs text-neutral-secondary-text mt-1 leading-relaxed">
+                      <span className="font-medium">Reason:</span> {show.rejection_reason}
+                    </p>
+                  )}
+                  <p className="text-xs text-neutral-tertiary-text mt-1.5">
+                    If you believe this is a mistake, please contact support to appeal.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Creator Phase card — only shown while phase is active */}
             {bondingCurveAddress && creatorPhaseActive && (
               <div className="bg-brand-pixsee-tertiary border-2 border-brand-pixsee-secondary/40 rounded-2xl p-4 sm:p-5">
@@ -1290,7 +1346,7 @@ export default function StudioShowPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div>
+                  <div className={show.review_status === "pending_review" || show.review_status === "rejected" ? "opacity-50 pointer-events-none select-none" : ""}>
                     <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
                       USDC to spend on TIX
                     </label>
@@ -1306,7 +1362,8 @@ export default function StudioShowPage() {
                           placeholder="0.00"
                           value={creatorBuyAmount}
                           onChange={(e) => setCreatorBuyAmount(e.target.value)}
-                          className="flex-1 outline-none text-sm text-neutral-primary-text bg-transparent"
+                          disabled={show.review_status === "pending_review" || show.review_status === "rejected"}
+                          className="flex-1 outline-none text-sm text-neutral-primary-text bg-transparent disabled:cursor-not-allowed"
                         />
                         <span className="text-xs text-neutral-tertiary-text">
                           USDC
@@ -1317,7 +1374,9 @@ export default function StudioShowPage() {
                         disabled={
                           creatorBuyStatus !== "idle" ||
                           !creatorBuyAmount ||
-                          parseFloat(creatorBuyAmount) <= 0
+                          parseFloat(creatorBuyAmount) <= 0 ||
+                          show.review_status === "pending_review" ||
+                          show.review_status === "rejected"
                         }
                         className="w-full sm:w-auto px-4 py-2.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
                       >
@@ -1334,26 +1393,37 @@ export default function StudioShowPage() {
                   </div>
 
                   <div className="pt-1 border-t border-neutral-tertiary-border">
-                    <p className="text-xs text-neutral-tertiary-text mb-2">
-                      Done buying? Open the market to everyone.
-                    </p>
-                    <button
-                      onClick={handleEndCreatorPhase}
-                      disabled={creatorBuyStatus !== "idle"}
-                      className="w-full py-2.5 border border-semantic-success-primary text-semantic-success-text hover:bg-semantic-success-primary/10 text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      {creatorBuyStatus === "ending" ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
-                          Opening market…
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-3.5 h-3.5" /> End Creator
-                          Phase & Open Trading
-                        </>
-                      )}
-                    </button>
+                    {show.review_status === "pending_review" || show.review_status === "rejected" ? (
+                      <div className="w-full py-2.5 px-3 rounded-xl bg-neutral-secondary border border-neutral-tertiary-border flex items-center justify-center gap-2 text-sm text-neutral-tertiary-text cursor-not-allowed select-none">
+                        <Lock className="w-3.5 h-3.5" />
+                        {show.review_status === "pending_review"
+                          ? "Available once your show is approved"
+                          : "Not available — show was not approved"}
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs text-neutral-tertiary-text mb-2">
+                          Done buying? Open the market to everyone.
+                        </p>
+                        <button
+                          onClick={handleEndCreatorPhase}
+                          disabled={creatorBuyStatus !== "idle"}
+                          className="w-full py-2.5 border border-semantic-success-primary text-semantic-success-text hover:bg-semantic-success-primary/10 text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          {creatorBuyStatus === "ending" ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                              Opening market…
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5" /> End Creator
+                              Phase & Open Trading
+                            </>
+                          )}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

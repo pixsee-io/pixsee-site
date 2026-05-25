@@ -1029,8 +1029,8 @@ const EarnPage = () => {
                       currency={tx.currency}
                       earning={{
                         id: String(tx.id),
-                        type: txDisplayLabel(tx.type),
-                        description: txDisplayDescription(tx.type, tx.description ?? ""),
+                        type: tx.label ?? txDisplayLabel(tx.type),
+                        description: tx.description ?? txDisplayDescription(tx.type, ""),
                         amount: tx.amount,
                         date: new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
                         ledgerType: tx.ledger_type,

@@ -45,6 +45,8 @@ import {
   Trash2,
   PenLine,
   Radio,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import AddFundsModal from "@/components/dashboard/earn/modals/AddFundsModal";
 import WithdrawModal from "@/components/dashboard/earn/modals/WithdrawModal";
@@ -69,6 +71,8 @@ function notifIcon(type: string) {
     case "show_updated":        return <PenLine className="w-3.5 h-3.5 text-semantic-warning-primary" />;
     case "show_deleted":        return <Trash2 className="w-3.5 h-3.5 text-semantic-error-primary" />;
     case "show_published":      return <Radio className="w-3.5 h-3.5 text-brand-pixsee-secondary" />;
+    case "show_approved":       return <CheckCircle className="w-3.5 h-3.5 text-semantic-success-primary" />;
+    case "show_rejected":       return <XCircle className="w-3.5 h-3.5 text-semantic-error-primary" />;
     default:                    return <MessageCircle className="w-3.5 h-3.5 text-neutral-tertiary-text" />;
   }
 }
@@ -86,10 +90,12 @@ function notifText(n: { type: string; data: Record<string, any> }): string {
     case "tix_sold":            return `You sold ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} from "${d.show_title ?? ""}"`;
     case "tix_bought_for_show": return `${d.buyer_name ?? "Someone"} bought ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} for your show "${d.show_title ?? ""}"`;
     case "watch_cashback":      return `You earned ${d.tix_amount ?? ""} ${d.tick_symbol ?? "TIX"} cashback for watching "${d.show_title ?? ""}"`;
-    case "show_created":        return `Your show "${d.show_title ?? ""}" was created successfully`;
+    case "show_created":        return `Your show "${d.show_title ?? ""}" was saved as a draft`;
     case "show_updated":        return `Your show "${d.show_title ?? ""}" was updated`;
     case "show_deleted":        return `Your show "${d.show_title ?? ""}" was deleted`;
     case "show_published":      return `${d.creator_name ?? "A creator"} published "${d.show_title ?? "a show"}"`;
+    case "show_approved":       return `Your show "${d.show_title ?? ""}" has been approved — you can now open trading`;
+    case "show_rejected":       return `Your show "${d.show_title ?? ""}" was not approved${d.rejection_reason ? `: ${d.rejection_reason}` : ""}`;
     default:                    return "New notification";
   }
 }
