@@ -44,6 +44,7 @@ export type ApiTransaction = {
   type: string;
   amount: string;
   currency?: "USDC" | "TIX";
+  label?: string;
   description?: string;
   created_at: string;
   ledger_type?: string;
@@ -66,6 +67,8 @@ export type ApiNotification = {
     | "show_updated"
     | "show_deleted"
     | "show_published"
+    | "show_approved"
+    | "show_rejected"
     | "creator_fee_claimed";
   data: Record<string, any>;
   read: boolean;

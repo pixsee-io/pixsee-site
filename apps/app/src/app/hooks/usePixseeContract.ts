@@ -482,7 +482,7 @@ export function usePixseeContract() {
       tickSymbol: string;
       creatorAddress: Address;
       curveTier?: CurveTier;
-    }): Promise<{ showId: bigint; showInfo: ShowInfo } | null> => {
+    }): Promise<{ showId: bigint; deploymentBlock: bigint; showInfo: ShowInfo } | null> => {
       if (!walletAddress) {
         setError("No wallet connected");
         return null;
@@ -571,7 +571,7 @@ export function usePixseeContract() {
           createdAt: 0n,
         };
 
-        return { showId, showInfo };
+        return { showId, deploymentBlock: receipt.blockNumber, showInfo };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Show creation failed";
         console.error("createShow error:", err);

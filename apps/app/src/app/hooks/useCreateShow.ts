@@ -60,6 +60,7 @@ export type CreateOnChainShowFn = (params: {
   curveTier?: 0 | 1 | 2;
 }) => Promise<{
   showId: bigint;
+  deploymentBlock: bigint;
   showInfo: {
     showContract: Address;
     bondingCurve: Address;
@@ -764,7 +765,7 @@ export function useCreateShow({
 
         // ── Step 3: Save contract addresses to backend ────────────────────────
         setPublishingStatus("Finalizing…");
-        const { showId: onChainShowId, showInfo } = chainResult;
+        const { showId: onChainShowId, deploymentBlock, showInfo } = chainResult;
 
         const patchRes = await fetch(
           `${BASE_URL}/api/v1/my-shows/${showId}/chain-info`,
@@ -777,6 +778,7 @@ export function useCreateShow({
               bonding_curve: showInfo.bondingCurve,
               tix_token: showInfo.tix,
               fee_distributor: showInfo.feeDistributor,
+              deployment_block: Number(deploymentBlock),
             }),
           }
         );
