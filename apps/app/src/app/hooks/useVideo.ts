@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import type { ShowCardProps, FeaturedShowData } from "@/app/utils";
 import type { ApiShow, ApiShowsResponse, ApiVideo, ApiVideosResponse } from "../types/pixsee-api";
 import { apiFetch } from "../lib/apiClient";
@@ -94,6 +94,8 @@ type UseVideosOptions = {
   filterIsFree?: boolean;
   filterCategoryId?: number;
   filterTitle?: string;
+  filterTag?: string;
+  filterFollowing?: boolean;
   getAccessToken?: GetAccessToken;
 };
 
@@ -104,9 +106,11 @@ export function useVideos({
   filterIsFree,
   filterCategoryId,
   filterTitle,
+  filterTag,
+  filterFollowing,
   getAccessToken,
 }: UseVideosOptions = {}) {
-  const params: Record<string, unknown> = { page, perPage, sort, filterIsFree, filterCategoryId, filterTitle };
+  const params: Record<string, unknown> = { page, perPage, sort, filterIsFree, filterCategoryId, filterTitle, filterTag, filterFollowing };
 
   const query = useQuery({
     queryKey: queryKeys.shows.list(params),
@@ -115,6 +119,8 @@ export function useVideos({
       if (filterIsFree !== undefined) qs.set("filter[is_free]", String(filterIsFree));
       if (filterCategoryId !== undefined) qs.set("filter[category_id]", String(filterCategoryId));
       if (filterTitle) qs.set("filter[title]", filterTitle);
+      if (filterTag) qs.set("filter[tag]", filterTag);
+      if (filterFollowing) qs.set("filter[following]", "true");
 
       const token = getAccessToken ? await getAccessToken() : null;
       const json = await apiFetch<ApiShowsResponse>(`/api/v1/shows?${qs}`, {
@@ -135,6 +141,63 @@ export function useVideos({
     error: query.error ? String(query.error) : null,
     meta: query.data?.meta ?? null,
     refetch: query.refetch,
+  };
+}
+
+// ─── useInfiniteVideos ────────────────────────────────────────────────────────
+
+type UseInfiniteVideosOptions = Omit<UseVideosOptions, "page">;
+
+export function useInfiniteVideos({
+  perPage = 20,
+  sort = "-published_at",
+  filterIsFree,
+  filterCategoryId,
+  filterTitle,
+  filterTag,
+  filterFollowing,
+  getAccessToken,
+}: UseInfiniteVideosOptions = {}) {
+  const params: Record<string, unknown> = { perPage, sort, filterIsFree, filterCategoryId, filterTitle, filterTag, filterFollowing, infinite: true };
+
+  const query = useInfiniteQuery({
+    queryKey: queryKeys.shows.list(params),
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const page = pageParam as number;
+      const qs = new URLSearchParams({ page: String(page), per_page: String(perPage), sort });
+      if (filterIsFree !== undefined) qs.set("filter[is_free]", String(filterIsFree));
+      if (filterCategoryId !== undefined) qs.set("filter[category_id]", String(filterCategoryId));
+      if (filterTitle) qs.set("filter[title]", filterTitle);
+      if (filterTag) qs.set("filter[tag]", filterTag);
+      if (filterFollowing) qs.set("filter[following]", "true");
+
+      const token = getAccessToken ? await getAccessToken() : null;
+      const json = await apiFetch<ApiShowsResponse>(`/api/v1/shows?${qs}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      const filtered = (json.data ?? []).filter((item) => item.bonding_curve != null);
+      return { data: filtered, meta: json.meta ?? null };
+    },
+    getNextPageParam: (lastPage) => {
+      const meta = lastPage.meta;
+      if (!meta) return undefined;
+      return meta.current_page < meta.last_page ? meta.current_page + 1 : undefined;
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const allShows = query.data?.pages.flatMap((p) => p.data) ?? [];
+
+  return {
+    shows: allShows.map(mapShowToShowCard),
+    featuredShows: allShows.slice(0, 5).map(mapShowToFeatured),
+    isLoading: query.isLoading,
+    isFetchingNextPage: query.isFetchingNextPage,
+    hasNextPage: query.hasNextPage ?? false,
+    fetchNextPage: query.fetchNextPage,
+    error: query.error ? String(query.error) : null,
   };
 }
 

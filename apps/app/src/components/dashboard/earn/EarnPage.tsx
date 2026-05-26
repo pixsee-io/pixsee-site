@@ -38,7 +38,14 @@ import ClaimRewardModal from "./modals/ClaimRewardModal";
 import UserProfileModal from "./modals/UserProfileModal";
 import WithdrawModal from "./modals/WithdrawModal";
 import { usePrivy } from "@privy-io/react-auth";
-import { useMe, useTransactions, useWatchHistory, useSeePoints, useTransactionAnalytics } from "@/app/hooks/useSocial";
+import {
+  useMe,
+  useTransactions,
+  useWatchHistory,
+  useSeePoints,
+  useTransactionAnalytics,
+  type ApiTransaction,
+} from "@/app/hooks/useSocial";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
 import { useTixPortfolio } from "@/app/hooks/useTixPortfolio";
 import { CreatorRoyaltiesSection } from "@/components/dashboard/earn/CreatorRoyaltiesSection";
@@ -46,7 +53,11 @@ import { BoxOfficeRevenueSection } from "@/components/dashboard/earn/BoxOfficeRe
 import { RoyaltyScheduleCard } from "@/components/dashboard/earn/RoyaltyScheduleCard";
 import { formatCount } from "@/app/hooks/useVideo";
 import { useWallets } from "@privy-io/react-auth";
-import { CONTRACT_ADDRESSES, CHAIN_ID, MOCK_USDC_FAUCET_ABI } from "@/app/lib/pixsee-contracts";
+import {
+  CONTRACT_ADDRESSES,
+  CHAIN_ID,
+  MOCK_USDC_FAUCET_ABI,
+} from "@/app/lib/pixsee-contracts";
 import { type Address } from "viem";
 
 // Types
@@ -204,7 +215,6 @@ const earningStreams: EarningStream[] = [
   },
 ];
 
-
 // Sub-components
 const OverviewCard = ({ stat }: { stat: OverviewStat }) => (
   <div className="bg-neutral-primary rounded-xl px-3 py-4 sm:px-4 sm:py-6 border border-neutral-tertiary-border">
@@ -299,7 +309,9 @@ const EarningStreamCard = ({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-neutral-primary-text">{stream.title}</h3>
+          <h3 className="font-semibold text-neutral-primary-text">
+            {stream.title}
+          </h3>
           {stream.comingSoon && (
             <span className="text-[10px] font-medium text-neutral-tertiary-text border border-neutral-tertiary-border px-1.5 py-0.5 rounded-full">
               Coming soon
@@ -313,8 +325,17 @@ const EarningStreamCard = ({
     <div className="space-y-2 mb-4 flex-1">
       {stream.stats.map((stat, index) => (
         <div key={index} className="flex items-center justify-between gap-2">
-          <span className="text-sm text-neutral-secondary-text truncate">{stat.label}</span>
-          <span className={cn("text-sm font-semibold shrink-0", stat.value === "Coming soon" ? "text-neutral-tertiary-text" : "text-neutral-primary-text")}>
+          <span className="text-sm text-neutral-secondary-text truncate">
+            {stat.label}
+          </span>
+          <span
+            className={cn(
+              "text-sm font-semibold shrink-0",
+              stat.value === "Coming soon"
+                ? "text-neutral-tertiary-text"
+                : "text-neutral-primary-text"
+            )}
+          >
             {stat.value}
           </span>
         </div>
@@ -335,7 +356,10 @@ const EarningStreamCard = ({
     ) : (
       <Button
         onClick={() => onAction(stream.id)}
-        className={cn("w-full h-10 md:h-11 rounded-full text-sm text-white", stream.buttonColor)}
+        className={cn(
+          "w-full h-10 md:h-11 rounded-full text-sm text-white",
+          stream.buttonColor
+        )}
       >
         {stream.buttonText}
         <ChevronRight className="w-4 h-4 ml-1" />
@@ -407,12 +431,14 @@ const EarningsBreakdownCard = ({
               {claimedTotal ?? "—"}
             </p>
             <p className="text-xs text-neutral-tertiary-text mt-0.5">
-              {valueNote ?? `You've claimed a total of ${claimedTotal ?? "—"} USDC`}
+              {valueNote ??
+                `You've claimed a total of ${claimedTotal ?? "—"} USDC`}
             </p>
           </div>
           {pendingAmount && parseFloat(pendingAmount) > 0 && (
             <p className="text-xs font-medium text-semantic-warning-primary">
-              You have ${parseFloat(pendingAmount).toFixed(4)} USDC pending to claim
+              You have ${parseFloat(pendingAmount).toFixed(4)} USDC pending to
+              claim
             </p>
           )}
         </>
@@ -424,8 +450,8 @@ const EarningsBreakdownCard = ({
       )}
     </div>
 
-    {!comingSoon && (
-      actionHref ? (
+    {!comingSoon &&
+      (actionHref ? (
         <a
           href={actionHref}
           className="w-full inline-flex items-center justify-center gap-1.5 h-10 rounded-full text-sm font-medium bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white transition-colors"
@@ -440,10 +466,168 @@ const EarningsBreakdownCard = ({
         >
           {actionLabel}
         </Button>
-      )
-    )}
+      ))}
   </div>
 );
+
+// ── Watch Rewards Modal ───────────────────────────────────────────────────────
+
+function WatchRewardsModal({
+  isOpen,
+  onClose,
+  transactions,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  transactions: ApiTransaction[];
+}) {
+  if (!isOpen) return null;
+
+  const watchTxs = transactions.filter(
+    (t) =>
+      t.type === "watch_cashback" ||
+      t.type === "watch_reward" ||
+      t.type === "cashback"
+  );
+  const totalTix = watchTxs.reduce(
+    (s, t) => s + (parseFloat(t.amount) || 0),
+    0
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-4 pb-4 sm:pb-0">
+      <div className="bg-neutral-primary rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 pb-3 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-brand-pixsee-secondary/10 flex items-center justify-center shrink-0">
+              <Gift className="w-5 h-5 text-brand-pixsee-secondary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-neutral-primary-text leading-tight">
+                My TIX Watch Rewards
+              </h2>
+              <p className="text-xs text-neutral-tertiary-text">
+                10% cashback on every episode you unlock
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-neutral-tertiary-text hover:text-neutral-primary-text transition-colors ml-2 shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Summary bar */}
+        <div className="mx-5 mb-3 px-4 py-3 bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20 rounded-xl shrink-0">
+          <p className="text-2xl font-bold text-brand-pixsee-secondary">
+            {totalTix.toLocaleString("en-US", {
+              minimumFractionDigits: 4,
+              maximumFractionDigits: 4,
+            })}{" "}
+            TIX
+          </p>
+          <p className="text-xs text-neutral-tertiary-text mt-0.5">
+            {watchTxs.length > 0
+              ? `From ${watchTxs.length} unlock${
+                  watchTxs.length !== 1 ? "s" : ""
+                } · TIX can be used to watch videos or traded on the marketplace`
+              : "Unlock paid episodes to earn TIX cashback"}
+          </p>
+        </div>
+
+        {/* Scrollable transaction list */}
+        <div className="flex-1 overflow-y-auto px-5 pb-2 space-y-2">
+          {watchTxs.length === 0 ? (
+            <div className="py-10 text-center">
+              <Gift className="w-8 h-8 text-neutral-tertiary-text mx-auto mb-2 opacity-50" />
+              <p className="text-sm text-neutral-tertiary-text italic">
+                No watch rewards yet.
+              </p>
+              <p className="text-xs text-neutral-tertiary-text mt-1">
+                Unlock paid episodes to start earning TIX cashback.
+              </p>
+            </div>
+          ) : (
+            watchTxs.map((tx) => {
+              const meta = tx.metadata ?? {};
+              const showId = meta.show_id as string | number | undefined;
+              const showTitle = meta.show_title as string | undefined;
+              // For individual unlocks, parse show title from description as fallback:
+              // "10% TIX cashback for unlocking episode N of [Title]"
+              const descShowTitle = tx.description?.match(
+                /for unlocking episode \d+ of (.+)$/i
+              )?.[1]?.trim();
+              const resolvedTitle = showTitle ?? descShowTitle ?? null;
+              const episodeNum = meta.episode_number as number | undefined;
+              const tixAmount = parseFloat(tx.amount) || 0;
+              const date = new Date(tx.created_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
+              const isBatch = tx.description?.toLowerCase().includes("batch");
+              const batchCount = tx.description?.match(/batch unlocking (\d+) episodes?/i)?.[1];
+
+              let displayLabel: string;
+              if (isBatch) {
+                const countStr = batchCount ? `${batchCount} episodes` : "batch unlock";
+                displayLabel = resolvedTitle ? `${resolvedTitle} · ${countStr}` : countStr;
+              } else if (episodeNum && resolvedTitle) {
+                displayLabel = `Ep. ${episodeNum} — ${resolvedTitle}`;
+              } else {
+                displayLabel = resolvedTitle ?? "Watch reward";
+              }
+
+              return (
+                <div
+                  key={tx.id}
+                  className="flex items-center gap-3 p-3 bg-neutral-secondary rounded-xl border border-neutral-tertiary-border"
+                >
+                  <div className="w-8 h-8 rounded-full bg-brand-pixsee-secondary/10 flex items-center justify-center shrink-0">
+                    <Gift className="w-4 h-4 text-brand-pixsee-secondary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-primary-text truncate">
+                      {displayLabel}
+                    </p>
+                    <p className="text-xs text-neutral-tertiary-text">{date}</p>
+                  </div>
+                  <div className="shrink-0 text-right flex flex-col items-end gap-1">
+                    <span className="text-sm font-semibold text-brand-pixsee-secondary">
+                      +{tixAmount.toFixed(4)} TIX
+                    </span>
+                    {showId && (
+                      <a
+                        href={`/watch/${showId}`}
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-brand-pixsee-secondary/10 text-brand-pixsee-secondary hover:bg-brand-pixsee-secondary hover:text-white transition-colors font-medium"
+                      >
+                        Watch →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-5 pt-3 shrink-0 border-t border-neutral-tertiary-border">
+          <Button
+            onClick={onClose}
+            variant="outline"
+            className="w-full rounded-full border-neutral-tertiary-border text-neutral-secondary-text"
+          >
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Box Office Revenue Modal (90% of viewer unlock payments) ──────────────────
 // "Box Office Revenue" = what creators earn when viewers pay TIX to unlock episodes.
@@ -468,7 +652,9 @@ function ClaimRoyaltiesModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
       <div className="bg-neutral-primary rounded-2xl p-5 w-full max-w-md shadow-xl">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="font-semibold text-neutral-primary-text">Box Office Revenue</h2>
+          <h2 className="font-semibold text-neutral-primary-text">
+            Box Office Revenue
+          </h2>
           <button
             onClick={onClose}
             className="text-neutral-tertiary-text hover:text-neutral-primary-text transition-colors"
@@ -477,8 +663,9 @@ function ClaimRoyaltiesModal({
           </button>
         </div>
         <p className="text-xs text-neutral-tertiary-text mb-4 leading-relaxed">
-          Earned when viewers pay TIX to unlock your videos (90% of each payment).
-          The contract deducts 7% as a platform fee and sends the remaining 93% to you as USDC.
+          Earned when viewers pay TIX to unlock your videos (90% of each
+          payment). The contract deducts 7% as a platform fee and sends the
+          remaining 93% to you as USDC.
         </p>
 
         <div className="max-h-72 overflow-y-auto pr-1">
@@ -526,13 +713,19 @@ function ClaimBoxOfficeModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
       <div className="bg-neutral-primary rounded-2xl p-5 w-full max-w-md shadow-xl">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="font-semibold text-neutral-primary-text">Creator Royalties</h2>
-          <button onClick={onClose} className="text-neutral-tertiary-text hover:text-neutral-primary-text transition-colors">
+          <h2 className="font-semibold text-neutral-primary-text">
+            Creator Royalties
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-neutral-tertiary-text hover:text-neutral-primary-text transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
         <p className="text-xs text-neutral-tertiary-text mb-4 leading-relaxed">
-          1% of every TIX trade on your show accumulates here as USDC. Claim anytime — no platform fee deducted at this step.
+          1% of every TIX trade on your show accumulates here as USDC. Claim
+          anytime — no platform fee deducted at this step.
         </p>
         <div className="max-h-72 overflow-y-auto pr-1">
           <CreatorRoyaltiesSection
@@ -563,53 +756,132 @@ function ClaimBoxOfficeModal({
 // Maps raw backend transaction types to human-readable display labels
 function txDisplayLabel(type: string): string {
   switch (type) {
-    case "royalties_claimed":   return "Box Office Revenue";
-    case "creator_fees_claimed": return "Creator Royalties";
-    case "tix_bought":          return "TIX Bought";
-    case "tix_sold":            return "TIX Sold";
+    case "royalties_claimed":
+      return "Box Office Revenue";
+    case "creator_fees_claimed":
+      return "Creator Royalties";
+    case "tix_bought":
+      return "TIX Bought";
+    case "tix_sold":
+      return "TIX Sold";
     case "watch_cashback":
     case "watch_reward":
-    case "cashback":            return "Watch Cashback";
-    case "show_created":        return "Show Created";
-    case "show_updated":        return "Show Updated";
-    case "show_deleted":        return "Show Deleted";
-    default: return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    case "cashback":
+      return "Watch Cashback";
+    case "show_created":
+      return "Show Created";
+    case "show_updated":
+      return "Show Updated";
+    case "show_deleted":
+      return "Show Deleted";
+    default:
+      return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 }
 
 // Maps "royalties claimed for X" descriptions to cleaner box office labels
 function txDisplayDescription(type: string, description: string): string {
-  if (type === "royalties_claimed" && description.toLowerCase().startsWith("royalties claimed for")) {
-    return description.replace(/^royalties claimed for/i, "Box office revenue claimed for");
+  if (
+    type === "royalties_claimed" &&
+    description.toLowerCase().startsWith("royalties claimed for")
+  ) {
+    return description.replace(
+      /^royalties claimed for/i,
+      "Box office revenue claimed for"
+    );
   }
   return description;
 }
 
 function txIcon(type: string) {
   switch (type) {
-    case "tix_bought":          return { icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
-    case "tix_sold":            return { icon: <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
-    case "royalties_claimed":   return { icon: <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />, bg: "bg-semantic-success-primary/10" };
-    case "creator_fees_claimed": return { icon: <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-brand-primary" />, bg: "bg-brand-tertiary" };
+    case "tix_bought":
+      return {
+        icon: (
+          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />
+        ),
+        bg: "bg-semantic-success-primary/10",
+      };
+    case "tix_sold":
+      return {
+        icon: (
+          <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />
+        ),
+        bg: "bg-semantic-warning-primary/10",
+      };
+    case "royalties_claimed":
+      return {
+        icon: (
+          <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-success-primary" />
+        ),
+        bg: "bg-semantic-success-primary/10",
+      };
+    case "creator_fees_claimed":
+      return {
+        icon: (
+          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-brand-primary" />
+        ),
+        bg: "bg-brand-tertiary",
+      };
     case "watch_cashback":
     case "watch_reward":
-    case "cashback":            return { icon: <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
-    case "show_created":        return { icon: <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />, bg: "bg-brand-pixsee-secondary/10" };
-    case "show_updated":        return { icon: <PenLine className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />, bg: "bg-semantic-warning-primary/10" };
-    case "show_deleted":        return { icon: <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-error-primary" />, bg: "bg-semantic-error-primary/10" };
-    default:                    return { icon: <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF3795]" />, bg: "bg-semantic-error-primary/10" };
+    case "cashback":
+      return {
+        icon: (
+          <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />
+        ),
+        bg: "bg-brand-pixsee-secondary/10",
+      };
+    case "show_created":
+      return {
+        icon: (
+          <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5 text-brand-pixsee-secondary" />
+        ),
+        bg: "bg-brand-pixsee-secondary/10",
+      };
+    case "show_updated":
+      return {
+        icon: (
+          <PenLine className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-warning-primary" />
+        ),
+        bg: "bg-semantic-warning-primary/10",
+      };
+    case "show_deleted":
+      return {
+        icon: (
+          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-semantic-error-primary" />
+        ),
+        bg: "bg-semantic-error-primary/10",
+      };
+    default:
+      return {
+        icon: <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF3795]" />,
+        bg: "bg-semantic-error-primary/10",
+      };
   }
 }
 
-const RecentEarningRow = ({ earning, currency }: { earning: RecentEarning; currency?: string }) => {
+const RecentEarningRow = ({
+  earning,
+  currency,
+}: {
+  earning: RecentEarning;
+  currency?: string;
+}) => {
   const { icon, bg } = txIcon(earning.type.toLowerCase().replace(/ /g, "_"));
   const amountNum = parseFloat(earning.amount);
   const hasAmount = !isNaN(amountNum) && amountNum > 0;
-  const isDebit = earning.ledgerType === "spend" || earning.ledgerType === "purchase";
+  const isDebit =
+    earning.ledgerType === "spend" || earning.ledgerType === "purchase";
   return (
     <div className="flex items-center justify-between gap-3 p-3 py-5 sm:p-4 bg-neutral-primary rounded-xl border border-neutral-tertiary-border">
       <div className="flex items-center gap-3 min-w-0">
-        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0", bg)}>
+        <div
+          className={cn(
+            "w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0",
+            bg
+          )}
+        >
           {icon}
         </div>
         <div className="min-w-0">
@@ -623,9 +895,18 @@ const RecentEarningRow = ({ earning, currency }: { earning: RecentEarning; curre
       </div>
 
       <div className="text-right shrink-0">
-        <p className={cn("font-semibold text-sm sm:text-base flex items-center justify-end gap-1", isDebit ? "text-semantic-error-text" : "text-semantic-success-text")}>
+        <p
+          className={cn(
+            "font-semibold text-sm sm:text-base flex items-center justify-end gap-1",
+            isDebit ? "text-semantic-error-text" : "text-semantic-success-text"
+          )}
+        >
           {hasAmount ? (
-            <>{isDebit ? "−" : "+"} <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> ${earning.amount}{currency ? ` ${currency}` : ""}</>
+            <>
+              {isDebit ? "−" : "+"}{" "}
+              <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> ${earning.amount}
+              {currency ? ` ${currency}` : ""}
+            </>
           ) : (
             <span className="text-neutral-tertiary-text font-normal">—</span>
           )}
@@ -643,7 +924,11 @@ const RecentEarningRow = ({ earning, currency }: { earning: RecentEarning; curre
 const EarnPage = () => {
   const { getAccessToken } = usePrivy();
   const { profile, isLoading: profileLoading } = useMe(getAccessToken);
-  const { transactions, isLoading: txLoading, refetch: refetchTx } = useTransactions(getAccessToken);
+  const {
+    transactions,
+    isLoading: txLoading,
+    refetch: refetchTx,
+  } = useTransactions(getAccessToken);
   const { analytics: txAnalytics } = useTransactionAnalytics(getAccessToken);
   const { history: watchHistory } = useWatchHistory(getAccessToken);
   const { balance: seePoints } = useSeePoints(getAccessToken);
@@ -659,7 +944,9 @@ const EarnPage = () => {
 
   // Load USDC balance from chain
   useEffect(() => {
-    getUsdcBalance().then(setUsdcBalance).catch(() => {});
+    getUsdcBalance()
+      .then(setUsdcBalance)
+      .catch(() => {});
   }, [getUsdcBalance]);
 
   // Keep the fund/withdraw flow working with local state; sync from USDC balance initially
@@ -678,7 +965,9 @@ const EarnPage = () => {
 
   // Refetch balance from chain after fund/withdraw completes
   const refetchBalance = () => {
-    getUsdcBalance().then(setUsdcBalance).catch(() => {});
+    getUsdcBalance()
+      .then(setUsdcBalance)
+      .catch(() => {});
   };
 
   // Combined callback: refresh both transactions and USDC balance after any claim.
@@ -696,14 +985,18 @@ const EarnPage = () => {
   const [faucetDone, setFaucetDone] = useState(false);
   const [faucetError, setFaucetError] = useState<string | null>(null);
   const claimTestUsdc = async () => {
-    const activeWallet = wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
+    const activeWallet =
+      wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
     if (!activeWallet) return;
     setFaucetLoading(true);
     try {
       const provider = await activeWallet.getEthereumProvider();
       const { createWalletClient, custom } = await import("viem");
       const { baseSepolia } = await import("viem/chains");
-      const walletClient = createWalletClient({ chain: baseSepolia, transport: custom(provider) });
+      const walletClient = createWalletClient({
+        chain: baseSepolia,
+        transport: custom(provider),
+      });
       const [account] = await walletClient.getAddresses();
       await walletClient.writeContract({
         address: CONTRACT_ADDRESSES.usdc as Address,
@@ -748,16 +1041,40 @@ const EarnPage = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showClaimRoyaltiesModal, setShowClaimRoyaltiesModal] = useState(false);
   const [showClaimBoxOfficeModal, setShowClaimBoxOfficeModal] = useState(false);
+  const [showWatchRewardsModal, setShowWatchRewardsModal] = useState(false);
   // Pending on-chain amounts (from live contract reads via hidden sections)
-  const [boxOfficePendingGross, setBoxOfficePendingGross] = useState<string | null>(null);
-  const [creatorRoyaltiesPending, setCreatorRoyaltiesPending] = useState<string | null>(null);
+  const [boxOfficePendingGross, setBoxOfficePendingGross] = useState<
+    string | null
+  >(null);
+  const [creatorRoyaltiesPending, setCreatorRoyaltiesPending] = useState<
+    string | null
+  >(null);
 
   // Leaderboard placed next to Rewards per product direction
-  const tabs: { id: TabId; label: string; icon?: React.ReactNode; comingSoon?: boolean }[] = [
+  const tabs: {
+    id: TabId;
+    label: string;
+    icon?: React.ReactNode;
+    comingSoon?: boolean;
+  }[] = [
     { id: "earn", label: "Earn", icon: <Coins className="w-4 h-4" /> },
-    { id: "rewards", label: "Rewards", icon: <Gift className="w-4 h-4" />, comingSoon: true },
-    { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
-    { id: "votes", label: "Voting", icon: <ThumbsUp className="w-4 h-4" />, comingSoon: true },
+    {
+      id: "rewards",
+      label: "Rewards",
+      icon: <Gift className="w-4 h-4" />,
+      comingSoon: true,
+    },
+    {
+      id: "leaderboard",
+      label: "Leaderboard",
+      icon: <Trophy className="w-4 h-4" />,
+    },
+    {
+      id: "votes",
+      label: "Voting",
+      icon: <ThumbsUp className="w-4 h-4" />,
+      comingSoon: true,
+    },
   ];
 
   const handleAddFundsSuccess = () => {
@@ -798,8 +1115,12 @@ const EarnPage = () => {
         return (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
             <span className="text-4xl">🚧</span>
-            <p className="text-lg font-semibold text-neutral-primary-text">Coming soon</p>
-            <p className="text-sm text-neutral-tertiary-text max-w-xs">This feature is under construction. Check back soon!</p>
+            <p className="text-lg font-semibold text-neutral-primary-text">
+              Coming soon
+            </p>
+            <p className="text-sm text-neutral-tertiary-text max-w-xs">
+              This feature is under construction. Check back soon!
+            </p>
           </div>
         );
       case "leaderboard":
@@ -814,10 +1135,36 @@ const EarnPage = () => {
                 Overview
               </h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-                <OverviewCard stat={{ label: "USDC Balance", value: usdcBalance != null ? `$${parseFloat(usdcBalance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—" }} />
-                <OverviewCard stat={{ label: "SEE Points", value: seePoints != null ? seePoints.toLocaleString() : "—" }} />
-                <OverviewCard stat={{ label: "Transactions", value: txLoading ? "…" : String(transactions.length) }} />
-                <OverviewCard stat={{ label: "Videos Watched", value: String(watchHistory.length) }} />
+                <OverviewCard
+                  stat={{
+                    label: "USDC Balance",
+                    value:
+                      usdcBalance != null
+                        ? `$${parseFloat(usdcBalance).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}`
+                        : "—",
+                  }}
+                />
+                <OverviewCard
+                  stat={{
+                    label: "SEE Points",
+                    value: seePoints != null ? seePoints.toLocaleString() : "—",
+                  }}
+                />
+                <OverviewCard
+                  stat={{
+                    label: "Transactions",
+                    value: txLoading ? "…" : String(transactions.length),
+                  }}
+                />
+                <OverviewCard
+                  stat={{
+                    label: "Videos Watched",
+                    value: String(watchHistory.length),
+                  }}
+                />
               </div>
             </section>
 
@@ -829,7 +1176,6 @@ const EarnPage = () => {
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-
                 {/* Holdings */}
                 <EarningsBreakdownCard
                   icon={<Wallet className="w-5 h-5 text-brand-primary" />}
@@ -839,7 +1185,10 @@ const EarnPage = () => {
                   claimedTotal={
                     portfolio.isLoading
                       ? "…"
-                      : `$${tixPortfolioValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : `$${tixPortfolioValue.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
                   }
                   valueNote="Current portfolio value (spot price × balance)"
                   actionLabel="Go to Trade"
@@ -849,14 +1198,21 @@ const EarnPage = () => {
 
                 {/* Box Office Revenue — 90% of viewer unlock payments */}
                 <EarningsBreakdownCard
-                  icon={<Coins className="w-5 h-5 text-semantic-success-primary" />}
+                  icon={
+                    <Coins className="w-5 h-5 text-semantic-success-primary" />
+                  }
                   iconBg="bg-semantic-success-primary/10"
                   title="Box Office Revenue"
                   subtitle="90% of TIX viewers pay to unlock your videos"
                   claimedTotal={
                     boxOfficeClaimedTotal != null
-                      ? `$${parseFloat(boxOfficeClaimedTotal).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
-                      : txLoading ? "…" : undefined
+                      ? `$${parseFloat(boxOfficeClaimedTotal).toLocaleString(
+                          "en-US",
+                          { minimumFractionDigits: 4, maximumFractionDigits: 4 }
+                        )}`
+                      : txLoading
+                      ? "…"
+                      : undefined
                   }
                   pendingAmount={boxOfficePendingGross ?? undefined}
                   actionLabel="Claim Revenue"
@@ -873,8 +1229,15 @@ const EarnPage = () => {
                   subtitle="1% of every TIX trade on your shows"
                   claimedTotal={
                     creatorRoyaltiesClaimedTotal != null
-                      ? `$${parseFloat(creatorRoyaltiesClaimedTotal).toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
-                      : txLoading ? "…" : undefined
+                      ? `$${parseFloat(
+                          creatorRoyaltiesClaimedTotal
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 4,
+                          maximumFractionDigits: 4,
+                        })}`
+                      : txLoading
+                      ? "…"
+                      : undefined
                   }
                   pendingAmount={creatorRoyaltiesPending ?? undefined}
                   actionLabel="Claim Royalties"
@@ -885,27 +1248,53 @@ const EarnPage = () => {
 
                 {/* Watch Rewards — 10% TIX cashback auto-sent on-chain when you unlock episodes */}
                 {(() => {
-                  const watchTxs = transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback");
-                  const totalTix = watchTxs.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+                  const watchTxs = transactions.filter(
+                    (t) =>
+                      t.type === "watch_cashback" ||
+                      t.type === "watch_reward" ||
+                      t.type === "cashback"
+                  );
+                  const totalTix = watchTxs.reduce(
+                    (s, t) => s + (parseFloat(t.amount) || 0),
+                    0
+                  );
                   const lastTx = watchTxs[0];
                   return (
                     <EarningsBreakdownCard
-                      icon={<Gift className="w-5 h-5 text-brand-pixsee-secondary" />}
+                      icon={
+                        <Gift className="w-5 h-5 text-brand-pixsee-secondary" />
+                      }
                       iconBg="bg-brand-pixsee-secondary/10"
                       title="Watch Rewards"
                       subtitle="10% TIX cashback on every episode you unlock"
                       claimedTotal={
-                        txLoading ? "…" : watchTxs.length > 0
-                          ? `${totalTix.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} TIX`
+                        txLoading
+                          ? "…"
+                          : watchTxs.length > 0
+                          ? `${totalTix.toLocaleString("en-US", {
+                              minimumFractionDigits: 4,
+                              maximumFractionDigits: 4,
+                            })} TIX`
                           : "0 TIX"
                       }
                       valueNote={
-                        txLoading ? "Loading…" : watchTxs.length > 0
-                          ? `From ${watchTxs.length} unlock${watchTxs.length !== 1 ? "s" : ""}${lastTx?.description ? ` · last: ${lastTx.description.replace(/^10% TIX cashback for unlocking /i, "")}` : ""}`
+                        txLoading
+                          ? "Loading…"
+                          : watchTxs.length > 0
+                          ? `From ${watchTxs.length} unlock${
+                              watchTxs.length !== 1 ? "s" : ""
+                            }${
+                              lastTx?.description
+                                ? ` · last: ${lastTx.description.replace(
+                                    /^10% TIX cashback for unlocking /i,
+                                    ""
+                                  )}`
+                                : ""
+                            }`
                           : "Unlock paid episodes to earn TIX cashback"
                       }
-                      actionLabel="Trade TIX"
-                      actionHref="/trade"
+                      actionLabel="View Rewards"
+                      onAction={() => setShowWatchRewardsModal(true)}
                       amountColor="text-brand-pixsee-secondary"
                     />
                   );
@@ -920,7 +1309,6 @@ const EarnPage = () => {
                   actionLabel="Coming Soon"
                   comingSoon
                 />
-
               </div>
             </section>
 
@@ -951,14 +1339,31 @@ const EarnPage = () => {
                     ...earningStreams[0],
                     stats: [
                       { label: "$PIX Earned", value: "Coming soon" },
-                      { label: "Cashback (10%)", value: (() => {
-                        const cashbackTxs = transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback");
-                        if (txLoading) return "…";
-                        if (cashbackTxs.length === 0) return "—";
-                        const total = cashbackTxs.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
-                        return `${total.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} TIX`;
-                      })() },
-                      { label: "Videos Watched", value: txLoading ? "…" : String(watchHistory.length) },
+                      {
+                        label: "Cashback (10%)",
+                        value: (() => {
+                          const cashbackTxs = transactions.filter(
+                            (t) =>
+                              t.type === "watch_cashback" ||
+                              t.type === "watch_reward" ||
+                              t.type === "cashback"
+                          );
+                          if (txLoading) return "…";
+                          if (cashbackTxs.length === 0) return "—";
+                          const total = cashbackTxs.reduce(
+                            (s, t) => s + (parseFloat(t.amount) || 0),
+                            0
+                          );
+                          return `${total.toLocaleString("en-US", {
+                            minimumFractionDigits: 4,
+                            maximumFractionDigits: 4,
+                          })} TIX`;
+                        })(),
+                      },
+                      {
+                        label: "Videos Watched",
+                        value: txLoading ? "…" : String(watchHistory.length),
+                      },
                     ],
                   },
                   earningStreams[1],
@@ -987,9 +1392,17 @@ const EarnPage = () => {
                     className="p-1.5 rounded-lg hover:bg-neutral-secondary transition-colors disabled:opacity-50"
                     aria-label="Refresh transactions"
                   >
-                    <RefreshCw className={cn("w-4 h-4 text-neutral-tertiary-text", txLoading && "animate-spin")} />
+                    <RefreshCw
+                      className={cn(
+                        "w-4 h-4 text-neutral-tertiary-text",
+                        txLoading && "animate-spin"
+                      )}
+                    />
                   </button>
-                  <Link href="/profile?tab=transactions" className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap">
+                  <Link
+                    href="/profile?tab=transactions"
+                    className="text-brand-pixsee-secondary hover:underline text-xs sm:text-sm font-medium whitespace-nowrap"
+                  >
                     View all Activity
                   </Link>
                 </div>
@@ -1011,9 +1424,13 @@ const EarnPage = () => {
                       earning={{
                         id: String(tx.id),
                         type: tx.label ?? txDisplayLabel(tx.type),
-                        description: tx.description ?? txDisplayDescription(tx.type, ""),
+                        description:
+                          tx.description ?? txDisplayDescription(tx.type, ""),
                         amount: tx.amount,
-                        date: new Date(tx.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+                        date: new Date(tx.created_at).toLocaleDateString(
+                          "en-US",
+                          { month: "short", day: "numeric" }
+                        ),
                         ledgerType: tx.ledger_type,
                       }}
                     />
@@ -1047,8 +1464,14 @@ const EarnPage = () => {
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">
                 {showBalance
                   ? usdcBalance != null
-                    ? `$${parseFloat(usdcBalance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : `$${currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    ? `$${parseFloat(usdcBalance).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : `$${currentBalance.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
                   : "••••••"}
               </h2>
               <button
@@ -1085,12 +1508,18 @@ const EarnPage = () => {
             {CHAIN_ID === 84532 && (
               <div className="flex flex-col items-center gap-2">
                 <button
-                  onClick={() => { setFaucetError(null); claimTestUsdc(); }}
+                  onClick={() => {
+                    setFaucetError(null);
+                    claimTestUsdc();
+                  }}
                   disabled={faucetLoading || faucetDone}
                   className="flex items-center gap-1.5 text-base text-white hover:text-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {faucetLoading ? (
-                    <><Loader2 className="w-3 h-3 animate-spin" /> Minting test USDC…</>
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" /> Minting test
+                      USDC…
+                    </>
                   ) : faucetDone ? (
                     "✓ 100,000 test USDC sent!"
                   ) : (
@@ -1099,7 +1528,8 @@ const EarnPage = () => {
                 </button>
                 {faucetError === "no-gas" && (
                   <p className="text-xs text-yellow-300/80 text-center max-w-xs leading-relaxed">
-                    Your embedded wallet needs <strong>Base Sepolia ETH</strong> for gas — regular Sepolia ETH won&apos;t work here.{" "}
+                    Your embedded wallet needs <strong>Base Sepolia ETH</strong>{" "}
+                    for gas — regular Sepolia ETH won&apos;t work here.{" "}
                     <a
                       href="https://www.alchemy.com/faucets/base-sepolia"
                       target="_blank"
@@ -1107,10 +1537,11 @@ const EarnPage = () => {
                       className="underline hover:text-yellow-200"
                     >
                       Get Base Sepolia ETH →
-                    </a>
-                    {" "}and send a small amount (0.001 ETH is enough) to:{" "}
+                    </a>{" "}
+                    and send a small amount (0.001 ETH is enough) to:{" "}
                     <span className="font-mono text-white/70 break-all">
-                      {wallets.find((w) => w.walletClientType === "privy")?.address ?? "—"}
+                      {wallets.find((w) => w.walletClientType === "privy")
+                        ?.address ?? "—"}
                     </span>
                   </p>
                 )}
@@ -1135,7 +1566,9 @@ const EarnPage = () => {
               >
                 {tab.icon}
                 {tab.label}
-                {tab.comingSoon && <span className="text-xs opacity-70 ml-0.5">(soon)</span>}
+                {tab.comingSoon && (
+                  <span className="text-xs opacity-70 ml-0.5">(soon)</span>
+                )}
               </button>
             ))}
           </div>
@@ -1155,7 +1588,10 @@ const EarnPage = () => {
 
       <WithdrawModal
         isOpen={showWithdrawModal}
-        onClose={() => { setShowWithdrawModal(false); handleWithdrawSuccess(); }}
+        onClose={() => {
+          setShowWithdrawModal(false);
+          handleWithdrawSuccess();
+        }}
         onSuccess={handleWithdrawSuccess}
         currentBalance={currentBalance}
       />
@@ -1226,6 +1662,12 @@ const EarnPage = () => {
         getAccessToken={getAccessToken}
         onTotalLoaded={setCreatorRoyaltiesPending}
         onClaimed={handleClaimed}
+      />
+
+      <WatchRewardsModal
+        isOpen={showWatchRewardsModal}
+        onClose={() => setShowWatchRewardsModal(false)}
+        transactions={transactions}
       />
     </div>
   );

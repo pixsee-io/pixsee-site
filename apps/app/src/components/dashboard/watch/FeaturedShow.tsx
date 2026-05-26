@@ -71,7 +71,7 @@ const FeaturedShow = ({
               <div
                 className={cn(
                   "relative rounded-xl sm:rounded-2xl overflow-hidden",
-                  "aspect-4/5 xs:aspect-[5/6] sm:aspect-3/2 md:aspect-16/7 xl:aspect-3/1",
+                  "aspect-4/5 xs:aspect-[5/6] sm:aspect-3/2 md:aspect-video xl:aspect-21/9",
                   "group"
                 )}
                 onMouseEnter={() => setIsHovered(true)}

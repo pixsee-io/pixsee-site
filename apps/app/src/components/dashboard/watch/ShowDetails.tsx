@@ -1034,6 +1034,7 @@ const ShowDetails = ({ id }: { id: string }) => {
       recordTransaction(token, {
         type: "batch_episodes_purchased",
         show_id: apiShow?.id,
+        show_title: apiShow?.title,
         show_contract_address: showContractAddress,
         episode_ids: locked.map((ep) => ep.id),
         on_chain_episode_ids: episodeIds.map(String),

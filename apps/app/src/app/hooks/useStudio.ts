@@ -16,6 +16,7 @@ export type StudioShow = {
   video_format?: "landscape" | "portrait" | null;
   cover_image_url: string | null;
   status: "draft" | "published";
+  review_status?: "pending_review" | "approved" | "rejected" | null;
   on_chain_show_id: string | null;
   episode_count?: number;
   view_count?: number;

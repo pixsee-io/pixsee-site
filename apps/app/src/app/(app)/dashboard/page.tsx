@@ -456,7 +456,9 @@ function MyBoxOfficeTab({
             </div>
           )}
         </div>
-        <BoxOfficeRevenueSection getAccessToken={getAccessToken} />
+        <div className="max-h-96 overflow-y-auto pr-1">
+          <BoxOfficeRevenueSection getAccessToken={getAccessToken} />
+        </div>
       </div>
 
       {/* Creator Royalties (1% trade fee) */}
@@ -475,7 +477,9 @@ function MyBoxOfficeTab({
             </div>
           )}
         </div>
-        <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
+        <div className="max-h-96 overflow-y-auto pr-1">
+          <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
+        </div>
       </div>
     </div>
   );
@@ -568,9 +572,12 @@ function MyStudioTab({
                         </div>
                       )}
                       <div className="absolute top-2 left-2">
-                        <span className={cn("text-[11px] font-semibold px-2 py-1 rounded-full", show.status === "published" ? "bg-semantic-success-primary/90 text-white" : "bg-neutral-tertiary-text/90 text-white")}>
-                          {show.status === "published" ? "Live" : "Draft"}
-                        </span>
+                        {(() => {
+                          if (show.status !== "published") return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-neutral-tertiary-text/90 text-white">Draft</span>;
+                          if (show.review_status === "pending_review") return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-amber-500/90 text-white">Under Review</span>;
+                          if (show.review_status === "rejected") return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-semantic-error-primary/90 text-white">Rejected</span>;
+                          return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-semantic-success-primary/90 text-white">Live</span>;
+                        })()}
                       </div>
                       {isOnChain && (
                         <div className="absolute top-2 right-2">
@@ -582,7 +589,7 @@ function MyStudioTab({
                       </div>
                     </div>
                     <div className="p-3">
-                      <h3 className="font-semibold text-sm text-neutral-primary-text truncate mb-1 group-hover:text-brand-pixsee-secondary transition-colors">{show.title}</h3>
+                      <h3 className="font-semibold text-sm text-neutral-primary-text truncate mb-1 group-hover:text-brand-pixsee-secondary transition-colors capitalize">{show.title}</h3>
                       <div className="flex items-center justify-between text-xs text-neutral-tertiary-text">
                         <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{totalViews.toLocaleString()}</span>
                         <span>{formatDate(show.created_at)}</span>
@@ -621,9 +628,12 @@ function MyStudioTab({
                         </div>
                       )}
                       <div className="absolute top-2 left-2">
-                        <span className={cn("text-[11px] font-semibold px-2 py-1 rounded-full", show.status === "published" ? "bg-semantic-success-primary/90 text-white" : "bg-neutral-tertiary-text/90 text-white")}>
-                          {show.status === "published" ? "Live" : "Draft"}
-                        </span>
+                        {(() => {
+                          if (show.status !== "published") return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-neutral-tertiary-text/90 text-white">Draft</span>;
+                          if (show.review_status === "pending_review") return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-amber-500/90 text-white">Under Review</span>;
+                          if (show.review_status === "rejected") return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-semantic-error-primary/90 text-white">Rejected</span>;
+                          return <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-semantic-success-primary/90 text-white">Live</span>;
+                        })()}
                       </div>
                       {isOnChain && (
                         <div className="absolute bottom-2 left-2">
@@ -635,7 +645,7 @@ function MyStudioTab({
                       </div>
                     </div>
                     <div className="p-2.5">
-                      <h3 className="font-semibold text-xs text-neutral-primary-text truncate group-hover:text-brand-pixsee-secondary transition-colors">{show.title}</h3>
+                      <h3 className="font-semibold text-xs text-neutral-primary-text truncate group-hover:text-brand-pixsee-secondary transition-colors capitalize">{show.title}</h3>
                       <div className="flex items-center gap-1 mt-1 text-[11px] text-neutral-tertiary-text">
                         <Eye className="w-3 h-3" />{totalViews.toLocaleString()}
                       </div>
