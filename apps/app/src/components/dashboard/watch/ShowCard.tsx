@@ -161,7 +161,7 @@ const ShowCard = ({
           </div>
           <div className="flex-1 min-w-0">
             <Link href={`/watch/${id}`} className="block">
-              <h3 className="font-semibold text-sm text-neutral-primary-text line-clamp-2 leading-snug">
+              <h3 className="font-semibold text-sm text-neutral-primary-text line-clamp-2 leading-snug capitalize">
                 {title}
               </h3>
             </Link>
@@ -184,7 +184,7 @@ const ShowCard = ({
         <div className="flex items-start justify-between gap-2 px-1.5 py-3 sm:py-4">
           <div className="flex-1 min-w-0">
             <Link href={`/watch/${id}`} className="block">
-              <h3 className="font-semibold text-sm text-neutral-primary-text line-clamp-2">
+              <h3 className="font-semibold text-sm text-neutral-primary-text line-clamp-2 capitalize">
                 {title}
               </h3>
               <div className="flex items-center gap-1.5 mt-1">

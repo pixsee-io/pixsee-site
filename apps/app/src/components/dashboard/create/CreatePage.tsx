@@ -38,6 +38,9 @@ type Episode = {
   previewUrl?: string; // object URL from selected video file
 };
 
+const GENRES = ["Action", "Drama", "Romance", "Comedy", "Thriller", "Sci-Fi", "Horror", "Animation", "Documentary"] as const;
+type Genre = typeof GENRES[number];
+
 type ShowDetails = {
   thumbnail: File | null;
   thumbnailPreview: string | null;
@@ -46,6 +49,7 @@ type ShowDetails = {
   videoFormat: "landscape" | "portrait";
   description: string;
   tags: string[];
+  genres: Genre[];
   language: string;
   licence: string;
   safeForKids: boolean;
@@ -344,6 +348,7 @@ const CreatePage = () => {
     videoFormat: "landscape",
     description: "",
     tags: [],
+    genres: [],
     language: "English",
     licence: "Pixsee (Default)",
     safeForKids: true,
@@ -384,10 +389,13 @@ const CreatePage = () => {
     if (uploadTriggered) return;
     setUploadTriggered(true);
     const showType = contentType === "series" ? "tv_show" : "movie";
+    const tagsWithGenre = [
+      ...new Set([...showDetails.tags, ...showDetails.genres.map((g) => g.toLowerCase())]),
+    ];
     uploadAll({
       title: showDetails.title,
       description: showDetails.description,
-      tags: showDetails.tags,
+      tags: tagsWithGenre,
       language: showDetails.language,
       thumbnailFile: showDetails.thumbnail,
       showType,
@@ -438,10 +446,13 @@ const CreatePage = () => {
   const [launched, setLaunched] = useState(false);
 
   const handlePublish = async () => {
+    const tagsWithGenre = [
+      ...new Set([...showDetails.tags, ...showDetails.genres.map((g) => g.toLowerCase())]),
+    ];
     const ok = await publishAll({
       title: showDetails.title,
       description: showDetails.description,
-      tags: showDetails.tags,
+      tags: tagsWithGenre,
       language: showDetails.language,
       thumbnailFile: showDetails.thumbnail,
       showType: contentType === "series" ? "tv_show" : "movie",
@@ -779,6 +790,39 @@ const CreatePage = () => {
           rows={4}
           className="w-full px-4 py-3 border border-neutral-tertiary-border rounded-xl bg-neutral-primary text-neutral-primary-text focus:outline-none focus:ring-2 focus:ring-brand-pixsee-secondary resize-none"
         />
+      </div>
+
+      {/* Genre */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-neutral-primary-text mb-2">
+          Genre{" "}
+          <span className="text-xs font-normal text-neutral-tertiary-text">
+            (helps viewers discover your show)
+          </span>
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {GENRES.map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() =>
+                setShowDetails((d) => ({
+                  ...d,
+                  genres: d.genres.includes(g)
+                    ? d.genres.filter((x) => x !== g)
+                    : [...d.genres, g],
+                }))
+              }
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                showDetails.genres.includes(g)
+                  ? "bg-brand-pixsee-secondary text-white border-brand-pixsee-secondary"
+                  : "bg-neutral-secondary text-neutral-secondary-text border-neutral-tertiary-border hover:border-brand-pixsee-secondary hover:text-brand-pixsee-secondary"
+              }`}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tags */}
@@ -1405,7 +1449,7 @@ const EpisodePricingCard = ({
         {episode.isPaid && (
           <p className="text-xs text-neutral-tertiary-text mt-2 bg-brand-pixsee-secondary/5 rounded-lg p-2">
             💡 Price is set automatically by the bonding curve — starts at
-            $0.001/min and adjusts based on demand. price.
+            $0.001/min and adjusts based on demand.
           </p>
         )}
       </div>

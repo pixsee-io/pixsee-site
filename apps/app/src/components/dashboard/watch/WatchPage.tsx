@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { useVideos } from "@/app/hooks/useVideo";
+import { useInfiniteVideos } from "@/app/hooks/useVideo";
 import { useWatchlist, useMe } from "@/app/hooks/useSocial";
 import { ShowCardProps } from "@/app/utils";
 import ShowCard from "./ShowCard";
 import FilterTabs, { FilterTab } from "./FilterTabs";
 import FeaturedShow from "./FeaturedShow";
+import { Loader2 } from "lucide-react";
 
 const filterTabs: FilterTab[] = [
   { id: "all", label: "All" },
@@ -27,192 +27,141 @@ const filterTabs: FilterTab[] = [
 
 const SORT_MAP: Record<string, string> = {
   "new-drops": "-published_at",
-  "most-watched": "-views_count",
-  "top-voted": "-likes_count",
-  trending: "-views_count",
+  trending: "-published_at",
+  "most-watched": "-published_at",
+  "top-voted": "-published_at",
 };
 
-// Skeleton loader
-function ShowCardSkeleton({ count = 4 }: { count?: number }) {
+const GENRE_TAG_MAP: Record<string, string> = {
+  action: "action",
+  drama: "drama",
+  romance: "romance",
+  comedy: "comedy",
+  thriller: "thriller",
+  others: "others",
+};
+
+function ShowCardSkeleton({ count = 8 }: { count?: number }) {
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className="rounded-2xl bg-neutral-secondary animate-pulse aspect-3/4"
-        />
+        <div key={i} className="rounded-2xl bg-neutral-secondary animate-pulse aspect-3/4" />
       ))}
     </>
   );
 }
 
-// Shared horizontal scroll row — one strip of 10 cards, no wrapping
-function HScrollRow({
+function LandscapeSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="rounded-2xl bg-neutral-secondary animate-pulse aspect-video" />
+      ))}
+    </>
+  );
+}
+
+function PortraitGrid({
   shows,
-  cardClassName,
   getAccessToken,
   isInWatchlist,
   toggleWatchlist,
 }: {
   shows: ShowCardProps[];
-  cardClassName: string;
   getAccessToken: () => Promise<string | null>;
   isInWatchlist: (id: number) => boolean;
   toggleWatchlist: (id: number) => void;
 }) {
+  if (!shows.length) return null;
   return (
-    <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide -mx-3 px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
       {shows.map((show) => (
-        <div key={show.id} className={`shrink-0 ${cardClassName}`}>
-          <ShowCard
-            {...show}
-            getAccessToken={getAccessToken}
-            inWatchlist={isInWatchlist(parseInt(show.id))}
-            onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
-          />
-        </div>
+        <ShowCard
+          key={show.id}
+          {...show}
+          getAccessToken={getAccessToken}
+          inWatchlist={isInWatchlist(parseInt(show.id))}
+          onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
+        />
       ))}
     </div>
   );
 }
 
-// ≤ 8 → standard grid; > 8 → two horizontal scroll rows of 10
-function PortraitRow({
+function LandscapeGrid({
   shows,
-  label,
   getAccessToken,
   isInWatchlist,
   toggleWatchlist,
 }: {
   shows: ShowCardProps[];
-  label: string;
   getAccessToken: () => Promise<string | null>;
   isInWatchlist: (id: number) => boolean;
   toggleWatchlist: (id: number) => void;
 }) {
   if (!shows.length) return null;
-
-  const useScroll = shows.length > 8;
-  const row1 = shows.slice(0, 10);
-  const row2 = shows.slice(10, 20);
-
   return (
-    <section className="mb-8 sm:mb-12">
-      <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
-        {label}
-      </h2>
-      {useScroll ? (
-        <div className="space-y-4">
-          <HScrollRow
-            shows={row1}
-           cardClassName="w-52 sm:w-60 md:w-72"
-            getAccessToken={getAccessToken}
-            isInWatchlist={isInWatchlist}
-            toggleWatchlist={toggleWatchlist}
-          />
-          {row2.length > 0 && (
-            <HScrollRow
-              shows={row2}
-              cardClassName="w-52 sm:w-60 md:w-72"
-              getAccessToken={getAccessToken}
-              isInWatchlist={isInWatchlist}
-              toggleWatchlist={toggleWatchlist}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-          {shows.map((show) => (
-            <ShowCard
-              key={show.id}
-              {...show}
-              getAccessToken={getAccessToken}
-              inWatchlist={isInWatchlist(parseInt(show.id))}
-              onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-// Row of landscape cards (wide)
-// ≤ 4 → standard grid; > 4 → two horizontal scroll rows of 10
-function LandscapeRow({
-  shows,
-  label,
-  getAccessToken,
-  isInWatchlist,
-  toggleWatchlist,
-}: {
-  shows: ShowCardProps[];
-  label: string;
-  getAccessToken: () => Promise<string | null>;
-  isInWatchlist: (id: number) => boolean;
-  toggleWatchlist: (id: number) => void;
-}) {
-  if (!shows.length) return null;
-
-  const useScroll = shows.length > 4;
-  const row1 = shows.slice(0, 10);
-  const row2 = shows.slice(10, 20);
-
-  return (
-    <section className="mb-8 sm:mb-12">
-      <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
-        {label}
-      </h2>
-      {useScroll ? (
-        <div className="space-y-4">
-          <HScrollRow
-            shows={row1}
-            cardClassName="w-[340px] sm:w-[400px] md:w-[480px]"
-            getAccessToken={getAccessToken}
-            isInWatchlist={isInWatchlist}
-            toggleWatchlist={toggleWatchlist}
-          />
-          {row2.length > 0 && (
-            <HScrollRow
-              shows={row2}
-              cardClassName="w-[340px] sm:w-[400px] md:w-[480px]"
-              getAccessToken={getAccessToken}
-              isInWatchlist={isInWatchlist}
-              toggleWatchlist={toggleWatchlist}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          {shows.map((show) => (
-            <ShowCard
-              key={show.id}
-              {...show}
-              getAccessToken={getAccessToken}
-              inWatchlist={isInWatchlist(parseInt(show.id))}
-              onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
-            />
-          ))}
-        </div>
-      )}
-    </section>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      {shows.map((show) => (
+        <ShowCard
+          key={show.id}
+          {...show}
+          getAccessToken={getAccessToken}
+          inWatchlist={isInWatchlist(parseInt(show.id))}
+          onWatchlistToggle={() => toggleWatchlist(parseInt(show.id))}
+        />
+      ))}
+    </div>
   );
 }
 
 const WatchPage = () => {
   const [activeFilter, setActiveFilter] = useState("all");
-  const [page, setPage] = useState(1);
   const { user, getAccessToken } = useAuth();
   const { isInWatchlist, addShow, removeShow } = useWatchlist(getAccessToken);
   const { profile } = useMe(getAccessToken);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const sort = SORT_MAP[activeFilter] ?? "-published_at";
+  const filterTag = GENRE_TAG_MAP[activeFilter] ?? undefined;
+  const filterFollowing = activeFilter === "following";
 
-  const { shows, featuredShows, isLoading, error, meta } = useVideos({
-    page,
+  const {
+    shows,
+    featuredShows,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error,
+  } = useInfiniteVideos({
     perPage: 20,
     sort,
+    filterTag,
+    filterFollowing,
+    getAccessToken: filterFollowing ? getAccessToken : undefined,
   });
+
+  // Intersection Observer for infinite scroll — only active after initial load
+  useEffect(() => {
+    if (isLoading) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isLoading, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const handleFilterChange = (tabId: string) => {
+    setActiveFilter(tabId);
+  };
 
   const getUserFirstName = () => {
     if (profile?.name) return profile.name.split(" ")[0];
@@ -224,20 +173,36 @@ const WatchPage = () => {
     return "there";
   };
 
-  const handleFilterChange = (tabId: string) => {
-    setActiveFilter(tabId);
-    setPage(1);
-  };
-
-  const hasMore = meta ? page < meta.last_page : false;
-
   const toggleWatchlist = (sid: number) => {
     isInWatchlist(sid) ? removeShow(sid) : addShow(sid);
   };
 
-  // Split shows by format
   const portraitShows = shows.filter((s) => s.videoFormat !== "landscape");
   const landscapeShows = shows.filter((s) => s.videoFormat === "landscape");
+
+  // Main sections: always a fixed, stable slice — never changes as more pages load.
+  // Round down to complete rows so no orphan cards appear in these sections.
+  const portraitMainCount = Math.floor(Math.min(portraitShows.length, 8) / 4) * 4;
+  const landscapeMainCount = Math.floor(Math.min(landscapeShows.length, 4) / 2) * 2;
+
+  const portraitSectionShows = portraitShows.slice(0, portraitMainCount);
+  const landscapeSectionShows = landscapeShows.slice(0, landscapeMainCount);
+
+  // Trending: overflow beyond the main cap.
+  // Only render each format's sub-grid when there are enough cards for a full row.
+  const trendingPortraitRaw = portraitShows.slice(8);
+  const trendingLandscapeRaw = landscapeShows.slice(4);
+
+  const trendingPortrait = trendingPortraitRaw.length >= 4
+    ? trendingPortraitRaw.slice(0, Math.floor(trendingPortraitRaw.length / 4) * 4)
+    : [];
+  const trendingLandscape = trendingLandscapeRaw.length >= 2
+    ? trendingLandscapeRaw.slice(0, Math.floor(trendingLandscapeRaw.length / 2) * 2)
+    : [];
+  const hasTrending = trendingPortrait.length > 0 || trendingLandscape.length > 0;
+
+  const activeTabLabel = filterTabs.find((t) => t.id === activeFilter)?.label;
+  const sectionPrefix = filterTag ? `${activeTabLabel} · ` : "";
 
   return (
     <div className="min-h-screen bg-foundation-alternate">
@@ -265,38 +230,98 @@ const WatchPage = () => {
         )}
 
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-12">
-            <ShowCardSkeleton count={8} />
-          </div>
+          <>
+            <section className="mb-8 sm:mb-12">
+              <div className="h-7 w-40 rounded-lg bg-neutral-secondary animate-pulse mb-6" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+                <ShowCardSkeleton count={8} />
+              </div>
+            </section>
+            <section className="mb-8 sm:mb-12">
+              <div className="h-7 w-48 rounded-lg bg-neutral-secondary animate-pulse mb-6" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                <LandscapeSkeleton count={4} />
+              </div>
+            </section>
+          </>
         ) : (
           <>
-            {/* Portrait shows */}
-            <PortraitRow
-              shows={portraitShows}
-              label="Reels & Shorts"
-              getAccessToken={getAccessToken}
-              isInWatchlist={isInWatchlist}
-              toggleWatchlist={toggleWatchlist}
-            />
+            {/* Reels & Shorts */}
+            {portraitSectionShows.length > 0 && (
+              <section className="mb-8 sm:mb-12">
+                {/* <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
+                  {sectionPrefix}Reels &amp; Shorts
+                </h2> */}
+                <PortraitGrid
+                  shows={portraitSectionShows}
+                  getAccessToken={getAccessToken}
+                  isInWatchlist={isInWatchlist}
+                  toggleWatchlist={toggleWatchlist}
+                />
+              </section>
+            )}
 
-            <LandscapeRow
-              shows={landscapeShows}
-              label="Movies & Series"
-              getAccessToken={getAccessToken}
-              isInWatchlist={isInWatchlist}
-              toggleWatchlist={toggleWatchlist}
-            />
+            {/* Movies & Series */}
+            {landscapeSectionShows.length > 0 && (
+              <section className="mb-8 sm:mb-12">
+                {/* <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
+                  {sectionPrefix}Movies &amp; Series
+                </h2> */}
+                <LandscapeGrid
+                  shows={landscapeSectionShows}
+                  getAccessToken={getAccessToken}
+                  isInWatchlist={isInWatchlist}
+                  toggleWatchlist={toggleWatchlist}
+                />
+              </section>
+            )}
+
+            {/* Featured */}
+            {featuredShows.length > 0 && (
+              <section className="mb-8 sm:mb-12">
+                <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
+                  Featured shows
+                </h2>
+                <FeaturedShow shows={featuredShows} />
+              </section>
+            )}
+
+            {/* Trending — only shown when there are enough remaining cards to fill a row */}
+            {hasTrending && (
+              <section className="mb-8 sm:mb-12">
+                <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-4 sm:mb-6">
+                  Trending
+                </h2>
+                {trendingPortrait.length > 0 && (
+                  <div className="mb-6">
+                    <PortraitGrid
+                      shows={trendingPortrait}
+                      getAccessToken={getAccessToken}
+                      isInWatchlist={isInWatchlist}
+                      toggleWatchlist={toggleWatchlist}
+                    />
+                  </div>
+                )}
+                {trendingLandscape.length > 0 && (
+                  <LandscapeGrid
+                    shows={trendingLandscape}
+                    getAccessToken={getAccessToken}
+                    isInWatchlist={isInWatchlist}
+                    toggleWatchlist={toggleWatchlist}
+                  />
+                )}
+              </section>
+            )}
           </>
         )}
 
-        {/* Featured / top show of the week */}
-        {featuredShows.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-xl md:text-2xl font-paytone text-neutral-primary-text mb-6">
-              Featured shows
-            </h2>
-            <FeaturedShow shows={featuredShows} />
-          </section>
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-1" />
+
+        {isFetchingNextPage && (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-neutral-tertiary-text" />
+          </div>
         )}
       </div>
 

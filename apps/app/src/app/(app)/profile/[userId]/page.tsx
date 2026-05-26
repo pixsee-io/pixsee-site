@@ -175,7 +175,7 @@ export default function CreatorProfilePage() {
               <>
                 {landscapeShows.length > 0 && (
                   <section className="mb-8">
-                    <h2 className="text-base font-paytone text-neutral-primary-text mb-4">Movies & Series</h2>
+                    {/* <h2 className="text-base font-paytone text-neutral-primary-text mb-4">Movies & Series</h2> */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6">
                       {landscapeShows.map((show) => (
                         <ShowCard key={show.id} {...show} />
@@ -185,7 +185,7 @@ export default function CreatorProfilePage() {
                 )}
                 {portraitShows.length > 0 && (
                   <section>
-                    <h2 className="text-base font-paytone text-neutral-primary-text mb-4">Reels & Shorts</h2>
+                    {/* <h2 className="text-base font-paytone text-neutral-primary-text mb-4">Reels & Shorts</h2> */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                       {portraitShows.map((show) => (
                         <ShowCard key={show.id} {...show} />

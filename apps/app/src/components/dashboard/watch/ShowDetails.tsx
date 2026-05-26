@@ -397,6 +397,8 @@ const VideoPlayer = ({
   creatorPhaseActive,
   getAccessToken,
   onAccessGranted,
+  onEnded,
+  autoPlay,
 }: {
   episode: ApiEpisode | null;
   playbackUrl: string | null;
@@ -410,6 +412,8 @@ const VideoPlayer = ({
   creatorPhaseActive?: boolean;
   getAccessToken: () => Promise<string | null>;
   onAccessGranted: () => void;
+  onEnded?: () => void;
+  autoPlay?: boolean;
 }) => {
   const isPortrait = videoFormat === "portrait";
 
@@ -667,6 +671,8 @@ const VideoPlayer = ({
         poster={episode.thumbnail_url ?? undefined}
         style={{ width: "100%", height: "100%" }}
         streamType="on-demand"
+        autoPlay={autoPlay}
+        onEnded={onEnded}
       />
     </div>
   );
@@ -796,6 +802,8 @@ const ShowDetails = ({ id }: { id: string }) => {
   const isSeries = apiShow?.type === "tv_show";
 
   const [activeEpisodeId, setActiveEpisodeId] = useState<number | null>(null);
+  const [nextEpisodeCountdown, setNextEpisodeCountdown] = useState<number | null>(null);
+  const [autoPlayNext, setAutoPlayNext] = useState(false);
   const [playbackRefreshKey, setPlaybackRefreshKey] = useState(0);
   const [episodeAccess, setEpisodeAccess] = useState<Record<number, boolean>>(
     {}
@@ -823,6 +831,46 @@ const ShowDetails = ({ id }: { id: string }) => {
 
   const activeEpisode =
     episodes.find((ep) => ep.id === activeEpisodeId) ?? episodes[0] ?? null;
+
+  const currentEpisodeIndex = episodes.findIndex(
+    (ep) => ep.id === (activeEpisodeId ?? episodes[0]?.id)
+  );
+  const nextEpisode =
+    isSeries && currentEpisodeIndex >= 0 && currentEpisodeIndex < episodes.length - 1
+      ? episodes[currentEpisodeIndex + 1]
+      : null;
+
+  // Cancel countdown when user manually switches episode; reset autoPlay flag
+  useEffect(() => {
+    setNextEpisodeCountdown(null);
+    // autoPlayNext is intentionally NOT reset here — it was set in the same
+    // batch as activeEpisodeId so MuxPlayer gets autoPlay=true on first render.
+    // We reset it after a tick so subsequent manual clicks don't autoplay.
+    const t = setTimeout(() => setAutoPlayNext(false), 500);
+    return () => clearTimeout(t);
+  }, [activeEpisodeId]);
+
+  // Tick down every second; auto-play at 0
+  useEffect(() => {
+    if (nextEpisodeCountdown === null) return;
+    if (nextEpisodeCountdown === 0) {
+      if (nextEpisode) {
+        setAutoPlayNext(true);
+        setActiveEpisodeId(nextEpisode.id);
+      }
+      setNextEpisodeCountdown(null);
+      return;
+    }
+    const t = setTimeout(
+      () => setNextEpisodeCountdown((n) => (n !== null ? n - 1 : null)),
+      1000
+    );
+    return () => clearTimeout(t);
+  }, [nextEpisodeCountdown, nextEpisode]);
+
+  const handleEpisodeEnded = useCallback(() => {
+    if (nextEpisode) setNextEpisodeCountdown(5);
+  }, [nextEpisode]);
 
   // Read contract addresses directly from API response (stored there via chain-info PATCH)
   useEffect(() => {
@@ -986,6 +1034,7 @@ const ShowDetails = ({ id }: { id: string }) => {
       recordTransaction(token, {
         type: "batch_episodes_purchased",
         show_id: apiShow?.id,
+        show_title: apiShow?.title,
         show_contract_address: showContractAddress,
         episode_ids: locked.map((ep) => ep.id),
         on_chain_episode_ids: episodeIds.map(String),
@@ -1139,23 +1188,99 @@ const ShowDetails = ({ id }: { id: string }) => {
                   isSeries && episodes.length > 1 ? "lg:col-span-2" : ""
                 }
               >
-                <VideoPlayer
-                  episode={activeEpisode}
-                  playbackUrl={playbackUrl}
-                  playbackLoading={playbackLoading}
-                  hasAccess={activeEpisodeHasAccess ?? false}
-                  showContractAddress={showContractAddress}
-                  bondingCurveAddress={bondingCurveAddress}
-                  tickSymbol={resolvedTickSymbol}
-                  showTitle={apiShow?.title}
-                  videoFormat={apiShow?.video_format}
-                  creatorPhaseActive={creatorPhaseActive ?? false}
-                  getAccessToken={getAccessToken}
-                  onAccessGranted={() => {
-                    checkAllAccess();
-                    setPlaybackRefreshKey((k) => k + 1);
-                  }}
-                />
+                <div className="relative">
+                  <VideoPlayer
+                    episode={activeEpisode}
+                    playbackUrl={playbackUrl}
+                    playbackLoading={playbackLoading}
+                    hasAccess={activeEpisodeHasAccess ?? false}
+                    showContractAddress={showContractAddress}
+                    bondingCurveAddress={bondingCurveAddress}
+                    tickSymbol={resolvedTickSymbol}
+                    showTitle={apiShow?.title}
+                    videoFormat={apiShow?.video_format}
+                    creatorPhaseActive={creatorPhaseActive ?? false}
+                    getAccessToken={getAccessToken}
+                    onAccessGranted={() => {
+                      checkAllAccess();
+                      setPlaybackRefreshKey((k) => k + 1);
+                    }}
+                    onEnded={handleEpisodeEnded}
+                    autoPlay={autoPlayNext}
+                  />
+
+                  {/* Next episode countdown overlay */}
+                  {nextEpisodeCountdown !== null && nextEpisode && (
+                    <div className="absolute bottom-3 right-3 z-20 w-56 sm:w-64 bg-neutral-primary/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-neutral-tertiary-border overflow-hidden">
+                      {/* Thumbnail with countdown ring */}
+                      <div className="relative aspect-video w-full bg-neutral-secondary">
+                        {nextEpisode.thumbnail_url ? (
+                          <Image
+                            src={nextEpisode.thumbnail_url}
+                            alt={nextEpisode.title}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Play className="w-8 h-8 text-neutral-tertiary-text" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40" />
+                        {/* Countdown ring */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="relative w-12 h-12">
+                            <svg className="w-12 h-12 -rotate-90" viewBox="0 0 36 36">
+                              <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2.5" />
+                              <circle
+                                cx="18" cy="18" r="14" fill="none" stroke="white" strokeWidth="2.5"
+                                strokeDasharray={`${(nextEpisodeCountdown / 5) * 87.96} 87.96`}
+                                strokeLinecap="round"
+                                className="transition-all duration-700"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-white font-bold text-base">
+                              {nextEpisodeCountdown}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Close */}
+                        <button
+                          onClick={() => setNextEpisodeCountdown(null)}
+                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                          aria-label="Cancel auto-play"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {/* Info + actions */}
+                      <div className="p-3">
+                        <p className="text-[10px] text-neutral-tertiary-text uppercase tracking-wide mb-0.5">Up next</p>
+                        <p className="text-xs font-semibold text-neutral-primary-text line-clamp-1">
+                          S{nextEpisode.season_number} E{nextEpisode.episode_number} — {nextEpisode.title}
+                        </p>
+                        <div className="flex gap-2 mt-2.5">
+                          <button
+                            onClick={() => {
+                              setAutoPlayNext(true);
+                              setActiveEpisodeId(nextEpisode.id);
+                              setNextEpisodeCountdown(null);
+                            }}
+                            className="flex-1 py-1.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-xs font-medium rounded-lg transition-colors"
+                          >
+                            Play now
+                          </button>
+                          <button
+                            onClick={() => setNextEpisodeCountdown(null)}
+                            className="px-3 py-1.5 bg-neutral-secondary hover:bg-neutral-tertiary text-neutral-secondary-text text-xs rounded-lg transition-colors border border-neutral-tertiary-border"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {isSeries && activeEpisode && (
                   <p className="mt-2 text-sm text-neutral-secondary-text">
@@ -1192,7 +1317,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                         ) : (
                           <>
                             <Play className="w-3 h-3" />
-                            Binge all · ${bingeQuote} USDC
+                            Batch unlock all · ${bingeQuote} USDC
                           </>
                         )}
                       </button>
@@ -1243,8 +1368,8 @@ const ShowDetails = ({ id }: { id: string }) => {
                           ) : (
                             <span
                               className={cn(
-                                "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200",
-                                keeperBingeMode ? "translate-x-5" : "translate-x-0.5"
+                                "absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200",
+                                keeperBingeMode ? "left-6" : "left-1"
                               )}
                             />
                           )}
