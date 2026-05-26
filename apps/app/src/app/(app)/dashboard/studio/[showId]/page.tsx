@@ -1418,7 +1418,7 @@ export default function StudioShowPage() {
                           ) : (
                             <>
                               <CheckCircle className="w-3.5 h-3.5" /> End Creator
-                              Phase & Open Trading
+                              Phase & Open Your Show to the Public
                             </>
                           )}
                         </button>

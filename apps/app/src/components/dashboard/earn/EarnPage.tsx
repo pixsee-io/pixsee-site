@@ -541,6 +541,11 @@ function ClaimBoxOfficeModal({
             onClaimed={onClaimed}
           />
         </div>
+
+        <div className="mt-4 pt-4 border-t border-neutral-tertiary-border">
+          <RoyaltyScheduleCard getAccessToken={getAccessToken} />
+        </div>
+
         <Button
           onClick={onClose}
           variant="outline"
@@ -676,10 +681,13 @@ const EarnPage = () => {
     getUsdcBalance().then(setUsdcBalance).catch(() => {});
   };
 
-  // Combined callback: refresh both transactions and USDC balance after any claim
+  // Combined callback: refresh both transactions and USDC balance after any claim.
+  // Balance is fetched twice: immediately and again after 3s, because the RPC node
+  // often hasn't propagated the new on-chain state by the time the tx receipt arrives.
   const handleClaimed = () => {
     refetchTx();
     refetchBalance();
+    setTimeout(() => refetchBalance(), 3000);
   };
 
   // Testnet faucet — only shown when CHAIN_ID === 84532 (Base Sepolia)
@@ -876,59 +884,32 @@ const EarnPage = () => {
                 />
 
                 {/* Watch Rewards — 10% TIX cashback auto-sent on-chain when you unlock episodes */}
-                <div className="bg-neutral-primary rounded-xl p-4 border border-neutral-tertiary-border flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-brand-pixsee-secondary/10">
-                      <Gift className="w-5 h-5 text-brand-pixsee-secondary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm text-neutral-primary-text">Watch Rewards</p>
-                      <p className="text-xs text-neutral-tertiary-text">10% TIX cashback on every episode you unlock</p>
-                    </div>
-                  </div>
-
-                  {txLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-neutral-tertiary-text py-1">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading…
-                    </div>
-                  ) : transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback").length > 0 ? (
-                    <>
-                      <div>
-                        <p className="text-2xl font-bold text-brand-pixsee-secondary">
-                          {transactions
-                            .filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback")
-                            .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0)
-                            .toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} TIX
-                        </p>
-                        <p className="text-xs text-neutral-tertiary-text mt-0.5">Total cashback earned</p>
-                      </div>
-                      <div className="space-y-1.5 max-h-28 overflow-y-auto">
-                        {transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback").slice(0, 6).map((tx) => (
-                          <div key={tx.id} className="flex items-center justify-between text-xs">
-                            <span className="text-neutral-secondary-text truncate">{tx.description ?? "Episode unlock"}</span>
-                            <span className="shrink-0 font-medium text-brand-pixsee-secondary ml-2">+{tx.amount} TIX</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-xs text-neutral-tertiary-text italic">
-                      No rewards yet — unlock paid episodes to earn 10% TIX cashback.
-                    </p>
-                  )}
-
-                  <p className="text-xs text-neutral-tertiary-text bg-neutral-secondary/60 px-2 py-1.5 rounded-lg leading-relaxed">
-                    When you unlock an episode, 10% of the TIX spent is automatically returned to your wallet. Use them to watch more or sell in Trade (3% fee).
-                  </p>
-
-                  <a
-                    href="/trade"
-                    className="w-full inline-flex items-center justify-center gap-1.5 h-10 rounded-full text-sm font-medium bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white transition-colors"
-                  >
-                    Trade TIX
-                    <ChevronRight className="w-4 h-4" />
-                  </a>
-                </div>
+                {(() => {
+                  const watchTxs = transactions.filter((t) => t.type === "watch_cashback" || t.type === "watch_reward" || t.type === "cashback");
+                  const totalTix = watchTxs.reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+                  const lastTx = watchTxs[0];
+                  return (
+                    <EarningsBreakdownCard
+                      icon={<Gift className="w-5 h-5 text-brand-pixsee-secondary" />}
+                      iconBg="bg-brand-pixsee-secondary/10"
+                      title="Watch Rewards"
+                      subtitle="10% TIX cashback on every episode you unlock"
+                      claimedTotal={
+                        txLoading ? "…" : watchTxs.length > 0
+                          ? `${totalTix.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} TIX`
+                          : "0 TIX"
+                      }
+                      valueNote={
+                        txLoading ? "Loading…" : watchTxs.length > 0
+                          ? `From ${watchTxs.length} unlock${watchTxs.length !== 1 ? "s" : ""}${lastTx?.description ? ` · last: ${lastTx.description.replace(/^10% TIX cashback for unlocking /i, "")}` : ""}`
+                          : "Unlock paid episodes to earn TIX cashback"
+                      }
+                      actionLabel="Trade TIX"
+                      actionHref="/trade"
+                      amountColor="text-brand-pixsee-secondary"
+                    />
+                  );
+                })()}
 
                 {/* Voting Rewards */}
                 <EarningsBreakdownCard
