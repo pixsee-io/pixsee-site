@@ -17,6 +17,8 @@ import {
   Loader2,
   Lock,
   LockOpen,
+  Plus,
+  X,
 } from "lucide-react";
 import { useDeleteEpisode } from "@/app/hooks/useStudio";
 import { usePixseeContract } from "@/app/hooks/usePixseeContract";
@@ -128,12 +130,27 @@ function EpisodeRow({
   const { deleteEpisode, isDeleting } = useDeleteEpisode(getAccessToken);
   const [showConfirm, setShowConfirm] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   const handleDelete = async () => {
     const ok = await deleteEpisode(showId, episode.id);
     if (ok) {
       setShowConfirm(false);
       onDeleted(episode.id);
+    } else {
+      setShowConfirm(false);
+      alert("Episode deletion is not yet supported. Please ask the backend team to implement DELETE /api/v1/my-shows/{showId}/episodes/{episodeId}.");
     }
   };
 
@@ -189,7 +206,7 @@ function EpisodeRow({
           </p>
         </div>
 
-        <div className="relative shrink-0">
+        <div ref={menuRef} className="relative shrink-0">
           <button
             onClick={() => setMenuOpen((v) => !v)}
             className="p-2 rounded-lg hover:bg-neutral-tertiary transition-colors sm:opacity-0 sm:group-hover:opacity-100"
@@ -240,6 +257,334 @@ function EpisodeRow({
   );
 }
 
+function uploadToMux(
+  uploadUrl: string,
+  file: File,
+  onProgress: (pct: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(new Error(`Upload failed: ${xhr.status}`));
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(file);
+  });
+}
+
+type AddEpisodeStep = "idle" | "uploading" | "processing" | "onchain" | "done" | "error";
+
+function AddEpisodeModal({
+  show,
+  getAccessToken,
+  addEpisodeOnChain,
+  onSuccess,
+  onClose,
+}: {
+  show: Show;
+  getAccessToken: () => Promise<string | null>;
+  addEpisodeOnChain: (params: {
+    showContractAddress: Address;
+    durationSeconds: number;
+    isFree: boolean;
+  }) => Promise<{ onChainEpisodeId: bigint } | null>;
+  onSuccess: () => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [isFree, setIsFree] = useState(true);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [step, setStep] = useState<AddEpisodeStep>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isOnChain = !!show.show_contract;
+  const isRunning = step !== "idle" && step !== "done" && step !== "error";
+
+  const nextEpisodeNumber = show.episodes.length + 1;
+  const defaultTitle = `Episode ${nextEpisodeNumber}`;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) setFile(f);
+  };
+
+  const handleSubmit = async () => {
+    if (!file) return;
+    setStep("uploading");
+    setErrorMsg(null);
+    setUploadProgress(0);
+
+    try {
+      const token = await getAccessToken();
+      const authHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      // 1. Create episode record → get Mux upload URL
+      const epRes = await fetch(`${BASE_URL}/api/v1/my-shows/${show.id}/episodes`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          title: title.trim() || defaultTitle,
+          description: description.trim() || "",
+          is_free: isFree,
+        }),
+      });
+      if (!epRes.ok) {
+        const err = await epRes.json().catch(() => ({}));
+        throw new Error(err?.message ?? `Failed to create episode (${epRes.status})`);
+      }
+
+      const epJson = await epRes.json();
+      const singleEp = epJson?.data ?? epJson?.episode ?? epJson ?? null;
+      const created: { video: { id: number }; upload_url: string }[] =
+        epJson?.episodes ?? epJson?.videos ?? (singleEp?.upload_url ? [singleEp] : []);
+
+      if (!created[0]) throw new Error("No upload URL returned from server");
+      const { video, upload_url } = created[0];
+      const videoId = video.id;
+
+      // 2. Upload to Mux
+      await uploadToMux(upload_url, file, setUploadProgress);
+
+      // 3. Poll until Mux is ready (to get duration for on-chain registration)
+      setStep("processing");
+      const duration = await new Promise<number>((resolve, reject) => {
+        const start = Date.now();
+        const poll = async () => {
+          if (Date.now() - start > 5 * 60 * 1000) {
+            reject(new Error("Mux processing timed out after 5 minutes"));
+            return;
+          }
+          try {
+            const t = await getAccessToken();
+            const r = await fetch(`${BASE_URL}/api/v1/my-videos/${videoId}`, {
+              headers: t ? { Authorization: `Bearer ${t}` } : {},
+            });
+            if (!r.ok) { setTimeout(poll, 3000); return; }
+            const data = await r.json();
+            const status: string = data?.data?.mux_status ?? data?.mux_status;
+            const dur: number | null = data?.data?.duration ?? data?.duration ?? null;
+            if (status === "ready") { resolve(dur ?? 60); return; }
+            if (status === "errored") { reject(new Error("Video processing failed on Mux")); return; }
+          } catch { /* transient */ }
+          setTimeout(poll, 3000);
+        };
+        poll();
+      });
+
+      // 4. Register on-chain (only for on-chain shows)
+      if (isOnChain && show.show_contract) {
+        setStep("onchain");
+        const result = await addEpisodeOnChain({
+          showContractAddress: show.show_contract as Address,
+          durationSeconds: duration,
+          isFree,
+        });
+        if (result) {
+          // Persist on_chain_episode_id to backend
+          const t = await getAccessToken().catch(() => null);
+          await fetch(`${BASE_URL}/api/v1/my-shows/${show.id}/episodes/${videoId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+            body: JSON.stringify({ on_chain_episode_id: result.onChainEpisodeId.toString() }),
+          }).catch(() => {});
+        }
+      }
+
+      setStep("done");
+      onSuccess();
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+      setStep("error");
+    }
+  };
+
+  const stepLabel: Record<AddEpisodeStep, string> = {
+    idle: "",
+    uploading: `Uploading… ${uploadProgress}%`,
+    processing: "Processing video…",
+    onchain: "Approve wallet transaction to register on-chain…",
+    done: "Episode added!",
+    error: "",
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-neutral-primary rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-neutral-tertiary-border">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-neutral-primary-text">Add Episode</h3>
+          <button
+            onClick={onClose}
+            disabled={isRunning}
+            className="p-1.5 rounded-lg text-neutral-tertiary-text hover:text-neutral-primary-text hover:bg-neutral-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {step === "done" ? (
+          <div className="text-center py-4">
+            <CheckCircle className="w-10 h-10 text-semantic-success-text mx-auto mb-3" />
+            <p className="font-semibold text-neutral-primary-text mb-1">Episode added!</p>
+            <p className="text-sm text-neutral-tertiary-text mb-4">
+              {isOnChain ? "Uploaded and registered on-chain." : "Uploaded successfully."}
+            </p>
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-sm font-medium rounded-xl transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Title */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                Title
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={defaultTitle}
+                disabled={isRunning}
+                className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors disabled:opacity-60"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                Description <span className="font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                disabled={isRunning}
+                className="w-full px-3 py-2.5 rounded-xl border border-neutral-tertiary-border bg-neutral-secondary text-sm text-neutral-primary-text focus:outline-none focus:border-brand-pixsee-secondary transition-colors resize-none disabled:opacity-60"
+              />
+            </div>
+
+            {/* Free / Paid toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-primary-text">
+                  {isFree ? "Free episode" : "Paid episode"}
+                </p>
+                <p className="text-xs text-neutral-tertiary-text">
+                  {isFree ? "Viewers can watch without spending TIX." : "Viewers must spend TIX to unlock this episode."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFree((v) => !v)}
+                disabled={isRunning}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 disabled:opacity-60 ${!isFree ? "bg-brand-pixsee-secondary" : "bg-neutral-tertiary"}`}
+              >
+                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200 ${!isFree ? "left-6" : "left-1"}`} />
+              </button>
+            </div>
+
+            {/* File picker */}
+            <div>
+              <label className="block text-xs font-medium text-neutral-tertiary-text mb-1.5">
+                Video file <span className="text-semantic-error-primary">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isRunning}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-dashed border-neutral-tertiary-border hover:border-brand-pixsee-secondary bg-neutral-secondary text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Upload className="w-4 h-4 text-neutral-tertiary-text shrink-0" />
+                <span className={file ? "text-neutral-primary-text truncate" : "text-neutral-tertiary-text"}>
+                  {file ? file.name : "Choose a video file…"}
+                </span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </div>
+
+            {/* Progress / status */}
+            {isRunning && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-neutral-secondary-text">
+                  <Loader2 className="w-4 h-4 animate-spin text-brand-pixsee-secondary shrink-0" />
+                  <span>{stepLabel[step]}</span>
+                </div>
+                {step === "uploading" && (
+                  <div className="w-full h-1.5 bg-neutral-tertiary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brand-pixsee-secondary transition-all duration-200"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error */}
+            {step === "error" && errorMsg && (
+              <div className="flex items-start gap-2 text-sm text-semantic-error-primary bg-semantic-error-primary/10 rounded-xl p-3">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* On-chain notice */}
+            {isOnChain && (
+              <p className="text-xs text-neutral-tertiary-text bg-brand-pixsee-secondary/5 border border-brand-pixsee-secondary/20 rounded-xl p-3">
+                This show is on-chain. After uploading, you'll need to approve a wallet transaction to register the episode on the ShowContract.
+              </p>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={onClose}
+                disabled={isRunning}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-neutral-secondary-text hover:bg-neutral-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed border border-neutral-tertiary-border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={step === "error" ? handleSubmit : handleSubmit}
+                disabled={!file || isRunning}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRunning ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Working…</>
+                ) : step === "error" ? (
+                  "Retry"
+                ) : (
+                  "Add Episode"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function StudioShowPage() {
   const { getAccessToken } = usePrivy();
   const params = useParams<{ showId: string }>();
@@ -257,6 +602,7 @@ export default function StudioShowPage() {
     lockCreatorTokens,
     claimRoyalties,
     setMinRoyaltyClaim,
+    addEpisode: addEpisodeOnChain,
     walletAddress,
     isLoading: contractLoading,
   } = usePixseeContract();
@@ -291,6 +637,7 @@ export default function StudioShowPage() {
   const [customLockDate, setCustomLockDate] = useState("");
   const [lockStatus, setLockStatus] = useState<"idle" | "locking">("idle");
 
+  const [showAddEpisode, setShowAddEpisode] = useState(false);
   const [show, setShow] = useState<Show | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -999,12 +1346,23 @@ export default function StudioShowPage() {
 
             {/* Episodes */}
             <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border p-4 sm:p-5">
-              <h2 className="font-semibold text-neutral-primary-text mb-3 sm:mb-4">
-                Episodes{" "}
-                <span className="text-neutral-tertiary-text font-normal">
-                  ({show.episodes.length})
-                </span>
-              </h2>
+              <div className="flex items-center justify-between gap-3 mb-3 sm:mb-4">
+                <h2 className="font-semibold text-neutral-primary-text">
+                  Episodes{" "}
+                  <span className="text-neutral-tertiary-text font-normal">
+                    ({show.episodes.length})
+                  </span>
+                </h2>
+                {show.type === "tv_show" && (
+                  <button
+                    onClick={() => setShowAddEpisode(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-pixsee-secondary hover:bg-brand-pixsee-hover text-white text-xs font-medium rounded-full transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Episode
+                  </button>
+                )}
+              </div>
               {show.episodes.length === 0 ? (
                 <div className="text-center py-8 text-neutral-tertiary-text text-sm">
                   No episodes yet
@@ -1431,6 +1789,19 @@ export default function StudioShowPage() {
           </div>
         </div>
       </div>
+
+      {showAddEpisode && (
+        <AddEpisodeModal
+          show={show}
+          getAccessToken={getAccessToken}
+          addEpisodeOnChain={addEpisodeOnChain}
+          onSuccess={() => {
+            fetchShow();
+            setShowAddEpisode(false);
+          }}
+          onClose={() => setShowAddEpisode(false)}
+        />
+      )}
 
       {showDeleteConfirm && (
         <DeleteConfirmModal

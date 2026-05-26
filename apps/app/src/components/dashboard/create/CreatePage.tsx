@@ -1405,7 +1405,7 @@ const EpisodePricingCard = ({
         {episode.isPaid && (
           <p className="text-xs text-neutral-tertiary-text mt-2 bg-brand-pixsee-secondary/5 rounded-lg p-2">
             💡 Price is set automatically by the bonding curve — starts at
-            $0.001/min and adjusts based on demand. price.
+            $0.001/min and adjusts based on demand.
           </p>
         )}
       </div>
