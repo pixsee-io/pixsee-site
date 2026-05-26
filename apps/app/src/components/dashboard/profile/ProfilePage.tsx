@@ -654,7 +654,7 @@ const ProfilePage = () => {
                 </div>
               ) : (() => {
                 const watchTxs = transactions.filter((tx) =>
-                  tx.type === "watch_reward" || tx.type === "cashback" || tx.description?.toLowerCase().includes("watch")
+                  tx.type === "watch_cashback" || tx.type === "watch_reward" || tx.type === "cashback" || tx.description?.toLowerCase().includes("watch")
                 );
                 if (watchTxs.length === 0) return (
                   <p className="text-sm text-neutral-tertiary-text italic py-2">

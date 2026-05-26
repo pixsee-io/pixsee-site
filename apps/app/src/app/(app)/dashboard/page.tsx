@@ -158,7 +158,7 @@ function MyPortfolioTab({
             </Link>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-120 overflow-y-auto pr-1">
             {portfolio.holdings.map((holding) => {
               const tixBal = parseFloat(holding.tixBalanceDisplay);
               const lockedTix = holding.lockedTix
@@ -428,126 +428,52 @@ function MyBoxOfficeTab({
 }: {
   getAccessToken: () => Promise<string | null>;
 }) {
-  const { shows, isLoading } = useStudioShows(getAccessToken);
+  const { analytics } = useTransactionAnalytics(getAccessToken);
+
+  const boxOfficeClaimed = analytics
+    ? parseFloat(analytics.total_royalties_claimed_usdc).toFixed(4)
+    : null;
+  const creatorRoyaltiesClaimed = analytics
+    ? parseFloat(analytics.total_box_office_revenue_usdc).toFixed(4)
+    : null;
 
   return (
     <div className="space-y-6">
-      {/* All Shows list */}
-      <div>
-        <h3 className="text-base font-semibold text-neutral-primary-text mb-3">All Shows</h3>
-        {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-neutral-primary rounded-xl h-20 border border-neutral-tertiary-border animate-pulse"
-              />
-            ))}
-          </div>
-        ) : shows.length === 0 ? (
-          <div className="bg-neutral-primary rounded-xl p-8 border border-neutral-tertiary-border text-center">
-            <Film className="w-10 h-10 text-neutral-tertiary-text mx-auto mb-3" />
-            <p className="text-sm font-medium text-neutral-primary-text">No shows yet</p>
-            <p className="text-xs text-neutral-tertiary-text mt-1">
-              Create your first show to start earning on Pixsee
-            </p>
-            <Link
-              href="/create"
-              className="mt-4 inline-flex items-center gap-1.5 bg-brand-pixsee-secondary text-white text-sm px-4 py-2 rounded-full hover:bg-brand-pixsee-hover transition-colors"
-            >
-              Create a Show
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {shows.map((show) => {
-              const totalViews =
-                show.episodes?.reduce((sum, ep) => sum + ep.view_count, 0) ??
-                show.view_count ??
-                0;
-              const episodeCount = show.episodes?.length ?? show.episode_count ?? 0;
-              const isOnChain = !!show.on_chain_show_id;
-
-              return (
-                <Link
-                  key={show.id}
-                  href={`/dashboard/studio/${show.id}`}
-                  className="flex items-center gap-3 bg-neutral-primary rounded-xl p-3 border border-neutral-tertiary-border hover:border-brand-pixsee-secondary/40 transition-colors"
-                >
-                  {/* Cover */}
-                  <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-neutral-tertiary flex items-center justify-center">
-                    {show.cover_image_url ? (
-                      <Image
-                        src={show.cover_image_url}
-                        alt={show.title}
-                        width={56}
-                        height={56}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <Film className="w-5 h-5 text-neutral-tertiary-text" />
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-neutral-primary-text truncate">
-                      {show.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span
-                        className={cn(
-                          "text-[10px] font-semibold px-2 py-0.5 rounded-full",
-                          show.status === "published"
-                            ? "bg-semantic-success-primary/15 text-semantic-success-text"
-                            : "bg-neutral-secondary text-neutral-tertiary-text"
-                        )}
-                      >
-                        {show.status === "published" ? "Live" : "Draft"}
-                      </span>
-                      {isOnChain && (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-pixsee-secondary/15 text-brand-pixsee-secondary">
-                          On-chain
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1 text-xs text-neutral-tertiary-text">
-                        <Eye className="w-3 h-3" />
-                        {formatCount(totalViews)}
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-neutral-tertiary-text">
-                        <Play className="w-3 h-3" />
-                        {episodeCount} ep
-                      </span>
-                    </div>
-                  </div>
-
-                  <ChevronRight className="w-4 h-4 text-neutral-tertiary-text shrink-0" />
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* Box Office Revenue (90% viewer unlock) */}
       <div className="bg-neutral-primary rounded-2xl p-5 border border-neutral-tertiary-border">
-        <div className="mb-4">
-          <h3 className="text-base font-semibold text-neutral-primary-text">Box Office Revenue</h3>
-          <p className="text-xs text-neutral-tertiary-text mt-0.5">
-            90% of TIX viewers pay to unlock your videos — claim as USDC (7% platform fee
-            deducted on claim)
-          </p>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-base font-semibold text-neutral-primary-text">Box Office Revenue</h3>
+            <p className="text-xs text-neutral-tertiary-text mt-0.5">
+              90% of TIX viewers pay to unlock your videos — claim as USDC (7% platform fee
+              deducted on claim)
+            </p>
+          </div>
+          {boxOfficeClaimed !== null && parseFloat(boxOfficeClaimed) > 0 && (
+            <div className="text-right shrink-0">
+              <p className="text-xs text-neutral-tertiary-text">Total claimed</p>
+              <p className="text-sm font-bold text-semantic-success-text">${boxOfficeClaimed} USDC</p>
+            </div>
+          )}
         </div>
         <BoxOfficeRevenueSection getAccessToken={getAccessToken} />
       </div>
 
       {/* Creator Royalties (1% trade fee) */}
       <div className="bg-neutral-primary rounded-2xl p-5 border border-neutral-tertiary-border">
-        <div className="mb-4">
-          <h3 className="text-base font-semibold text-neutral-primary-text">Creator Royalties</h3>
-          <p className="text-xs text-neutral-tertiary-text mt-0.5">
-            1% of every TIX trade on your shows — claim as USDC, no platform fee
-          </p>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="text-base font-semibold text-neutral-primary-text">Creator Royalties</h3>
+            <p className="text-xs text-neutral-tertiary-text mt-0.5">
+              1% of every TIX trade on your shows — claim as USDC, no platform fee
+            </p>
+          </div>
+          {creatorRoyaltiesClaimed !== null && parseFloat(creatorRoyaltiesClaimed) > 0 && (
+            <div className="text-right shrink-0">
+              <p className="text-xs text-neutral-tertiary-text">Total claimed</p>
+              <p className="text-sm font-bold text-brand-primary">${creatorRoyaltiesClaimed} USDC</p>
+            </div>
+          )}
         </div>
         <CreatorRoyaltiesSection getAccessToken={getAccessToken} />
       </div>

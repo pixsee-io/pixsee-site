@@ -94,7 +94,7 @@ function notifText(n: { type: string; data: Record<string, any> }): string {
     case "show_updated":        return `Your show "${d.show_title ?? ""}" was updated`;
     case "show_deleted":        return `Your show "${d.show_title ?? ""}" was deleted`;
     case "show_published":      return `${d.creator_name ?? "A creator"} published "${d.show_title ?? "a show"}"`;
-    case "show_approved":       return `Your show "${d.show_title ?? ""}" has been approved — you can now open trading`;
+    case "show_approved":       return `Your show "${d.show_title ?? ""}" has been approved — you can now open to public!`;
     case "show_rejected":       return `Your show "${d.show_title ?? ""}" was not approved${d.rejection_reason ? `: ${d.rejection_reason}` : ""}`;
     default:                    return "New notification";
   }
@@ -119,6 +119,10 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
   const notifRef = useRef<HTMLDivElement>(null);
   const { getUsdcBalance, getEthBalance, walletAddress } = usePixseeContract();
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications(getAccessToken);
+
+  const HIDDEN_NOTIF_TYPES = ["show_created", "show_deleted"];
+  const visibleNotifications = notifications.filter((n) => !HIDDEN_NOTIF_TYPES.includes(n.type));
+  const visibleUnreadCount = visibleNotifications.filter((n) => !n.read).length;
 
   useEffect(() => {
     setMounted(true);
@@ -296,17 +300,14 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <button
-              onClick={() => {
-                setNotifOpen((o) => !o);
-                if (!notifOpen && unreadCount > 0) markAllRead();
-              }}
+              onClick={() => setNotifOpen((o) => !o)}
               className="relative p-2 rounded-lg hover:bg-neutral-secondary transition-colors"
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5 text-neutral-secondary-text" />
-              {unreadCount > 0 && (
+              {visibleUnreadCount > 0 && (
                 <span className="absolute top-1 right-1 min-w-4 h-4 px-0.5 bg-semantic-error-primary rounded-full flex items-center justify-center text-[9px] text-white font-bold">
-                  {unreadCount > 99 ? "99+" : unreadCount}
+                  {visibleUnreadCount > 99 ? "99+" : visibleUnreadCount}
                 </span>
               )}
             </button>
@@ -315,17 +316,17 @@ const DashboardHeader = ({ onMenuClick }: DashboardHeaderProps) => {
               <div className="absolute right-0 top-full mt-2 w-80 bg-neutral-primary border border-neutral-tertiary-border rounded-2xl shadow-xl z-50 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-tertiary-border">
                   <span className="font-semibold text-sm text-neutral-primary-text">Notifications</span>
-                  {notifications.some((n) => !n.read) && (
+                  {visibleNotifications.some((n) => !n.read) && (
                     <button onClick={markAllRead} className="text-xs text-brand-pixsee-secondary hover:underline">
                       Mark all read
                     </button>
                   )}
                 </div>
                 <div className="max-h-80 overflow-y-auto divide-y divide-neutral-tertiary-border">
-                  {notifications.length === 0 ? (
+                  {visibleNotifications.length === 0 ? (
                     <p className="text-sm text-neutral-tertiary-text text-center py-8 italic">No notifications yet.</p>
                   ) : (
-                    notifications.map((n) => (
+                    visibleNotifications.map((n) => (
                       <button
                         key={n.id}
                         onClick={() => markRead(n.id)}

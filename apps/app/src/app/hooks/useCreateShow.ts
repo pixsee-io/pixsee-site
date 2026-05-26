@@ -98,6 +98,7 @@ type UseCreateShowReturn = {
   removeUploadSlot: (localId: string) => void;
   uploadAll: (meta: ShowMeta) => Promise<boolean>;
   uploadSingle: (localId: string, file: File, epMeta: { title: string; description: string }) => Promise<void>;
+  deleteDraftShow: () => Promise<void>;
   syncEpisodesMeta: (episodesMeta: EpisodeMeta[]) => Promise<void>;
   pollUntilReady: (localId: string, knownVideoId?: number) => Promise<boolean>;
   publishAll: (meta: ShowMeta) => Promise<boolean>;
@@ -588,6 +589,18 @@ export function useCreateShow({
     []
   );
 
+  const deleteDraftShow = useCallback(async (): Promise<void> => {
+    const currentShowId = showIdRef.current;
+    if (!currentShowId) return;
+    const token = await getTokenRef.current();
+    await fetch(`${BASE_URL}/api/v1/my-shows/${currentShowId}`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }).catch(() => {});
+    setShowId(null);
+    showIdRef.current = null;
+  }, []);
+
   const publishAll = useCallback(
     async (meta: ShowMeta): Promise<boolean> => {
       setIsPublishing(true);
@@ -816,6 +829,7 @@ export function useCreateShow({
     initEpisodes,
     uploadAll,
     uploadSingle,
+    deleteDraftShow,
     syncEpisodesMeta,
     pollUntilReady,
     publishAll,

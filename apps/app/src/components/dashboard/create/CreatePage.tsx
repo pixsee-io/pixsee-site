@@ -2,6 +2,7 @@
 
 import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -319,6 +320,7 @@ const CreatePage = () => {
     removeUploadSlot,
     uploadAll,
     uploadSingle,
+    deleteDraftShow,
     syncEpisodesMeta,
     pollUntilReady,
     publishAll,
@@ -401,7 +403,6 @@ const CreatePage = () => {
   };
 
   const handleUploadNext = () => {
-    // Push final episode titles/descriptions before advancing
     syncEpisodesMeta(
       episodes.map((ep) => ({
         localId: ep.id,
@@ -455,6 +456,7 @@ const CreatePage = () => {
     });
     if (ok) {
       setLaunched(true);
+      toast.success(`"${showDetails.title}" is live! Your show has been registered on-chain.`);
       const dest = showId
         ? `/dashboard/studio/${showId}${onChainInfo?.bondingCurve ? `?bc=${onChainInfo.bondingCurve}` : ""}`
         : "/watch";
@@ -464,7 +466,15 @@ const CreatePage = () => {
 
   const handleBack = () => {
     const prevIndex = currentStepIndex - 1;
-    if (prevIndex >= 0) setCurrentStep(steps[prevIndex].id);
+    if (prevIndex >= 0) {
+      if (currentStep === "upload" && uploadTriggered) {
+        // Delete the draft show (takes its episodes with it) so the user can
+        // re-upload cleanly without accumulating duplicate episode records.
+        deleteDraftShow();
+        setUploadTriggered(false);
+      }
+      setCurrentStep(steps[prevIndex].id);
+    }
   };
 
   //  Helpers
@@ -535,10 +545,8 @@ const CreatePage = () => {
     );
 
     if (!uploadTriggered) {
-      // First file — create the show and upload everything via uploadAll
       setTimeout(() => startUpload(), 0);
     } else {
-      // Show already created — upload this episode directly
       const ep = episodes.find((ep) => ep.id === episodeId);
       uploadSingle(episodeId, file, {
         title: ep?.title ?? `Episode ${episodeId}`,
@@ -890,41 +898,56 @@ const CreatePage = () => {
             )}
 
             {/* Drop zone per episode */}
-            <input
-              type="file"
-              accept="video/*"
-              id={`file-input-${ep.id}`}
-              className="hidden"
-              onChange={(e) => handleVideoFileChange(e, ep.id)}
-            />
-            <label
-              htmlFor={`file-input-${ep.id}`}
-              className={cn(
-                "flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors mb-4",
-                uploadState?.file
-                  ? "border-semantic-success-primary bg-semantic-success-subtle"
-                  : "border-neutral-tertiary-border hover:border-brand-pixsee-secondary"
-              )}
-            >
-              {uploadState?.file ? (
+            {(() => {
+              const isActive = (uploadState?.uploadProgress ?? 0) > 0 || uploadState?.apiVideoId !== null;
+              return (
                 <>
-                  <Check className="w-6 h-6 text-semantic-success-primary mb-1" />
-                  <span className="text-sm text-semantic-success-primary font-medium truncate max-w-full px-2">
-                    {uploadState.file.name}
-                  </span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    id={`file-input-${ep.id}`}
+                    className="hidden"
+                    disabled={isActive}
+                    onChange={(e) => handleVideoFileChange(e, ep.id)}
+                  />
+                  <label
+                    htmlFor={isActive ? undefined : `file-input-${ep.id}`}
+                    className={cn(
+                      "flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 text-center transition-colors mb-4",
+                      isActive
+                        ? "border-semantic-success-primary bg-semantic-success-subtle cursor-default"
+                        : uploadState?.file
+                        ? "border-semantic-success-primary bg-semantic-success-subtle cursor-pointer"
+                        : "border-neutral-tertiary-border hover:border-brand-pixsee-secondary cursor-pointer"
+                    )}
+                  >
+                    {uploadState?.file ? (
+                      <>
+                        <Check className="w-6 h-6 text-semantic-success-primary mb-1" />
+                        <span className="text-sm text-semantic-success-primary font-medium truncate max-w-full px-2">
+                          {uploadState.file.name}
+                        </span>
+                        {isActive && (
+                          <span className="text-xs text-neutral-tertiary-text mt-1">
+                            Uploading — go back to Details to start over
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 mb-2 text-brand-pixsee-secondary" />
+                        <span className="text-brand-pixsee-secondary font-medium">
+                          Upload Video
+                        </span>
+                        <p className="text-sm text-neutral-tertiary-text mt-1">
+                          Drag & drop or click to select
+                        </p>
+                      </>
+                    )}
+                  </label>
                 </>
-              ) : (
-                <>
-                  <Upload className="w-6 h-6 mb-2 text-brand-pixsee-secondary" />
-                  <span className="text-brand-pixsee-secondary font-medium">
-                    Upload Video
-                  </span>
-                  <p className="text-sm text-neutral-tertiary-text mt-1">
-                    Drag & drop or click to select
-                  </p>
-                </>
-              )}
-            </label>
+              );
+            })()}
 
             {/* Only show episode-level title/description for series */}
             {contentType === "series" && (

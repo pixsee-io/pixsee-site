@@ -89,6 +89,7 @@ const BuyAndWatchButton = ({
   showContractAddress,
   bondingCurveAddress,
   tickSymbol: tickSymbolProp,
+  showTitle,
   getAccessToken,
   onSuccess,
   bare = false,
@@ -97,6 +98,7 @@ const BuyAndWatchButton = ({
   showContractAddress: Address;
   bondingCurveAddress: Address;
   tickSymbol?: string;
+  showTitle?: string;
   getAccessToken: () => Promise<string | null>;
   onSuccess: () => void;
   bare?: boolean;
@@ -200,8 +202,11 @@ const BuyAndWatchButton = ({
       const token = await getAccessToken().catch(() => null);
       recordTransaction(token, {
         type: "episode_unlocked_with_tix",
+        description: `10% TIX cashback for unlocking episode ${episode.episode_number} of ${showTitle ?? "Unknown Show"}`,
         show_id: episode.show_id,
+        show_title: showTitle,
         episode_id: episode.id,
+        episode_number: episode.episode_number,
         on_chain_episode_id: String(onChainEpisodeId),
         show_contract_address: showContractAddress,
         tx_hash: tx,
@@ -242,8 +247,11 @@ const BuyAndWatchButton = ({
       const token = await getAccessToken().catch(() => null);
       recordTransaction(token, {
         type: "episode_purchased",
+        description: `10% TIX cashback for unlocking episode ${episode.episode_number} of ${showTitle ?? "Unknown Show"}`,
         show_id: episode.show_id,
+        show_title: showTitle,
         episode_id: episode.id,
+        episode_number: episode.episode_number,
         on_chain_episode_id: String(onChainEpisodeId),
         show_contract_address: showContractAddress,
         tx_hash: tx,
@@ -384,6 +392,7 @@ const VideoPlayer = ({
   showContractAddress,
   bondingCurveAddress,
   tickSymbol,
+  showTitle,
   videoFormat,
   creatorPhaseActive,
   getAccessToken,
@@ -396,6 +405,7 @@ const VideoPlayer = ({
   showContractAddress?: Address;
   bondingCurveAddress?: Address;
   tickSymbol?: string;
+  showTitle?: string;
   videoFormat?: "landscape" | "portrait" | null;
   creatorPhaseActive?: boolean;
   getAccessToken: () => Promise<string | null>;
@@ -593,6 +603,7 @@ const VideoPlayer = ({
                     showContractAddress={showContractAddress}
                     bondingCurveAddress={bondingCurveAddress}
                     tickSymbol={tickSymbol}
+                    showTitle={showTitle}
                     getAccessToken={getAccessToken}
                     onSuccess={onAccessGranted}
                     bare
@@ -1136,6 +1147,7 @@ const ShowDetails = ({ id }: { id: string }) => {
                   showContractAddress={showContractAddress}
                   bondingCurveAddress={bondingCurveAddress}
                   tickSymbol={resolvedTickSymbol}
+                  showTitle={apiShow?.title}
                   videoFormat={apiShow?.video_format}
                   creatorPhaseActive={creatorPhaseActive ?? false}
                   getAccessToken={getAccessToken}

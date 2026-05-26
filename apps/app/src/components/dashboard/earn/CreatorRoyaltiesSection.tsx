@@ -15,6 +15,13 @@ import { recordTransaction } from "@/app/lib/apiClient";
 
 const BASE_URL = process.env.NEXT_PUBLIC_PIXSEE_API_URL ?? "";
 
+function fmtUsdc(val: number): string {
+  if (val === 0) return "0.0000";
+  if (val >= 0.0001) return val.toFixed(4);
+  if (val >= 0.000001) return val.toFixed(6);
+  return "< 0.000001";
+}
+
 const feeClient = createPublicClient({
   chain: baseSepolia,
   transport: http(BASE_SEPOLIA_RPC, { batch: true }),
@@ -182,7 +189,7 @@ export function CreatorRoyaltiesSection({
                   <p className="text-xs text-neutral-secondary-text mt-1">
                     Pending:{" "}
                     <span className="font-medium text-brand-primary">
-                      ${pendingUsdc.toFixed(4)} USDC
+                      ${fmtUsdc(pendingUsdc)} USDC
                     </span>
                   </p>
                 ) : (
@@ -195,7 +202,7 @@ export function CreatorRoyaltiesSection({
                   <p className="text-xs text-neutral-tertiary-text mt-1">
                     Total claimed:{" "}
                     <span className="font-medium text-semantic-success-text">
-                      ${totalClaimed.toFixed(4)} USDC
+                      ${fmtUsdc(totalClaimed)} USDC
                     </span>
                   </p>
                 )}

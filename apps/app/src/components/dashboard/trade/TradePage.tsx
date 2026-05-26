@@ -582,7 +582,7 @@ export default function TradePage() {
           </div>
         ) : (
           <div className="bg-neutral-primary rounded-2xl border border-neutral-tertiary-border overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-120 overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-neutral-tertiary-border">
